@@ -6,6 +6,9 @@ import java.util.regex.Pattern;
 
 /**
  * 金额转换工具类，用于在数字金额和中文大写金额之间进行转换
+ * 
+ * @author tianyu.tang
+ * @version 1.0
  */
 public class AmountConverter {
     
@@ -33,15 +36,19 @@ public class AmountConverter {
      * @return 中文大写金额
      */
     public static String convertToChineseAmount(BigDecimal money) {
+        LogUtils.info("开始将数字转换为中文大写金额: " + money.toPlainString());
+        
         StringBuilder sb = new StringBuilder();
         
         // 零元整的情况
         if (money.compareTo(BigDecimal.ZERO) == 0) {
+            LogUtils.info("数字为0，返回\"零元整\"");
             return CN_ZERO_FULL;
         }
         
         // 负数处理
         if (money.compareTo(BigDecimal.ZERO) < 0) {
+            LogUtils.info("处理负数: " + money.toPlainString());
             sb.append(CN_NEGATIVE);
             money = money.abs();
         }
@@ -49,6 +56,8 @@ public class AmountConverter {
         // 格式化金额 - 使用setScale保留4位小数，确保精度一致
         money = money.setScale(4, java.math.RoundingMode.HALF_UP);
         String strNum = money.toPlainString();
+        LogUtils.info("格式化金额（保留4位小数）: " + strNum);
+        
         String[] numParts = strNum.split("\\.");
         
         // 处理整数部分
@@ -66,22 +75,26 @@ public class AmountConverter {
             // 5-8位：万位组
             // 9-12位：亿位组
             // 万亿及以上暂不处理
+            LogUtils.info("整数部分: " + integerPart + ", 长度: " + integerPart.length());
             
             int length = integerPart.length();
             
             // 处理亿位组（最多4位）
             if (length > 8) {
                 String yiSection = integerPart.substring(0, length - 8);
+                LogUtils.info("处理亿位组: " + yiSection);
                 sb.append(sectionToChinese(yiSection)).append("亿");
             }
             
             // 处理万位组（最多4位）
             if (length > 4 && length <= 8) {
                 String wanSection = integerPart.substring(0, length - 4);
+                LogUtils.info("处理万位组: " + wanSection);
                 sb.append(sectionToChinese(wanSection)).append("万");
             } else if (length > 8) {
                 String wanSection = integerPart.substring(length - 8, length - 4);
                 if (!wanSection.equals("0000")) {
+                    LogUtils.info("处理万位组: " + wanSection);
                     if (wanSection.charAt(0) == '0') {
                         sb.append("零");
                     }
@@ -92,6 +105,7 @@ public class AmountConverter {
             // 处理个位组（最后4位）
             String geSection = integerPart.substring(Math.max(length - 4, 0));
             if (!geSection.equals("0000")) {
+                LogUtils.info("处理个位组: " + geSection);
                 if (length > 4 && geSection.charAt(0) == '0') {
                     sb.append("零");
                 }
@@ -106,6 +120,7 @@ public class AmountConverter {
         int decimalPartLength = decimalPart.length();
         
         if (decimalPartLength > 0) {
+            LogUtils.info("处理小数部分: " + decimalPart);
             boolean hasDecimal = false;
             for (int i = 0; i < decimalPartLength; i++) {
                 if (i >= CN_DECIMAL_UNIT.length) {
@@ -115,16 +130,23 @@ public class AmountConverter {
                 if (n != 0) {
                     hasDecimal = true;
                     sb.append(CN_UPPER_NUMBER[n]).append(CN_DECIMAL_UNIT[i]);
+                    LogUtils.info("添加小数位: " + CN_UPPER_NUMBER[n] + CN_DECIMAL_UNIT[i]);
                 }
             }
             if (!hasDecimal) {
                 sb.append(CN_INTEGER);
+                LogUtils.info("小数部分全为0，添加\"整\"");
             }
         } else {
             sb.append(CN_INTEGER);
+            LogUtils.info("没有小数部分，添加\"整\"");
         }
         
-        return sb.toString();
+        String result = sb.toString();
+        LogUtils.info("数字转换为大写金额完成: " + result);
+        LogUtils.logAmountConversion(money.toPlainString(), result, true);
+        
+        return result;
     }
     
     /**
@@ -147,6 +169,7 @@ public class AmountConverter {
         }
         
         length = section.length();
+        LogUtils.info("处理4位以内数字节: " + section + ", 长度: " + length);
         
         for (int i = 0; i < length; i++) {
             int digit = section.charAt(i) - '0';
@@ -155,6 +178,7 @@ public class AmountConverter {
                 if (i < length - 1 && section.charAt(i + 1) != '0') {
                     // 当前位是0，下一位不是0，需要加"零"
                     sb.append(CN_UPPER_NUMBER[0]);
+                    LogUtils.info("位置" + i + "为0，下一位不为0，添加\"零\"");
                 }
             } else {
                 // 非0数字
@@ -162,6 +186,9 @@ public class AmountConverter {
                 if (i < length - 1) {
                     // 不是最后一位，需要加单位（仟、佰、拾）
                     sb.append(CN_INTEGER_UNIT[length - i - 1]);
+                    LogUtils.info("位置" + i + "添加: " + CN_UPPER_NUMBER[digit] + CN_INTEGER_UNIT[length - i - 1]);
+                } else {
+                    LogUtils.info("位置" + i + "添加: " + CN_UPPER_NUMBER[digit]);
                 }
             }
         }
@@ -176,20 +203,26 @@ public class AmountConverter {
      * @return 数字金额
      */
     public static BigDecimal convertToNumber(String chineseAmount) {
+        LogUtils.info("开始将中文大写金额转换为数字: " + chineseAmount);
+        
         if (chineseAmount == null || chineseAmount.isEmpty()) {
+            LogUtils.warning("输入为空，返回0");
             return BigDecimal.ZERO;
         }
         
         // 去除空格和特殊字符
         chineseAmount = chineseAmount.replaceAll("[,，　 ]", "");
+        LogUtils.info("去除空格和特殊字符后: " + chineseAmount);
         
         boolean negative = false;
         if (chineseAmount.startsWith(CN_NEGATIVE)) {
             negative = true;
             chineseAmount = chineseAmount.substring(1);
+            LogUtils.info("检测到负数，移除负号: " + chineseAmount);
         }
         
         if (chineseAmount.equals(CN_ZERO_FULL)) {
+            LogUtils.info("检测到\"零元整\"，返回0");
             return BigDecimal.ZERO;
         }
         
@@ -200,7 +233,10 @@ public class AmountConverter {
         Matcher matcherYi = patternYi.matcher(chineseAmount);
         if (matcherYi.find()) {
             String yiPart = matcherYi.group(1);
-            result = result.add(convertSection(yiPart).multiply(new BigDecimal("100000000")));
+            LogUtils.info("检测到亿位: " + yiPart);
+            BigDecimal yiValue = convertSection(yiPart).multiply(new BigDecimal("100000000"));
+            result = result.add(yiValue);
+            LogUtils.info("亿位部分值: " + yiValue);
             chineseAmount = chineseAmount.substring(matcherYi.end());
         }
         
@@ -209,7 +245,10 @@ public class AmountConverter {
         Matcher matcherWan = patternWan.matcher(chineseAmount);
         if (matcherWan.find()) {
             String wanPart = matcherWan.group(1);
-            result = result.add(convertSection(wanPart).multiply(new BigDecimal("10000")));
+            LogUtils.info("检测到万位: " + wanPart);
+            BigDecimal wanValue = convertSection(wanPart).multiply(new BigDecimal("10000"));
+            result = result.add(wanValue);
+            LogUtils.info("万位部分值: " + wanValue);
             chineseAmount = chineseAmount.substring(matcherWan.end());
         }
         
@@ -218,7 +257,10 @@ public class AmountConverter {
         Matcher matcherYuan = patternYuan.matcher(chineseAmount);
         if (matcherYuan.find()) {
             String yuanPart = matcherYuan.group(1);
-            result = result.add(convertSection(yuanPart));
+            LogUtils.info("检测到元位: " + yuanPart);
+            BigDecimal yuanValue = convertSection(yuanPart);
+            result = result.add(yuanValue);
+            LogUtils.info("元位部分值: " + yuanValue);
             chineseAmount = chineseAmount.substring(matcherYuan.end());
         }
         
@@ -229,7 +271,9 @@ public class AmountConverter {
             int index = chineseAmount.indexOf("角");
             char c = chineseAmount.charAt(index - 1);
             int num = getChineseNumber(c);
-            decimalResult = decimalResult.add(new BigDecimal("0.1").multiply(new BigDecimal(num)));
+            BigDecimal value = new BigDecimal("0.1").multiply(new BigDecimal(num));
+            decimalResult = decimalResult.add(value);
+            LogUtils.info("检测到角位: " + c + ", 值: " + value);
             chineseAmount = chineseAmount.substring(index + 1);
         }
         
@@ -237,7 +281,9 @@ public class AmountConverter {
             int index = chineseAmount.indexOf("分");
             char c = chineseAmount.charAt(index - 1);
             int num = getChineseNumber(c);
-            decimalResult = decimalResult.add(new BigDecimal("0.01").multiply(new BigDecimal(num)));
+            BigDecimal value = new BigDecimal("0.01").multiply(new BigDecimal(num));
+            decimalResult = decimalResult.add(value);
+            LogUtils.info("检测到分位: " + c + ", 值: " + value);
             chineseAmount = chineseAmount.substring(index + 1);
         }
         
@@ -245,7 +291,9 @@ public class AmountConverter {
             int index = chineseAmount.indexOf("厘");
             char c = chineseAmount.charAt(index - 1);
             int num = getChineseNumber(c);
-            decimalResult = decimalResult.add(new BigDecimal("0.001").multiply(new BigDecimal(num)));
+            BigDecimal value = new BigDecimal("0.001").multiply(new BigDecimal(num));
+            decimalResult = decimalResult.add(value);
+            LogUtils.info("检测到厘位: " + c + ", 值: " + value);
             chineseAmount = chineseAmount.substring(index + 1);
         }
         
@@ -253,22 +301,30 @@ public class AmountConverter {
             int index = chineseAmount.indexOf("毫");
             char c = chineseAmount.charAt(index - 1);
             int num = getChineseNumber(c);
-            decimalResult = decimalResult.add(new BigDecimal("0.0001").multiply(new BigDecimal(num)));
+            BigDecimal value = new BigDecimal("0.0001").multiply(new BigDecimal(num));
+            decimalResult = decimalResult.add(value);
+            LogUtils.info("检测到毫位: " + c + ", 值: " + value);
         }
         
         result = result.add(decimalResult);
+        LogUtils.info("小数部分合计: " + decimalResult);
         
         // 处理整字符
         if (chineseAmount.contains("整") && decimalResult.compareTo(BigDecimal.ZERO) == 0) {
-            // 如果有"整"且没有小数部分，则不做处理
+            LogUtils.info("检测到\"整\"字，无小数部分");
         }
         
         if (negative) {
             result = result.negate();
+            LogUtils.info("应用负号，最终结果: " + result);
         }
         
         // 设置精度为4位小数，与转换为中文时保持一致
-        return result.setScale(4, java.math.RoundingMode.HALF_UP);
+        BigDecimal finalResult = result.setScale(4, java.math.RoundingMode.HALF_UP);
+        LogUtils.info("中文大写金额转换为数字完成: " + finalResult.toPlainString());
+        LogUtils.logAmountConversion(chineseAmount, finalResult.toPlainString(), false);
+        
+        return finalResult;
     }
     
     /**
@@ -283,6 +339,7 @@ public class AmountConverter {
                 return i;
             }
         }
+        LogUtils.warning("无法识别的中文数字: " + c + ", 返回0");
         return 0;
     }
     
@@ -293,6 +350,7 @@ public class AmountConverter {
      * @return 对应的数值
      */
     private static BigDecimal convertSection(String section) {
+        LogUtils.info("转换中文数字节: " + section);
         BigDecimal result = BigDecimal.ZERO;
         int number = 0;
         boolean hasNumber = false;
@@ -305,6 +363,7 @@ public class AmountConverter {
             if (digit > 0) {
                 number = digit;
                 hasNumber = true;
+                LogUtils.info("位置" + i + "识别到数字: " + c + " -> " + digit);
                 continue;
             }
             
@@ -312,25 +371,37 @@ public class AmountConverter {
             String unit = String.valueOf(c);
             if ("拾".equals(unit)) {
                 if (hasNumber) {
-                    result = result.add(new BigDecimal(number * 10));
+                    BigDecimal value = new BigDecimal(number * 10);
+                    result = result.add(value);
+                    LogUtils.info("处理十位: " + number + "拾 -> " + value);
                 } else {
-                    result = result.add(new BigDecimal(10));
+                    BigDecimal value = new BigDecimal(10);
+                    result = result.add(value);
+                    LogUtils.info("处理十位: 拾 -> " + value);
                 }
                 number = 0;
                 hasNumber = false;
             } else if ("佰".equals(unit)) {
                 if (hasNumber) {
-                    result = result.add(new BigDecimal(number * 100));
+                    BigDecimal value = new BigDecimal(number * 100);
+                    result = result.add(value);
+                    LogUtils.info("处理百位: " + number + "佰 -> " + value);
                 } else {
-                    result = result.add(new BigDecimal(100));
+                    BigDecimal value = new BigDecimal(100);
+                    result = result.add(value);
+                    LogUtils.info("处理百位: 佰 -> " + value);
                 }
                 number = 0;
                 hasNumber = false;
             } else if ("仟".equals(unit)) {
                 if (hasNumber) {
-                    result = result.add(new BigDecimal(number * 1000));
+                    BigDecimal value = new BigDecimal(number * 1000);
+                    result = result.add(value);
+                    LogUtils.info("处理千位: " + number + "仟 -> " + value);
                 } else {
-                    result = result.add(new BigDecimal(1000));
+                    BigDecimal value = new BigDecimal(1000);
+                    result = result.add(value);
+                    LogUtils.info("处理千位: 仟 -> " + value);
                 }
                 number = 0;
                 hasNumber = false;
@@ -339,9 +410,12 @@ public class AmountConverter {
         
         // 处理最后一个数字
         if (hasNumber) {
-            result = result.add(new BigDecimal(number));
+            BigDecimal value = new BigDecimal(number);
+            result = result.add(value);
+            LogUtils.info("处理末尾数字: " + number + " -> " + value);
         }
         
+        LogUtils.info("中文数字节转换结果: " + section + " -> " + result);
         return result;
     }
     
@@ -352,10 +426,14 @@ public class AmountConverter {
      * @return 中文大写金额
      */
     public static String convertToChinese(String amount) {
+        LogUtils.info("快速数字转中文: " + amount);
         try {
             BigDecimal money = new BigDecimal(amount);
-            return convertToChineseAmount(money);
+            String result = convertToChineseAmount(money);
+            return result;
         } catch (Exception e) {
+            LogUtils.error("数字转中文出错: " + e.getMessage(), e);
+            LogUtils.logAmountError(amount, e.getMessage(), true);
             return "无效金额";
         }
     }
@@ -367,11 +445,15 @@ public class AmountConverter {
      * @return 数字金额字符串
      */
     public static String convertToNumeric(String chineseAmount) {
+        LogUtils.info("快速中文转数字: " + chineseAmount);
         try {
             BigDecimal number = convertToNumber(chineseAmount);
             // 使用toPlainString确保不使用科学计数法
-            return number.toPlainString();
+            String result = number.toPlainString();
+            return result;
         } catch (Exception e) {
+            LogUtils.error("中文转数字出错: " + e.getMessage(), e);
+            LogUtils.logAmountError(chineseAmount, e.getMessage(), false);
             return "无效金额";
         }
     }
