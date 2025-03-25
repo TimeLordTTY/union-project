@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="15" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.timelordtty.controller.AmountConverterController"
+      prefHeight="400.0" prefWidth="600.0">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <Label text="金额转换工具" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+    
+    <TitledPane text="数字金额转大写" expanded="true">
+        <VBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="数字金额："/>
+                <TextField fx:id="numericAmountField" HBox.hgrow="ALWAYS" promptText="请输入数字金额，例如：123456.78"/>
+                <Button text="转换" onAction="#convertToChineseAmount"/>
+            </HBox>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="中文金额："/>
+                <TextField fx:id="chineseAmountField" HBox.hgrow="ALWAYS" editable="false"/>
+                <Button text="复制" onAction="#copyChineseAmount"/>
+            </HBox>
+        </VBox>
+    </TitledPane>
+    
+    <TitledPane text="中文金额转数字" expanded="true">
+        <VBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="中文金额："/>
+                <TextField fx:id="chineseInputField" HBox.hgrow="ALWAYS" promptText="请输入中文金额，例如：壹拾贰万叁仟肆佰伍拾陆元柒角捌分"/>
+                <Button text="转换" onAction="#convertToNumericAmount"/>
+            </HBox>
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="数字金额："/>
+                <TextField fx:id="numericResultField" HBox.hgrow="ALWAYS" editable="false"/>
+                <Button text="复制" onAction="#copyNumericAmount"/>
+            </HBox>
+        </VBox>
+    </TitledPane>
+</VBox> 

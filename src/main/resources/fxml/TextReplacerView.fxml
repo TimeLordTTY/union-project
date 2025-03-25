@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="15" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.timelordtty.controller.TextReplacerController"
+      prefHeight="400.0" prefWidth="600.0">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="文本替换工具" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+    
+    <SplitPane dividerPositions="0.3" VBox.vgrow="ALWAYS">
+        <VBox spacing="10">
+            <Label text="替换规则:" />
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button text="添加" onAction="#addReplacementRule" HBox.hgrow="NEVER"/>
+                <Button text="删除" onAction="#removeReplacementRule" HBox.hgrow="NEVER"/>
+                <Button text="清空" onAction="#clearReplacementRules" HBox.hgrow="NEVER"/>
+            </HBox>
+            
+            <TableView fx:id="replacementRuleTableView" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="fromColumn" text="查找内容" prefWidth="100"/>
+                    <TableColumn fx:id="toColumn" text="替换为" prefWidth="100"/>
+                </columns>
+            </TableView>
+        </VBox>
+        
+        <VBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="输入文本:"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="替换" onAction="#replaceText" HBox.hgrow="NEVER"/>
+                <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
+            </HBox>
+            
+            <TextArea fx:id="inputTextArea" promptText="请输入需要替换的文本..." wrapText="true" VBox.vgrow="ALWAYS"/>
+            
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="替换结果:"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="复制结果" onAction="#copyResult" HBox.hgrow="NEVER"/>
+            </HBox>
+            
+            <TextArea fx:id="resultTextArea" promptText="替换后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </SplitPane>
+</VBox> 

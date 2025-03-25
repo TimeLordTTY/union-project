@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.timelordtty.controller.MainController"
+            prefHeight="600.0" prefWidth="800.0">
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #f5f5f5; -fx-padding: 10;">
+            <Label text="多功能工具集" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <Tab text="金额转换">
+                <fx:include source="AmountConverterView.fxml"/>
+            </Tab>
+            <Tab text="文档生成">
+                <fx:include source="DocumentGeneratorView.fxml"/>
+            </Tab>
+            <Tab text="文本纠错">
+                <fx:include source="TextCorrectorView.fxml"/>
+            </Tab>
+            <Tab text="文本替换">
+                <fx:include source="TextReplacerView.fxml"/>
+            </Tab>
+        </TabPane>
+    </center>
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10;">
+            <Label text="版本: 1.0.0"/>
+        </HBox>
+    </bottom>
+</BorderPane> 

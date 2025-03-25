@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="15" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.timelordtty.controller.DocumentGeneratorController"
+      prefHeight="400.0" prefWidth="600.0">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="文档生成器" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+    
+    <GridPane hgap="10" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints hgrow="NEVER" minWidth="100" />
+            <ColumnConstraints hgrow="ALWAYS" />
+            <ColumnConstraints hgrow="NEVER" />
+        </columnConstraints>
+        
+        <Label text="模板文件:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+        <TextField fx:id="templateFileField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+        <Button text="选择文件" onAction="#chooseTemplateFile" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+        
+        <Label text="数据文件:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+        <TextField fx:id="dataFileField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+        <Button text="选择文件" onAction="#chooseDataFile" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+        
+        <Label text="输出目录:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+        <TextField fx:id="outputDirField" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+        <Button text="选择目录" onAction="#chooseOutputDirectory" GridPane.columnIndex="2" GridPane.rowIndex="2" />
+        
+        <Label text="文档类型:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+        <ComboBox fx:id="documentTypeComboBox" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+    </GridPane>
+    
+    <HBox alignment="CENTER">
+        <Button text="生成文档" onAction="#generateDocument" styleClass="primary-button" />
+    </HBox>
+    
+    <VBox VBox.vgrow="ALWAYS">
+        <Label text="生成日志:" />
+        <TextArea fx:id="logTextArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" />
+    </VBox>
+</VBox> 
