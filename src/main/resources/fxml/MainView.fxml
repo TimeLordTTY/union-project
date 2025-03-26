@@ -27,9 +27,6 @@ fx:controller="com.timelordtty.MainController">
             <Tab text="文本纠错">
                 <fx:include source="TextCorrectorView.fxml"/>
             </Tab>
-            <Tab text="文本替换">
-                <fx:include source="TextReplacerView.fxml"/>
-            </Tab>
         </TabPane>
    </center>
 </BorderPane> 
