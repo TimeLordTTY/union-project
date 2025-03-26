@@ -10,7 +10,6 @@
 
     <properties>
         <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>17.0.2</javafx.version>
         <mainClass>com.timelordtty.MainApp</mainClass>
@@ -123,6 +122,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.9</version>
+        </dependency>
+        
+        <!-- H2??? -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.2.224</version>
         </dependency>
     </dependencies>
 
@@ -245,56 +251,6 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            
-            <!-- Launch4j Maven ??????JAR???EXE -->
-            <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
-                <version>2.5.0</version>
-                <executions>
-                    <execution>
-                        <id>l4j-gui</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>launch4j</goal>
-                        </goals>
-                        <configuration>
-                            <headerType>gui</headerType>
-                            <outfile>target/multi-tools.exe</outfile>
-                            <jar>target/multi-tools-${project.version}.jar</jar>
-                            <errTitle>Multi-Tools</errTitle>
-                            <cmdLine>--module-path "lib" --add-modules=javafx.controls,javafx.fxml</cmdLine>
-                            <classPath>
-                                <mainClass>${mainClass}</mainClass>
-                                <addDependencies>false</addDependencies>
-                                <jarLocation>lib</jarLocation>
-                                <preCp>lib/*.jar</preCp>
-                            </classPath>
-                            <jre>
-                                <path>jre</path>
-                                <bundledJre64Bit>true</bundledJre64Bit>
-                                <minVersion>11</minVersion>
-                                <initialHeapSize>128</initialHeapSize>
-                                <maxHeapSize>512</maxHeapSize>
-                                <opts>
-                                    <opt>-Dfile.encoding=UTF-8</opt>
-                                </opts>
-                            </jre>
-                            <versionInfo>
-                                <fileVersion>1.0.0.0</fileVersion>
-                                <txtFileVersion>1.0.0.0</txtFileVersion>
-                                <fileDescription>Multi-Tools</fileDescription>
-                                <copyright>Copyright © 2023 TimeLordTTY</copyright>
-                                <productVersion>1.0.0.0</productVersion>
-                                <txtProductVersion>1.0.0.0</txtProductVersion>
-                                <productName>Multi-Tools</productName>
-                                <internalName>Multi-Tools</internalName>
-                                <originalFilename>Multi-Tools.exe</originalFilename>
-                            </versionInfo>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

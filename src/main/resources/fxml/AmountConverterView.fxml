@@ -12,8 +12,6 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     
-    <Label text="金额转换工具" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
-    
     <TitledPane text="数字金额转大写" expanded="true">
         <VBox spacing="10">
             <HBox spacing="10" alignment="CENTER_LEFT">

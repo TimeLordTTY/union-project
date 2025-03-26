@@ -5,33 +5,52 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController">
-   <children>
-      <Label layoutX="30.0" layoutY="30.0" text="文档生成器" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="30.0">
-         <font>
-            <Font name="System Bold" size="18.0" />
-         </font>
-      </Label>
-      <Label layoutX="30.0" layoutY="80.0" text="文档类型：" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="80.0" />
-      <ComboBox fx:id="documentTypeComboBox" layoutX="100.0" layoutY="76.0" prefHeight="25.0" prefWidth="150.0" AnchorPane.leftAnchor="100.0" AnchorPane.topAnchor="76.0" />
+<VBox spacing="15" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
+      prefHeight="400.0" prefWidth="500.0">
+   <padding>
+      <Insets top="20" right="20" bottom="20" left="20"/>
+   </padding>
+   
+   <VBox spacing="15" VBox.vgrow="ALWAYS">
+      <HBox spacing="10" alignment="CENTER_LEFT">
+         <Label text="文档类型：" />
+         <ComboBox fx:id="documentTypeComboBox" prefHeight="25.0" prefWidth="150.0" />
+      </HBox>
       
-      <Label layoutX="30.0" layoutY="120.0" text="模板文件：" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="120.0" />
-      <TextField fx:id="templateFilePathTextField" layoutX="100.0" layoutY="116.0" prefHeight="25.0" prefWidth="360.0" promptText="选择模板文件" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="140.0" AnchorPane.topAnchor="116.0" />
-      <Button fx:id="chooseTemplateFileButton" layoutX="470.0" layoutY="116.0" mnemonicParsing="false" onAction="#chooseTemplateFile" prefHeight="25.0" prefWidth="100.0" text="浏览..." AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="116.0" />
+      <HBox spacing="10" alignment="CENTER_LEFT">
+         <Label text="模板文件：" />
+         <TextField fx:id="templateFilePathTextField" promptText="选择模板文件" HBox.hgrow="ALWAYS" />
+         <Button fx:id="chooseTemplateFileButton" mnemonicParsing="false" onAction="#chooseTemplateFile" text="浏览..." prefWidth="80.0" />
+      </HBox>
       
-      <Label layoutX="30.0" layoutY="160.0" text="数据文件：" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="160.0" />
-      <TextField fx:id="dataFilePathTextField" layoutX="100.0" layoutY="156.0" prefHeight="25.0" prefWidth="360.0" promptText="选择JSON数据文件" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="140.0" AnchorPane.topAnchor="156.0" />
-      <Button fx:id="chooseDataFileButton" layoutX="470.0" layoutY="156.0" mnemonicParsing="false" onAction="#chooseDataFile" prefHeight="25.0" prefWidth="100.0" text="浏览..." AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="156.0" />
+      <HBox spacing="10" alignment="CENTER_LEFT">
+         <Label text="数据文件：" />
+         <TextField fx:id="dataFilePathTextField" promptText="选择JSON数据文件" HBox.hgrow="ALWAYS" />
+         <Button fx:id="chooseDataFileButton" mnemonicParsing="false" onAction="#chooseDataFile" text="浏览..." prefWidth="80.0" />
+      </HBox>
       
-      <Label layoutX="30.0" layoutY="200.0" text="输出目录：" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="200.0" />
-      <TextField fx:id="outputDirectoryTextField" layoutX="100.0" layoutY="196.0" prefHeight="25.0" prefWidth="360.0" promptText="选择输出目录" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="140.0" AnchorPane.topAnchor="196.0" />
-      <Button fx:id="chooseOutputDirectoryButton" layoutX="470.0" layoutY="196.0" mnemonicParsing="false" onAction="#chooseOutputDirectory" prefHeight="25.0" prefWidth="100.0" text="浏览..." AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="196.0" />
+      <HBox spacing="10" alignment="CENTER_LEFT">
+         <Label text="输出目录：" />
+         <TextField fx:id="outputDirectoryTextField" promptText="选择输出目录" HBox.hgrow="ALWAYS" />
+         <Button fx:id="chooseOutputDirectoryButton" mnemonicParsing="false" onAction="#chooseOutputDirectory" text="浏览..." prefWidth="80.0" />
+      </HBox>
       
-      <Label layoutX="30.0" layoutY="250.0" text="状态：" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="250.0" />
-      <Label fx:id="statusLabel" layoutX="100.0" layoutY="250.0" prefHeight="25.0" prefWidth="470.0" text="就绪" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="250.0" />
+      <VBox spacing="5" VBox.vgrow="ALWAYS">
+         <padding>
+            <Insets top="10" />
+         </padding>
+         <Label text="状态：" />
+         <Label fx:id="statusLabel" text="就绪" style="-fx-background-color: #f5f5f5; -fx-padding: 5 10; -fx-background-radius: 3;" wrapText="true" />
+      </VBox>
       
-      <Button fx:id="generateButton" layoutX="450.0" layoutY="340.0" mnemonicParsing="false" onAction="#generateDocument" prefHeight="30.0" prefWidth="120.0" text="生成文档" AnchorPane.bottomAnchor="30.0" AnchorPane.rightAnchor="30.0" />
-   </children>
-</AnchorPane> 
+      <HBox alignment="CENTER_RIGHT">
+         <Button fx:id="generateButton" mnemonicParsing="false" onAction="#generateDocument" prefHeight="30.0" prefWidth="120.0" text="生成文档" style="-fx-base: #4CAF50;" />
+      </HBox>
+   </VBox>
+</VBox> 

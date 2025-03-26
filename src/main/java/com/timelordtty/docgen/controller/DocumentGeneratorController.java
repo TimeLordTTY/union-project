@@ -49,8 +49,8 @@ public class DocumentGeneratorController {
     @FXML
     private Label statusLabel;
     
-    // 默认模板目录
-    private final String DEFAULT_TEMPLATES_DIR = "D:\\Project\\union-project\\PersonalApps\\多功能工具集\\templates";
+    // 默认模板目录（相对路径）
+    private final String DEFAULT_TEMPLATES_DIR = "templates";
     
     // 文档生成服务
     private DocGeneratorService docService;
@@ -74,6 +74,30 @@ public class DocumentGeneratorController {
         updateTemplateFileExtensions();
     }
     
+    /**
+     * 获取应用程序当前目录下的模板文件夹
+     * @return 模板文件夹的完整路径
+     */
+    private String getTemplatesDirectory() {
+        // 获取应用程序所在目录
+        String appDir = System.getProperty("user.dir");
+        
+        // 如果是在IDE中运行，可能需要向上一级目录查找templates
+        File templatesDir = new File(appDir, DEFAULT_TEMPLATES_DIR);
+        if (!templatesDir.exists()) {
+            // 尝试在上一级目录查找
+            templatesDir = new File(new File(appDir).getParent(), DEFAULT_TEMPLATES_DIR);
+        }
+
+        // 如果仍然找不到，尝试创建目录
+        if (!templatesDir.exists()) {
+            templatesDir.mkdirs();
+            AppLogger.info("已创建模板目录: " + templatesDir.getAbsolutePath());
+        }
+        
+        return templatesDir.getAbsolutePath();
+    }
+    
     private void updateTemplateFileExtensions() {
         // 根据选择的文档类型更新文件过滤器
         if (documentTypeComboBox.getValue() != null) {
@@ -91,11 +115,12 @@ public class DocumentGeneratorController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("选择模板文件");
         
-        // 设置默认目录
-        File defaultDir = new File(DEFAULT_TEMPLATES_DIR);
+        // 获取模板目录
+        String templatesPath = getTemplatesDirectory();
+        File defaultDir = new File(templatesPath);
         if (!defaultDir.exists()) {
             defaultDir.mkdirs();
-            AppLogger.info("已创建默认模板目录：" + DEFAULT_TEMPLATES_DIR);
+            AppLogger.info("已创建默认模板目录：" + templatesPath);
         }
         
         String documentType = documentTypeComboBox.getValue();
@@ -138,7 +163,8 @@ public class DocumentGeneratorController {
         );
         
         // 设置默认目录为templates/json目录
-        File defaultDir = new File(DEFAULT_TEMPLATES_DIR);
+        String templatesPath = getTemplatesDirectory();
+        File defaultDir = new File(templatesPath);
         File jsonDir = new File(defaultDir, "json");
         
         if (jsonDir.exists() && jsonDir.isDirectory()) {
@@ -147,7 +173,7 @@ public class DocumentGeneratorController {
             fileChooser.setInitialDirectory(defaultDir);
         } else {
             defaultDir.mkdirs();
-            AppLogger.info("已创建默认模板目录：" + DEFAULT_TEMPLATES_DIR);
+            AppLogger.info("已创建默认模板目录：" + templatesPath);
             fileChooser.setInitialDirectory(defaultDir);
         }
         
@@ -165,12 +191,13 @@ public class DocumentGeneratorController {
         directoryChooser.setTitle("选择输出目录");
         
         // 设置默认目录
-        File defaultDir = new File(DEFAULT_TEMPLATES_DIR);
+        String templatesPath = getTemplatesDirectory();
+        File defaultDir = new File(templatesPath);
         if (defaultDir.exists() && defaultDir.isDirectory()) {
             directoryChooser.setInitialDirectory(defaultDir);
         } else {
             defaultDir.mkdirs();
-            AppLogger.info("已创建默认模板目录：" + DEFAULT_TEMPLATES_DIR);
+            AppLogger.info("已创建默认模板目录：" + templatesPath);
             directoryChooser.setInitialDirectory(defaultDir);
         }
         

@@ -1,0 +1,293 @@
+/* 通用样式 */
+.root {
+    -fx-font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+    -fx-font-size: 13px;
+}
+
+/* 文本截断样式 */
+.text-overflow-ellipsis {
+    -fx-text-overrun: ellipsis;
+    -fx-text-overflow: ellipsis;
+    -fx-overflow: hidden;
+}
+
+/* 日历星期表头样式 */
+.calendar-day-header {
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+    -fx-text-fill: #5D4037;
+    -fx-padding: 12 10 12 10;
+    -fx-background-color: #F5F5F5;
+    -fx-alignment: center;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 0 0.5 0.5 0;
+    -fx-min-width: 70px;
+    -fx-pref-width: 100px;
+    -fx-max-width: 150px;
+}
+
+/* 对话框样式 */
+.custom-dialog {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);
+}
+
+/* 项目标记样式 */
+.project-marker {
+    -fx-background-color: #2196F3;
+    -fx-background-radius: 2;
+    -fx-padding: 2 4 2 4;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-max-width: 120px;
+    -fx-text-overrun: ellipsis;
+}
+
+.project-marker-online {
+    -fx-background-color: #E3F2FD;
+}
+
+.project-marker-regend {
+    -fx-background-color: #F44336;
+}
+
+.project-marker-earliest {
+    -fx-background-color: #E8F5E9;
+}
+
+.project-marker-expected {
+    -fx-background-color: #FFEBEE;
+}
+
+.project-marker-expired {
+    -fx-background-color: #BDBDBD;
+    -fx-text-fill: white;
+}
+
+.project-marker-highlighted {
+    -fx-background-color: #FFFDE7;
+    -fx-border-color: #FFD600;
+    -fx-border-radius: 3;
+    -fx-border-width: 1;
+}
+
+.project-name {
+    -fx-font-size: 10px;
+    -fx-text-overflow: ellipsis;
+    -fx-max-width: 70px;
+}
+
+.project-type {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-overflow: ellipsis;
+    -fx-max-width: 40px;
+}
+
+.dialog-header {
+    -fx-background-color: #8D6E63;
+    -fx-padding: 10px;
+}
+
+.dialog-pane > .button-bar > .container {
+    -fx-padding: 10px;
+}
+
+/* 按钮样式 */
+.button {
+    -fx-background-radius: 3px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-min-width: 80px;
+}
+
+.action-button {
+    -fx-background-color: #8D6E63;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.action-button:hover {
+    -fx-background-color: #A1887F;
+}
+
+.cancel-button {
+    -fx-background-color: #E0E0E0;
+    -fx-text-fill: #424242;
+}
+
+.cancel-button:hover {
+    -fx-background-color: #EEEEEE;
+}
+
+/* 表格样式 */
+.table-view {
+    -fx-base: white;
+    -fx-control-inner-background: white;
+    -fx-background-color: white;
+    -fx-table-cell-border-color: transparent;
+    -fx-table-header-border-color: transparent;
+    -fx-padding: 5;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #D7CCC8;
+}
+
+.table-view .column-header, .table-view .filler {
+    -fx-size: 35;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent derive(-fx-base, 80%) transparent;
+    -fx-border-insets: 0 10 1 0;
+}
+
+.table-view .column-header .label {
+    -fx-font-size: 12pt;
+    -fx-font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+    -fx-text-fill: #5D4037;
+    -fx-alignment: center-left;
+    -fx-opacity: 1;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #EFEBE9;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #D7CCC8;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: #5D4037;
+}
+
+/* 提示框样式 */
+.tooltip {
+    -fx-background-color: rgba(55, 55, 55, 0.9);
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 4;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 3);
+}
+
+/* 日期选择器样式 */
+.date-picker {
+    -fx-background-color: white;
+    -fx-border-color: #BDBDBD;
+    -fx-border-radius: 3px;
+}
+
+.date-picker .arrow-button {
+    -fx-background-color: #8D6E63;
+    -fx-background-radius: 0 3 3 0;
+}
+
+.date-picker .arrow-button .arrow {
+    -fx-background-color: white;
+}
+
+.date-picker .cell {
+    -fx-background-color: white;
+    -fx-text-fill: #5D4037;
+}
+
+.date-picker .cell:hover {
+    -fx-background-color: #EFEBE9;
+}
+
+.date-picker .cell:focused {
+    -fx-background-color: #D7CCC8;
+}
+
+.date-picker .selected {
+    -fx-background-color: #8D6E63;
+    -fx-text-fill: white;
+}
+
+.date-picker .today {
+    -fx-background-color: #A1887F;
+    -fx-text-fill: white;
+}
+
+/* 项目日期单元格样式 */
+.project-date-cell {
+    -fx-padding: 5;
+    -fx-background-color: white;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 0.5;
+}
+
+/* 今日日期单元格样式 */
+.today-date-cell {
+    -fx-background-color: #E8F5E9;
+}
+
+/* 注册截止日期标记样式 */
+.reg-end-marker {
+    -fx-background-color: #F44336;
+}
+
+/* 评审日期标记样式 */
+.review-marker {
+    -fx-background-color: #4CAF50;
+}
+
+/* 日历相关样式 */
+.calendar-grid {
+    -fx-grid-lines-visible: true;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 1px;
+    -fx-background-color: white;
+}
+
+.calendar-day-header {
+    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+    -fx-text-fill: #333333;
+    -fx-padding: 12 10 12 10;
+    -fx-background-color: #F5F5F5;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-width: 70px;
+    -fx-pref-width: 100px;
+    -fx-max-width: 150px;
+    -fx-alignment: center;
+}
+
+.project-date-cell {
+    -fx-background-color: white;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 0.5px;
+    -fx-padding: 5px;
+}
+
+.today-date-cell {
+    -fx-background-color: #E8F5E9;
+    -fx-border-color: #4CAF50;
+    -fx-border-width: 0.5px;
+}
+
+.date-number {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.project-marker {
+    -fx-padding: 2 4 2 4;
+    -fx-background-radius: 3;
+    -fx-background-color: #F5F5F5;
+    -fx-text-fill: #333333;
+    -fx-font-size: 11px;
+}
+
+.reg-end-marker {
+    -fx-background-color: #FFF8E1;
+    -fx-text-fill: #FF8F00;
+}
+
+.review-marker {
+    -fx-background-color: #FFEBEE;
+    -fx-text-fill: #D32F2F;
+} 

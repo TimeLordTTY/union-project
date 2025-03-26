@@ -46,7 +46,7 @@ public class MainApp extends Application {
             Parent root = loader.load();
             
             // 设置标题和场景
-            primaryStage.setTitle("多功能工具集");
+            primaryStage.setTitle("项目日历");
             primaryStage.setScene(new Scene(root, 800, 600));
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);

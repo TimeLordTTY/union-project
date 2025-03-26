@@ -4,7 +4,12 @@
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.geometry.Insets?>
 
 <BorderPane prefHeight="600.0" 
 prefWidth="800.0" 
@@ -13,20 +18,42 @@ xmlns:fx="http://javafx.com/fxml/1"
 fx:controller="com.timelordtty.MainController">
 <top>
         <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #f5f5f5; -fx-padding: 10;">
-            <Label text="多功能工具集" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+            <Label text="项目日历" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS" />
+            <HBox fx:id="toolbarButtonContainer" spacing="5" alignment="CENTER_RIGHT">
+                <Button fx:id="amountToolButton" text="金额转换" onAction="#handleAmountToolClick"
+                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+                <Button fx:id="docGenToolButton" text="文档生成" onAction="#handleDocGenToolClick"
+                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+                <Button fx:id="textCorrectionToolButton" text="文本纠错" onAction="#handleTextCorrectionToolClick"
+                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+            </HBox>
         </HBox>
     </top>
    <center>
-      <TabPane tabClosingPolicy="UNAVAILABLE">
-            <Tab text="金额转换">
-                <fx:include source="AmountConverterView.fxml"/>
-            </Tab>
-            <Tab text="文档生成">
-                <fx:include source="DocumentGeneratorView.fxml"/>
-            </Tab>
-            <Tab text="文本纠错">
-                <fx:include source="TextCorrectorView.fxml"/>
-            </Tab>
-        </TabPane>
+      <StackPane>
+        <!-- 主项目日历视图 -->
+        <fx:include source="ProjectCalendarView.fxml"/>
+        
+        <!-- 小工具容器，默认隐藏 -->
+        <VBox fx:id="toolsContainer" visible="false" StackPane.alignment="TOP_RIGHT" 
+              style="-fx-background-color: white; -fx-border-color: #d0d0d0; -fx-border-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);">
+            <padding>
+                <Insets top="5" right="5" bottom="5" left="5"/>
+            </padding>
+            <HBox alignment="CENTER_RIGHT">
+                <Label fx:id="toolTitle" text="金额转换" style="-fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <Button fx:id="closeToolButton" text="收起 ▲" onAction="#handleCloseToolClick"
+                        style="-fx-background-color: transparent; -fx-cursor: hand;"/>
+            </HBox>
+            <StackPane fx:id="toolContentArea" VBox.vgrow="ALWAYS">
+                <!-- 工具内容将动态添加到这里 -->
+            </StackPane>
+            <prefWidth>400</prefWidth>
+            <prefHeight>350</prefHeight>
+            <maxWidth>450</maxWidth>
+        </VBox>
+      </StackPane>
    </center>
 </BorderPane> 

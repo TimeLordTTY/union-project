@@ -1,5 +1,6 @@
 @echo off
-title 多功能工具集打包和运行
+title 项目日历打包和运行
+setlocal EnableDelayedExpansion
 
 echo ====================
 echo 0. 设置路径
@@ -36,20 +37,35 @@ echo Maven版本检查通过，继续执行...
 echo ====================
 echo 2. 创建应用目录结构
 echo ====================
-set APP_DIR=PersonalApps\多功能工具集
-set LIB_DIR=%APP_DIR%\lib
-set JRE_DIR=%APP_DIR%\jre
-set JAVAFX_MODULES_DIR=%APP_DIR%\lib\javafx-modules
+set APP_DIR=PersonalApps\项目日历
+set SERVICE_DATA_DIR=%APP_DIR%\service_data
+set LIB_DIR=%SERVICE_DATA_DIR%\lib
+set JRE_DIR=%SERVICE_DATA_DIR%\jre
+set JAVAFX_MODULES_DIR=%SERVICE_DATA_DIR%\lib\javafx-modules
 set TEMPLATES_DIR=%APP_DIR%\templates
-set LOG_DIR=%APP_DIR%\logs
+set LOG_DIR=%SERVICE_DATA_DIR%\logs
+set CONF_DIR=%SERVICE_DATA_DIR%\conf
+set DATA_DIR=%APP_DIR%\data
+set DATA_BACKUP_DIR=data_backup_temp
 
-if exist "%APP_DIR%" (
-    echo 清理现有目录...
-    rd /s /q "%APP_DIR%"
+echo 备份数据目录（如果存在）...
+if exist "PersonalApps\项目日历\data" (
+    echo 正在备份数据目录...
+    mkdir "%DATA_BACKUP_DIR%"
+    xcopy /E /I /Y "PersonalApps\项目日历\data" "%DATA_BACKUP_DIR%"
+    echo 数据目录已备份到临时目录
+)
+
+REM 检查并清理整个PersonalApps目录
+if exist "PersonalApps" (
+    echo 清理整个PersonalApps目录...
+    rd /s /q "PersonalApps"
 )
 
 echo 创建目录结构...
+mkdir "PersonalApps"
 mkdir "%APP_DIR%"
+mkdir "%SERVICE_DATA_DIR%"
 mkdir "%LIB_DIR%"
 mkdir "%JRE_DIR%"
 mkdir "%JRE_DIR%\bin"
@@ -60,12 +76,27 @@ mkdir "%TEMPLATES_DIR%\word"
 mkdir "%TEMPLATES_DIR%\excel"
 mkdir "%TEMPLATES_DIR%\json"
 mkdir "%LOG_DIR%"
-mkdir "%APP_DIR%\conf"
+mkdir "%CONF_DIR%"
+mkdir "%DATA_DIR%"
+
+echo 还原数据目录（如果存在备份）...
+if exist "%DATA_BACKUP_DIR%" (
+    echo 正在还原数据目录...
+    xcopy /E /I /Y "%DATA_BACKUP_DIR%" "%DATA_DIR%"
+    rd /s /q "%DATA_BACKUP_DIR%"
+    echo 数据目录已还原
+)
 
 echo 创建日志目录的说明文件...
 echo 此目录存放应用程序日志文件 > "%LOG_DIR%\README.txt"
 echo 应用程序运行时会自动在这里创建日志文件 >> "%LOG_DIR%\README.txt"
 echo 如果遇到问题，请查看此处的日志以获取详细信息 >> "%LOG_DIR%\README.txt"
+
+echo 创建数据目录的说明文件...
+echo 此目录存放应用程序数据文件，包括项目日历的H2数据库 > "%DATA_DIR%\README.txt"
+echo 请勿手动删除或修改此目录中的文件 >> "%DATA_DIR%\README.txt"
+echo 升级应用程序时，此目录中的数据将会自动保留 >> "%DATA_DIR%\README.txt"
+echo 如需手动升级，请确保先备份此目录内容 >> "%DATA_DIR%\README.txt"
 
 echo ====================
 echo 3. 编译项目
@@ -143,26 +174,20 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo 检查EXE文件是否存在...
-if exist "target\multi-tools.exe" (
-    echo 复制EXE文件...
-    copy /Y "target\multi-tools.exe" "%APP_DIR%\"
-) else (
-    echo 警告: 未找到EXE文件，将仅使用JAR文件启动
-)
-
 echo ====================
 echo 7. 复制配置文件
 echo ====================
 echo 复制配置文件...
 
-echo 复制日志配置文件...
-copy /Y "src\main\resources\logging.properties" "%APP_DIR%\conf\"
-copy /Y "src\main\resources\logback.xml" "%APP_DIR%\conf\"
+REM 检查配置文件是否重复，如果logback.xml已经包含所有功能，使用它代替logging.properties
+set USE_LOGBACK=1
+echo 检查是否需要合并日志配置文件...
 
-echo 复制API配置文件...
-mkdir "%APP_DIR%\config"
-copy /Y "src\main\resources\api.properties" "%APP_DIR%\config\"
+REM 复制日志配置文件，只复制logback.xml
+copy /Y "src\main\resources\logback.xml" "%CONF_DIR%\"
+
+REM 复制API配置文件到conf目录（合并config到conf）
+copy /Y "src\main\resources\api.properties" "%CONF_DIR%\"
 
 echo ====================
 echo 8. 创建模板文件
@@ -273,10 +298,20 @@ if not exist "%LIB_DIR%\jackson-core-2.15.2.jar" (
     copy /Y "%PROJECT_ROOT%\target\dependency\jackson-core-2.15.2.jar" "%LIB_DIR%\"
 )
 
+echo 检查H2数据库依赖是否存在...
+if not exist "%LIB_DIR%\h2-2.2.224.jar" (
+    echo 警告: 未找到H2数据库依赖，正在尝试重新复制...
+    copy /Y "%PROJECT_ROOT%\target\dependency\h2-2.2.224.jar" "%LIB_DIR%\"
+    if %ERRORLEVEL% NEQ 0 (
+        echo 错误: 未找到H2数据库依赖，项目日历功能可能无法正常工作！
+    )
+)
+
 echo 检查lib目录中的关键依赖:
 dir "%LIB_DIR%\poi-*.jar"
 dir "%LIB_DIR%\jackson-*.jar"
 dir "%LIB_DIR%\xmlbeans-*.jar"
+dir "%LIB_DIR%\h2-*.jar"
 
 echo ====================
 echo 9. 创建启动脚本
@@ -284,17 +319,17 @@ echo ====================
 echo 创建启动批处理文件...
 
 (
-echo @echo on
-echo title 多功能工具集
+echo @echo off
+echo title 项目日历
 echo.
 echo cd /d %%~dp0
-echo echo 正在启动多功能工具集...
+echo echo 正在启动项目日历...
 echo.
-echo set JAVA_PATH=jre\bin\java.exe
+echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo set JAR_PATH=multi-tools-1.0.jar
 echo.
 echo if not exist "%%JAVA_PATH%%" (
-echo     echo 错误: 找不到Java运行环境，请确保jre目录完整
+echo     echo 错误: 找不到Java运行环境，请确保service_data\jre目录完整
 echo     pause
 echo     exit /b 1
 echo ^)
@@ -306,26 +341,29 @@ echo     exit /b 1
 echo ^)
 echo.
 echo echo 检查JavaFX模块...
-echo dir lib\javafx-modules\*.jar
+echo if not exist "service_data\lib\javafx-modules\javafx-controls*.jar" (
+echo     echo 错误: 找不到JavaFX模块，程序可能无法正常运行
+echo     pause
+echo ^)
 echo.
 echo echo 启动应用程序...
-echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 --class-path="%%JAR_PATH%%;lib\*;lib\javafx-modules\*" --module-path="lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=conf/logging.properties -jar "%%JAR_PATH%%"
+echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 --class-path="%%JAR_PATH%%;service_data\lib\*;service_data\lib\javafx-modules\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=service_data/conf/logback.xml -Duser.timezone=Asia/Shanghai -jar "%%JAR_PATH%%"
 echo.
 echo if %%ERRORLEVEL%% NEQ 0 (
 echo     echo 应用程序启动失败，错误代码: %%ERRORLEVEL%%
 echo     pause
 echo ^)
-) > "%APP_DIR%\启动多功能工具集.bat"
+) > "%APP_DIR%\启动项目日历.bat"
 
 echo 创建调试版启动脚本...
 (
 echo @echo on
-echo title 多功能工具集（调试模式）
+echo title 项目日历（调试模式）
 echo.
 echo cd /d %%~dp0
-echo echo 正在调试模式下启动多功能工具集...
+echo echo 正在调试模式下启动项目日历...
 echo.
-echo set JAVA_PATH=jre\bin\java.exe
+echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo.
 echo echo 检查Java路径...
 echo if exist "%%JAVA_PATH%%" (
@@ -346,62 +384,65 @@ echo     exit /b 1
 echo ^)
 echo.
 echo echo 检查依赖库...
-echo dir lib\*.jar
+echo dir service_data\lib\*.jar
 echo echo 检查JavaFX模块...
-echo dir lib\javafx-modules\*.jar
+echo dir service_data\lib\javafx-modules\*.jar
+echo echo 检查H2数据库依赖...
+echo dir service_data\lib\h2-*.jar
 echo.
 echo echo 以调试模式启动应用程序...
-echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Djava.util.logging.config.file=conf/logging.properties -Dlog.level=DEBUG --class-path="multi-tools-1.0.jar;lib\*;lib\javafx-modules\*" --module-path="lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar multi-tools-1.0.jar
+echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 -Djava.util.logging.config.file=service_data/conf/logback.xml -Dlog.level=DEBUG -Duser.timezone=Asia/Shanghai --class-path="multi-tools-1.0.jar;service_data\lib\*;service_data\lib\javafx-modules\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar "multi-tools-1.0.jar"
 echo.
 echo echo 如果应用程序没有启动，请截图上面的错误信息并发送给开发人员
 echo pause
 ) > "%APP_DIR%\调试启动.bat"
 
 echo ====================
-echo 10. 创建日志配置文件
-echo ====================
-(
-echo # 日志配置文件
-echo handlers=java.util.logging.FileHandler, java.util.logging.ConsoleHandler
-echo .level=INFO
-echo.
-echo # 文件日志处理器
-echo java.util.logging.FileHandler.pattern=logs/app_%%u_%%g.log
-echo java.util.logging.FileHandler.limit=5000000
-echo java.util.logging.FileHandler.count=10
-echo java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter
-echo java.util.logging.FileHandler.level=ALL
-echo.
-echo # 控制台日志处理器
-echo java.util.logging.ConsoleHandler.level=INFO
-echo java.util.logging.ConsoleHandler.formatter=java.util.logging.SimpleFormatter
-echo.
-echo # 格式化器
-echo java.util.logging.SimpleFormatter.format=[%%1$tF %%1$tT] [%%4$s] [%%2$s] %%5$s %%n
-echo.
-echo # 应用程序日志级别
-echo com.timelordtty.level=INFO
-) > "%APP_DIR%\conf\logging.properties"
-
-echo ====================
 echo 11. 创建自述文件
 echo ====================
 (
-echo # 多功能工具集使用说明
+echo # 项目日历使用说明
 echo.
 echo ## 启动方法
 echo.
-echo 1. 双击"启动多功能工具集.bat"文件启动应用
+echo 1. 双击"启动项目日历.bat"文件启动应用
 echo 2. 如果启动失败，请双击"调试启动.bat"获取更详细的错误信息
+echo.
+echo ## 功能介绍
+echo.
+echo 本软件包含多个实用功能模块：
+echo.
+echo ### 项目日历
+echo - 支持项目管理与日程提醒
+echo - 自动计算报名截止日期和最早评审日期
+echo - 包含2024年法定节假日信息
+echo - 数据自动保存到本地数据库
+echo.
+echo ### 金额转换
+echo - 支持数字金额与中文大写金额互转
+echo.
+echo ### 文档生成
+echo - 支持根据模板生成Word文档和Excel表格
+echo.
+echo ### 文本纠错
+echo - 支持中文文本的常见错误检查与修正
 echo.
 echo ## 注意事项
 echo.
 echo - 此应用包含完整运行环境，无需安装Java
-echo - 不要删除lib和jre文件夹，它们包含必要的运行库
-echo - 日志文件保存在logs目录下，可以查看日志了解程序运行情况
-echo - 程序附带了模板示例文件，存放在templates目录下
-echo - 如果程序无法启动，请检查是否缺少文件
-echo - 如果遇到问题，请使用调试启动脚本收集错误信息
+echo - 运行环境和库文件保存在service_data目录下
+echo - 日志文件保存在service_data\logs目录下
+echo - 程序数据保存在data目录下，请勿手动修改
+echo - 如果程序无法启动，请使用调试启动脚本收集错误信息
+echo.
+echo ## 升级说明
+echo.
+echo 如需升级应用程序但保留当前项目日历数据：
+echo 1. 备份当前的"data"目录（包含您的项目数据）
+echo 2. 卸载旧版或删除整个应用程序文件夹
+echo 3. 安装新版本
+echo 4. 将备份的"data"目录覆盖到新版本的相同位置
+echo 5. 启动应用程序，您的项目数据应该自动加载
 ) > "%APP_DIR%\使用说明.txt"
 
 echo ====================
@@ -425,25 +466,43 @@ dir "%TEMPLATES_DIR%\word"
 dir "%TEMPLATES_DIR%\excel"
 dir "%TEMPLATES_DIR%\json"
 
+echo 检查H2数据库依赖...
+if exist "%LIB_DIR%\h2-*.jar" (
+    echo H2数据库依赖正常
+) else (
+    echo 警告: H2数据库依赖缺失，项目日历功能可能无法正常工作
+)
+
 echo ====================
 echo 打包完成!
 echo ====================
 echo 应用程序文件夹: %CD%\%APP_DIR%
 echo.
+echo 文件夹结构说明:
+echo - 根目录: 启动脚本、JAR文件、使用说明
+echo - data目录: 存放项目日历数据（升级时应保留）
+echo - templates目录: 存放文档模板
+echo - service_data目录: 存放所有服务相关文件（lib、jre、conf、logs）
+echo.
 echo 使用方法:
-echo 1. 将整个"%APP_DIR%"文件夹复制到目标计算机
-echo 2. 双击"启动多功能工具集.bat"运行程序
+echo 1. 将整个"%APP_DIR%"文件夹复制给使用者
+echo 2. 双击"启动项目日历.bat"运行程序
 echo 3. 若有问题，运行"调试启动.bat"获取详细错误信息
+echo.
+echo 项目日历功能特别说明:
+echo - 数据存储在data目录中，使用H2数据库自动保存
+echo - 支持2024年法定节假日信息
+echo - 所有日期计算自动考虑工作日和节假日因素
 echo.
 
 set /p ANSWER=是否立即运行应用程序? (Y/N): 
 if /i "%ANSWER%" == "Y" (
-    echo 正在启动多功能工具集...
+    echo 正在启动项目日历...
     cd /d "%APP_DIR%"
-    call "调试启动.bat"
+    call "启动项目日历.bat"
     cd /d "%PROJECT_ROOT%"
 ) else (
-    echo 您可以稍后运行"%APP_DIR%\启动多功能工具集.bat"启动应用
+    echo 您可以稍后运行"%APP_DIR%\启动项目日历.bat"启动应用
 )
 
 echo.

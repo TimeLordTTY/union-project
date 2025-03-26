@@ -30,6 +30,10 @@ import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -963,15 +967,19 @@ public class TextCorrectorController implements Initializable {
             return;
         }
         
-        // 创建详情窗口
-        Stage detailStage = new Stage();
+        // 创建对话框
+        Dialog<ButtonType> dialog = new Dialog<>();
         
         // 根据当前操作类型设置标题
         if (currentOperation == OperationType.REPLACEMENT) {
-            detailStage.setTitle("文本替换详情");
+            dialog.setTitle("文本替换详情");
         } else {
-            detailStage.setTitle("错误纠正详情");
+            dialog.setTitle("错误纠正详情");
         }
+        
+        // 设置模态
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(inputTextArea.getScene().getWindow());
         
         // 创建表格视图
         TableView<TextCorrection> detailsTable = new TableView<>();
@@ -1011,24 +1019,32 @@ public class TextCorrectorController implements Initializable {
         
         // 添加描述文本
         String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
-        Text descriptionText = new Text("发现 " + correctionTableView.getItems().size() + " 处" + operation + "，详情如下：");
-        descriptionText.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        Label descriptionLabel = new Label("发现 " + correctionTableView.getItems().size() + " 处" + operation + "，详情如下：");
+        descriptionLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
         // 创建导出按钮
         Button exportButton = new Button("导出" + operation + "报告");
         exportButton.setOnAction(e -> exportCorrectionReport(detailsTable.getItems()));
         
         // 创建布局
-        VBox vbox = new VBox(10);
-        vbox.setPadding(new javafx.geometry.Insets(10));
-        vbox.getChildren().addAll(descriptionText, detailsTable, exportButton);
+        VBox content = new VBox(10);
+        content.setPadding(new javafx.geometry.Insets(10));
+        content.getChildren().addAll(descriptionLabel, detailsTable, exportButton);
         
-        // 设置场景
-        Scene scene = new Scene(vbox, 600, 400);
-        detailStage.setScene(scene);
+        // 创建对话框面板
+        DialogPane dialogPane = new DialogPane();
+        dialogPane.setContent(content);
+        dialogPane.setPrefWidth(600);
+        dialogPane.setPrefHeight(400);
         
-        // 显示窗口
-        detailStage.show();
+        // 设置按钮类型
+        dialogPane.getButtonTypes().add(ButtonType.CLOSE);
+        
+        // 设置对话框面板
+        dialog.setDialogPane(dialogPane);
+        
+        // 显示对话框
+        dialog.showAndWait();
     }
     
     /**
@@ -1094,34 +1110,14 @@ public class TextCorrectorController implements Initializable {
             
             // 如果correctedTextFlow不为空，添加按钮
             if (correctedTextFlow != null) {
-                // 创建容器，水平排列
-                HBox buttonBox = new HBox(10);
-                buttonBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                buttonBox.setPadding(new javafx.geometry.Insets(5, 0, 0, 0));
-                
-                // 添加按钮
-                buttonBox.getChildren().add(viewDetailsButton);
-                
-                // 创建文本节点
-                String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
-                Text infoText = new Text(" 点击查看详细的" + operation + "列表和修改说明");
-                infoText.setFill(javafx.scene.paint.Color.DARKBLUE);
-                infoText.setStyle("-fx-font-style: italic;");
-                
-                // 将按钮和文本添加到容器
-                buttonBox.getChildren().add(infoText);
-                
-                // 替换之前的提示文本
+                // 在末尾添加按钮
                 int lastIndex = correctedTextFlow.getChildren().size() - 1;
-                if (lastIndex >= 0 && correctedTextFlow.getChildren().get(lastIndex) instanceof Text) {
-                    Text lastText = (Text) correctedTextFlow.getChildren().get(lastIndex);
-                    if (lastText.getText().contains("鼠标悬停")) {
-                        correctedTextFlow.getChildren().remove(lastIndex);
-                    }
+                if (lastIndex >= 0) {
+                    correctedTextFlow.getChildren().add(new Text(" "));
+                    correctedTextFlow.getChildren().add(viewDetailsButton);
+                } else {
+                    correctedTextFlow.getChildren().add(viewDetailsButton);
                 }
-                
-                // 添加按钮容器
-                correctedTextFlow.getChildren().add(buttonBox);
             }
         }
     }

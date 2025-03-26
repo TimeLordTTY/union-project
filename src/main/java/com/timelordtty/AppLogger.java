@@ -60,8 +60,8 @@ public class AppLogger {
             String logLevelProp = System.getProperty("log.level", "INFO");
             Level logLevel = Level.toLevel(logLevelProp, Level.INFO);
             
-            // 尝试从系统属性获取日志目录，默认为当前目录下的logs文件夹
-            String logsDir = System.getProperty("log.dir", "logs");
+            // 尝试从系统属性获取日志目录，优先使用service_data/logs，其次再用当前目录下的logs文件夹
+            String logsDir = System.getProperty("log.dir", "service_data/logs");
             
             // 创建日志目录
             ensureLogsDirectoryExists(logsDir);
