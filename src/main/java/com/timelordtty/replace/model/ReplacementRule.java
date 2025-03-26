@@ -1,4 +1,4 @@
-package com.timelordtty.model;
+package com.timelordtty.replace.model;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;

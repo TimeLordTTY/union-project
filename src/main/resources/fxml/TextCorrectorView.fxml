@@ -3,10 +3,11 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.text.TextFlow?>
 
 <VBox spacing="15" xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.timelordtty.controller.TextCorrectorController"
+      fx:controller="com.timelordtty.corrector.controller.TextCorrectorController"
       prefHeight="400.0" prefWidth="600.0">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
@@ -14,33 +15,37 @@
 
     <Label text="文本纠错工具" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
     
-    <SplitPane dividerPositions="0.6" orientation="VERTICAL" VBox.vgrow="ALWAYS">
-        <VBox spacing="10">
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="输入文本:"/>
-                <Button text="纠错" onAction="#correctText" HBox.hgrow="NEVER"/>
-                <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
-            </HBox>
-            
-            <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本..." wrapText="true" VBox.vgrow="ALWAYS"/>
-            
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="纠错结果:"/>
-                <Button text="复制结果" onAction="#copyResult" HBox.hgrow="NEVER"/>
-            </HBox>
-            
-            <TextArea fx:id="resultTextArea" promptText="纠错后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
-        </VBox>
+    <VBox spacing="10" VBox.vgrow="ALWAYS">
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="输入文本:"/>
+            <Button text="纠错" onAction="#correctText" HBox.hgrow="NEVER"/>
+            <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
+            <Region HBox.hgrow="ALWAYS" />
+            <CheckBox fx:id="useDeepSeekCheckBox" text="使用DeepSeek API" selected="false"/>
+        </HBox>
         
-        <VBox spacing="10">
-            <Label text="纠错详情:" />
-            <TableView fx:id="correctionTableView" VBox.vgrow="ALWAYS">
-                <columns>
-                    <TableColumn fx:id="originalColumn" text="原文" prefWidth="200"/>
-                    <TableColumn fx:id="correctedColumn" text="纠正" prefWidth="200"/>
-                    <TableColumn fx:id="positionColumn" text="位置" prefWidth="100"/>
-                </columns>
-            </TableView>
-        </VBox>
-    </SplitPane>
+        <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本..." wrapText="true" VBox.vgrow="ALWAYS"/>
+        
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="纠错结果:"/>
+            <Button text="复制结果" onAction="#copyResult" HBox.hgrow="NEVER"/>
+            <ProgressIndicator fx:id="progressIndicator" visible="false" />
+        </HBox>
+        
+        <TextArea fx:id="resultTextArea" promptText="纠错后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
+        
+        <TextFlow fx:id="correctedTextFlow" VBox.vgrow="NEVER" />
+        
+        <!-- 隐藏的TableView，保留以避免代码引用错误 -->
+        <TableView fx:id="correctionTableView" VBox.vgrow="NEVER" visible="false" managed="false">
+            <columns>
+                <TableColumn fx:id="originalColumn" text="原文" prefWidth="200"/>
+                <TableColumn fx:id="correctedColumn" text="纠正" prefWidth="200"/>
+                <TableColumn fx:id="positionColumn" text="位置" prefWidth="100"/>
+            </columns>
+        </TableView>
+        
+        <!-- 隐藏的TextArea，保留以避免代码引用错误 -->
+        <TextArea fx:id="correctionDetailsTextArea" visible="false" managed="false" />
+    </VBox>
 </VBox> 

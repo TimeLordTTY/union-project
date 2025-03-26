@@ -1,9 +1,9 @@
-package com.timelordtty.controller;
+package com.timelordtty.amountConvert.controller;
 
 import java.net.URL;
 import java.util.ResourceBundle;
 
-import com.timelordtty.utils.AmountConverter;
+import com.timelordtty.amountConvert.util.AmountConverter;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
