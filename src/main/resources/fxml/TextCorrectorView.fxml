@@ -18,13 +18,16 @@
     <VBox spacing="10" VBox.vgrow="ALWAYS">
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="输入文本:"/>
-            <Button text="纠错" onAction="#correctText" HBox.hgrow="NEVER"/>
+            <Button text="纠错" fx:id="correctButton" onAction="#correctText" HBox.hgrow="NEVER"/>
             <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
+            <Button text="上传文件" onAction="#uploadFile" HBox.hgrow="NEVER"/>
             <Region HBox.hgrow="ALWAYS" />
-            <CheckBox fx:id="useDeepSeekCheckBox" text="使用DeepSeek API" selected="false"/>
         </HBox>
         
-        <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本..." wrapText="true" VBox.vgrow="ALWAYS"/>
+        <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本...&#10;或者点击&quot;上传文件&quot;按钮上传Word/TXT文件...&#10;也可以直接拖放文件到此处..." wrapText="true" VBox.vgrow="ALWAYS"/>
+        
+        <TextFlow fx:id="correctedTextFlow" VBox.vgrow="NEVER" maxHeight="40" minHeight="30"
+                 style="-fx-background-color: #f7f7ff; -fx-padding: 8 10; -fx-border-color: #d0d0e8; -fx-border-radius: 3; -fx-font-size: 13px;" />
         
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="纠错结果:"/>
@@ -33,8 +36,6 @@
         </HBox>
         
         <TextArea fx:id="resultTextArea" promptText="纠错后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
-        
-        <TextFlow fx:id="correctedTextFlow" VBox.vgrow="NEVER" />
         
         <!-- 隐藏的TableView，保留以避免代码引用错误 -->
         <TableView fx:id="correctionTableView" VBox.vgrow="NEVER" visible="false" managed="false">

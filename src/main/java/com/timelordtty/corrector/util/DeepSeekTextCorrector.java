@@ -42,10 +42,40 @@ public class DeepSeekTextCorrector {
         .readTimeout(120, TimeUnit.SECONDS)    // 增加到120秒
         .writeTimeout(60, TimeUnit.SECONDS)    // 增加到60秒
         .retryOnConnectionFailure(true)        // 启用连接失败重试
+        // 指定仅使用 HTTP/1.1，避免 HTTP/2 的 stream reset 问题
+        .protocols(java.util.Arrays.asList(okhttp3.Protocol.HTTP_1_1))
+        .addInterceptor(chain -> {
+            // 自定义拦截器，用于记录请求和响应信息
+            okhttp3.Request request = chain.request();
+            
+            // 添加额外的连接控制头
+            request = request.newBuilder()
+                    .header("Connection", "close")  // 使用短连接，避免连接池复用问题
+                    .build();
+            
+            // 记录请求开始
+            long startTime = System.currentTimeMillis();
+            AppLogger.debug("OkHttp发送请求: " + request.url());
+            
+            // 尝试执行请求，并记录详细信息
+            try {
+                okhttp3.Response response = chain.proceed(request);
+                long endTime = System.currentTimeMillis();
+                AppLogger.debug("OkHttp请求完成，耗时: " + (endTime - startTime) + "ms, 状态码: " + response.code());
+                return response;
+            } catch (IOException e) {
+                long endTime = System.currentTimeMillis();
+                AppLogger.error("OkHttp请求失败，耗时: " + (endTime - startTime) + "ms, 错误: " + e.getMessage(), e);
+                throw e;
+            }
+        })
         .build();
     
     // 配置信息 - 从配置文件读取
     private static String apiKey;
+    
+    // DeepSeek模型ID
+    private static final String DEEPSEEK_MODEL_ID = "deepseek-chat";
     
     // 文本纠错提示词
     private static final String CORRECTION_PROMPT = "请检查以下文本中的错误并修正。仅输出JSON格式结果，不要添加任何其他内容。输出格式必须严格按照以下结构：\n" +
@@ -85,6 +115,9 @@ public class DeepSeekTextCorrector {
             "}\n" +
             "\n" +
             "以下是需要检查的文本:\n";
+    
+    // API响应的JSON节点
+    private static JsonNode apiResponse;
     
     static {
         // 加载API配置
@@ -220,13 +253,12 @@ public class DeepSeekTextCorrector {
                 }
                 
                 // 安全显示API密钥的一部分用于调试
-                String maskedApiKey = apiKey.substring(0, Math.min(5, apiKey.length())) + "..." + 
-                                     (apiKey.length() > 10 ? apiKey.substring(apiKey.length() - 3) : "");
+                String maskedApiKey = maskApiKey(apiKey);
                 AppLogger.info("使用DeepSeek API密钥: " + maskedApiKey);
                 
-                // 构建请求体
+                // 构建请求体 - 火山引擎格式
                 ObjectNode requestBody = MAPPER.createObjectNode();
-                requestBody.put("model", "deepseek-chat");
+                requestBody.put("model", DEEPSEEK_MODEL_ID);
                 
                 ArrayNode messagesArray = MAPPER.createArrayNode();
                 
@@ -250,7 +282,13 @@ public class DeepSeekTextCorrector {
                 requestBody.put("stream", false);
                 
                 String jsonBody = MAPPER.writeValueAsString(requestBody);
-                AppLogger.info("DeepSeek请求体: " + jsonBody);
+                
+                // 记录请求体的摘要，而不是完整内容，避免日志过大
+                String logJsonBody = jsonBody;
+                if (logJsonBody.length() > 300) {
+                    logJsonBody = logJsonBody.substring(0, 300) + "... [截断，完整长度:" + jsonBody.length() + "]";
+                }
+                AppLogger.info("DeepSeek请求体摘要: " + logJsonBody);
                 
                 // 构建请求
                 RequestBody body = RequestBody.create(MediaType.parse("application/json"), jsonBody);
@@ -268,28 +306,47 @@ public class DeepSeekTextCorrector {
                 try (Response response = CLIENT.newCall(request).execute()) {
                     long duration = System.currentTimeMillis() - startTime;
                     int statusCode = response.code();
-                    String responseBody = response.body().string();
                     
-                    // 记录API响应
+                    // 记录API响应基本信息
                     AppLogger.info("DeepSeek响应状态码: " + statusCode);
                     AppLogger.info("DeepSeek响应头: " + response.headers().toString());
                     AppLogger.info("DeepSeek响应耗时: " + duration + "ms");
-                    AppLogger.info("DeepSeek原始响应体: " + responseBody);
+                    
+                    // 安全地获取响应体，添加额外错误处理
+                    String responseBody = "";
+                    try {
+                        if (response.body() != null) {
+                            responseBody = response.body().string();
+                            // 记录完整的响应体，不再截断
+                            AppLogger.info("DeepSeek完整响应体: " + responseBody);
+                        } else {
+                            AppLogger.warn("DeepSeek返回了空响应体");
+                        }
+                    } catch (Exception e) {
+                        AppLogger.error("读取DeepSeek响应体时发生异常: " + e.getMessage(), e);
+                        throw new IOException("读取响应体失败: " + e.getMessage(), e);
+                    }
                     
                     if (!response.isSuccessful()) {
-                        String errorMsg = "DeepSeek API请求失败，状态码: " + response.code();
+                        String errorMsg = "DeepSeek API请求失败，状态码: " + response.code() + ", 响应: " + responseBody;
                         AppLogger.error(errorMsg);
                         throw new Exception(errorMsg);
                     }
                     
                     // 从DeepSeek响应中提取文本内容
-                    JsonNode responseNode = MAPPER.readTree(responseBody);
+                    JsonNode responseNode;
+                    try {
+                        responseNode = MAPPER.readTree(responseBody);
+                    } catch (Exception e) {
+                        AppLogger.error("解析DeepSeek JSON响应失败: " + e.getMessage() + ", 原始响应: " + responseBody, e);
+                        throw new Exception("解析DeepSeek JSON响应失败: " + e.getMessage());
+                    }
+                    
                     String content = extractJsonFromResponse(responseNode);
+                    AppLogger.info("从DeepSeek响应中提取的完整JSON: " + content);
                     
-                    AppLogger.info("从DeepSeek响应中提取的JSON: " + content);
-                    
-                    // 解析提取的JSON内容
-                    CorrectionResult result = parseResponse(text, content);
+                    // 解析提取的JSON内容，使用安全解析方法
+                    CorrectionResult result = safeParseResponse(text, content);
                     
                     // 记录纠错结果
                     AppLogger.info("纠错结果: 原文本长度=" + text.length() + 
@@ -319,9 +376,43 @@ public class DeepSeekTextCorrector {
                     AppLogger.error("已达到最大重试次数 (" + MAX_RETRIES + ")，放弃重试");
                 }
                 // 继续循环尝试重试
+            } catch (okhttp3.internal.http2.StreamResetException e) {
+                // 处理HTTP/2流重置异常，这通常是网络或服务端问题
+                lastException = e;
+                retryCount++;
+                AppLogger.warn("DeepSeek API请求HTTP流被重置，错误: " + e.getMessage() + "，这是第 " + retryCount + " 次重试");
+                
+                if (retryCount >= MAX_RETRIES) {
+                    AppLogger.error("已达到最大重试次数 (" + MAX_RETRIES + ")，放弃重试");
+                } else {
+                    // 更长的等待时间，给服务器更多恢复时间
+                    try {
+                        Thread.sleep(3000 * retryCount);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                // 继续循环尝试重试
+            } catch (IOException e) {
+                // 网络相关的其他异常也可以重试
+                lastException = e;
+                retryCount++;
+                AppLogger.warn("DeepSeek API请求网络错误: " + e.getMessage() + "，这是第 " + retryCount + " 次重试");
+                
+                if (retryCount >= MAX_RETRIES) {
+                    AppLogger.error("已达到最大重试次数 (" + MAX_RETRIES + ")，放弃重试");
+                } else {
+                    // 延迟后重试
+                    try {
+                        Thread.sleep(2000 * retryCount);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                // 继续循环尝试重试
             } catch (Exception e) {
                 // 其他类型的异常直接抛出
-                AppLogger.error("DeepSeek API请求发生非超时异常: " + e.getMessage(), e);
+                AppLogger.error("DeepSeek API请求发生非网络异常: " + e.getMessage(), e);
                 throw e;
             }
         }
@@ -392,13 +483,12 @@ public class DeepSeekTextCorrector {
                     }
                     
                     // 安全显示API密钥的一部分用于调试
-                    String maskedApiKey = apiKey.substring(0, Math.min(5, apiKey.length())) + "..." + 
-                                         (apiKey.length() > 10 ? apiKey.substring(apiKey.length() - 3) : "");
+                    String maskedApiKey = maskApiKey(apiKey);
                     AppLogger.info("使用DeepSeek API密钥: " + maskedApiKey);
                     
-                    // 构建请求体
+                    // 构建请求体 - 火山引擎格式
                     ObjectNode requestBody = MAPPER.createObjectNode();
-                    requestBody.put("model", "deepseek-chat");
+                    requestBody.put("model", DEEPSEEK_MODEL_ID);
                     
                     ArrayNode messagesArray = MAPPER.createArrayNode();
                     
@@ -422,7 +512,13 @@ public class DeepSeekTextCorrector {
                     requestBody.put("stream", false);
                     
                     String jsonBody = MAPPER.writeValueAsString(requestBody);
-                    AppLogger.info("异步DeepSeek请求体: " + jsonBody);
+                    
+                    // 记录请求体的摘要，而不是完整内容
+                    String logJsonBody = jsonBody;
+                    if (logJsonBody.length() > 300) {
+                        logJsonBody = logJsonBody.substring(0, 300) + "... [截断，完整长度:" + jsonBody.length() + "]";
+                    }
+                    AppLogger.info("异步DeepSeek请求体摘要: " + logJsonBody);
                     
                     // 构建请求
                     String authHeader = "Bearer " + apiKey;
@@ -459,11 +555,44 @@ public class DeepSeekTextCorrector {
                                     callback.onFailure(e); // 如果延迟被中断，也算失败
                                     AppLogger.clearTrackingId();
                                 }
-                            } else {
+                            } 
+                            // 处理HTTP/2流重置异常
+                            else if (e instanceof okhttp3.internal.http2.StreamResetException && retryCount[0] < MAX_RETRIES) {
+                                retryCount[0]++;
+                                AppLogger.warn("异步DeepSeek API请求HTTP流被重置，错误: " + e.getMessage() + "，这是第 " + retryCount[0] + " 次重试");
+                                
+                                // 更长的等待时间，给服务器更多恢复时间
+                                try {
+                                    Thread.sleep(3000 * retryCount[0]);
+                                    AppLogger.info("准备重试异步DeepSeek API请求...");
+                                    execute(); // 递归调用自己进行重试
+                                } catch (InterruptedException ie) {
+                                    AppLogger.error("重试延迟被中断: " + ie.getMessage());
+                                    callback.onFailure(e);
+                                    AppLogger.clearTrackingId();
+                                }
+                            }
+                            // 处理其他网络IO异常
+                            else if (e instanceof IOException && retryCount[0] < MAX_RETRIES) {
+                                retryCount[0]++;
+                                AppLogger.warn("异步DeepSeek API请求网络错误: " + e.getMessage() + "，这是第 " + retryCount[0] + " 次重试");
+                                
+                                // 延迟后重试
+                                try {
+                                    Thread.sleep(2000 * retryCount[0]);
+                                    AppLogger.info("准备重试异步DeepSeek API请求...");
+                                    execute(); // 递归调用自己进行重试
+                                } catch (InterruptedException ie) {
+                                    AppLogger.error("重试延迟被中断: " + ie.getMessage());
+                                    callback.onFailure(e);
+                                    AppLogger.clearTrackingId();
+                                }
+                            }
+                            else {
                                 if (retryCount[0] >= MAX_RETRIES) {
                                     AppLogger.error("异步DeepSeek API请求已达到最大重试次数 (" + MAX_RETRIES + ")，放弃重试");
                                 } else {
-                                    AppLogger.error("异步DeepSeek API请求失败（非超时异常）: " + e.getMessage(), e);
+                                    AppLogger.error("异步DeepSeek API请求失败（无法重试的异常）: " + e.getMessage(), e);
                                 }
                                 callback.onFailure(e);
                                 AppLogger.clearTrackingId();
@@ -474,16 +603,31 @@ public class DeepSeekTextCorrector {
                         public void onResponse(Call call, Response response) throws IOException {
                             long duration = System.currentTimeMillis() - startTime;
                             int statusCode = response.code();
-                            String responseBody = response.body().string();
                             
-                            // 记录API响应
+                            // 记录API响应基本信息
                             AppLogger.info("异步DeepSeek响应状态码: " + statusCode);
                             AppLogger.info("异步DeepSeek响应头: " + response.headers().toString());
                             AppLogger.info("异步DeepSeek响应耗时: " + duration + "ms");
-                            AppLogger.info("异步DeepSeek原始响应体: " + responseBody);
+                            
+                            // 安全地获取响应体，添加额外错误处理
+                            String responseBody = "";
+                            try {
+                                if (response.body() != null) {
+                                    responseBody = response.body().string();
+                                    // 记录完整的响应体，不再截断
+                                    AppLogger.info("异步DeepSeek完整响应体: " + responseBody);
+                                } else {
+                                    AppLogger.warn("异步DeepSeek返回了空响应体");
+                                }
+                            } catch (Exception e) {
+                                AppLogger.error("读取异步DeepSeek响应体时发生异常: " + e.getMessage(), e);
+                                callback.onFailure(new IOException("读取响应体失败: " + e.getMessage(), e));
+                                AppLogger.clearTrackingId();
+                                return;
+                            }
                             
                             if (!response.isSuccessful()) {
-                                String errorMsg = "DeepSeek API请求失败，状态码: " + response.code();
+                                String errorMsg = "DeepSeek API请求失败，状态码: " + response.code() + ", 响应: " + responseBody;
                                 AppLogger.error(errorMsg);
                                 callback.onFailure(new Exception(errorMsg));
                                 AppLogger.clearTrackingId();
@@ -492,13 +636,22 @@ public class DeepSeekTextCorrector {
                             
                             try {
                                 // 从DeepSeek响应中提取文本内容
-                                JsonNode responseNode = MAPPER.readTree(responseBody);
-                                String content = extractJsonFromResponse(responseNode);
+                                JsonNode responseNode;
+                                try {
+                                    responseNode = MAPPER.readTree(responseBody);
+                                } catch (Exception e) {
+                                    AppLogger.error("解析异步DeepSeek JSON响应失败: " + e.getMessage() + ", 原始响应: " + responseBody, e);
+                                    callback.onFailure(new Exception("解析DeepSeek JSON响应失败: " + e.getMessage()));
+                                    AppLogger.clearTrackingId();
+                                    return;
+                                }
                                 
-                                AppLogger.info("从异步DeepSeek响应中提取的JSON: " + content);
+                                String content = extractJsonFromResponse(responseNode);
+                                AppLogger.info("从异步DeepSeek响应中提取的完整JSON: " + content);
                                 
                                 AppLogger.info("开始解析异步纠错响应");
-                                CorrectionResult result = parseResponse(text, content);
+                                // 使用安全解析方法
+                                CorrectionResult result = safeParseResponse(text, content);
                                 
                                 // 记录纠错结果
                                 AppLogger.info("异步纠错结果: 原文本长度=" + text.length() + 
@@ -546,132 +699,128 @@ public class DeepSeekTextCorrector {
     }
     
     /**
-     * 解析API响应
-     * @param originalText 原始文本
-     * @param responseBody 响应体
-     * @return 纠正结果
-     * @throws Exception 解析过程中的异常
+     * 掩盖API密钥，只显示前4位和后4位
      */
-    private static CorrectionResult parseResponse(String originalText, String responseBody) throws Exception {
-        AppLogger.info("开始解析DeepSeek API响应");
-        AppLogger.debug("响应内容: " + responseBody);
+    private static String maskApiKey(String apiKey) {
+        if (apiKey == null || apiKey.length() <= 8) {
+            return "[密钥已隐藏]";
+        }
+        return apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4);
+    }
+    
+    /**
+     * 解析API响应，提取纠错信息
+     * @param originalText 原始文本
+     * @param correctedText 纠正后的文本
+     * @return 纠错结果对象
+     */
+    public static CorrectionResult parseResponse(String originalText, String correctedText) {
+        AppLogger.info("开始解析API响应，提取纠错信息");
+        
+        List<TextCorrection> corrections = new ArrayList<>();
         
         try {
-            JsonNode rootNode = MAPPER.readTree(responseBody);
-            
-            // 检查是否有错误
-            if (rootNode.has("error_code")) {
-                String errorMsg = "DeepSeek API错误: " + rootNode.get("error_msg").asText();
-                AppLogger.error(errorMsg);
-                throw new Exception(errorMsg);
+            // 如果原文与校正后文本相同，直接返回
+            if (originalText.equals(correctedText)) {
+                AppLogger.info("原文与纠正后文本相同，无需纠正");
+                return new CorrectionResult(correctedText, corrections);
             }
             
-            // 获取纠正后的文本和原始文本
-            String correctedText = originalText;
-            List<TextCorrection> corrections = new ArrayList<>();
-            
-            // 从item中获取correct_query字段
-            if (rootNode.has("item")) {
-                JsonNode itemNode = rootNode.path("item");
-                if (itemNode.has("correct_query")) {
-                    correctedText = itemNode.path("correct_query").asText(correctedText);
-                    AppLogger.info("从item.correct_query获取到纠正后的文本");
-                }
+            // 解析API响应中的错误项
+            if (apiResponse != null && apiResponse.has("item") && !apiResponse.get("item").isNull()) {
+                JsonNode itemNode = apiResponse.get("item");
                 
-                // 检查error_num和details字段
-                if (itemNode.has("error_num") && itemNode.has("details")) {
-                    int errorNum = itemNode.path("error_num").asInt(0);
-                    AppLogger.info("检测到格式正确的响应，错误数量: " + errorNum);
+                // 提取details数组
+                if (itemNode.has("details") && itemNode.get("details").isArray()) {
+                    JsonNode detailsArray = itemNode.get("details");
+                    int totalErrors = 0;
                     
-                    // 从details数组中获取纠错信息
-                    JsonNode detailsNode = itemNode.path("details");
-                    if (detailsNode.isArray()) {
-                        for (JsonNode detail : detailsNode) {
-                            // 处理fragments
-                            if (detail.has("vec_fragment") && detail.path("vec_fragment").isArray()) {
-                                JsonNode fragments = detail.path("vec_fragment");
-                                for (JsonNode fragment : fragments) {
-                                    String oriText = fragment.path("ori_frag").asText("");
-                                    String corrText = fragment.path("correct_frag").asText("");
-                                    int beginPos = fragment.path("begin_pos").asInt(0);
-                                    int endPos = fragment.path("end_pos").asInt(0);
-                                    String explain = fragment.path("explain").asText("");
+                    // 遍历每个句子的详情
+                    for (int i = 0; i < detailsArray.size(); i++) {
+                        JsonNode sentenceNode = detailsArray.get(i);
+                        
+                        // 提取sentence和vec_fragment
+                        if (sentenceNode.has("sentence") && sentenceNode.has("vec_fragment") && 
+                            sentenceNode.get("vec_fragment").isArray()) {
+                            
+                            String sentence = sentenceNode.get("sentence").asText();
+                            JsonNode fragments = sentenceNode.get("vec_fragment");
+                            
+                            if (fragments.size() > 0) {
+                                AppLogger.info("句子 #" + (i+1) + " 发现 " + fragments.size() + " 处错误");
+                                
+                                // 找到句子在原文中的位置
+                                int sentenceStartPos = originalText.indexOf(sentence);
+                                if (sentenceStartPos == -1) {
+                                    // 如果找不到完全匹配，尝试使用模糊匹配
+                                    sentenceStartPos = findApproximatePosition(originalText, sentence);
+                                }
+                                
+                                // 遍历每个错误片段
+                                for (int j = 0; j < fragments.size(); j++) {
+                                    JsonNode fragment = fragments.get(j);
                                     
-                                    if (!oriText.equals(corrText)) {
-                                        String position = "位置: " + beginPos + "-" + endPos;
-                                        TextCorrection correction = new TextCorrection(oriText, corrText, position);
-                                        corrections.add(correction);
+                                    if (fragment.has("ori_frag") && fragment.has("correct_frag") && 
+                                        fragment.has("begin_pos") && fragment.has("end_pos")) {
                                         
-                                        AppLogger.debug("纠正项(details格式): '" + oriText + "' -> '" + 
-                                                     corrText + "' " + position + " 原因: " + explain);
+                                        String originalFragment = fragment.get("ori_frag").asText();
+                                        String correctedFragment = fragment.get("correct_frag").asText();
+                                        int beginPos = fragment.get("begin_pos").asInt();
+                                        int endPos = fragment.get("end_pos").asInt();
+                                        
+                                        // 计算在整个文本中的位置
+                                        int globalBeginPos = sentenceStartPos + beginPos;
+                                        int globalEndPos = sentenceStartPos + endPos;
+                                        
+                                        // 生成位置字符串
+                                        String position = "位置: " + globalBeginPos + "-" + globalEndPos;
+                                        
+                                        // 创建TextCorrection对象
+                                        TextCorrection correction = new TextCorrection(
+                                            originalFragment, correctedFragment, position);
+                                        
+                                        // 如果有错误类型说明，添加到TextCorrection
+                                        if (fragment.has("explain") && !fragment.get("explain").isNull()) {
+                                            String explain = fragment.get("explain").asText();
+                                            correction.setErrorType(explain);
+                                        }
+                                        
+                                        corrections.add(correction);
+                                        totalErrors++;
+                                        
+                                        AppLogger.debug("错误 #" + totalErrors + ": 原文=\"" + 
+                                                     originalFragment + "\", 纠正=\"" + 
+                                                     correctedFragment + "\", " + position);
                                     }
                                 }
                             }
                         }
                     }
+                    
+                    AppLogger.info("从API响应中提取了 " + totalErrors + " 处错误");
                 }
+            }
+            
+            // 如果没有从API响应中提取到错误项，但文本确实被修改了
+            if (corrections.isEmpty() && !originalText.equals(correctedText)) {
+                AppLogger.info("API响应中未包含具体错误项，但文本已被修改");
                 
-                // 如果还有text字段，也尝试获取
-                if (itemNode.has("text") && correctedText.equals(originalText)) {
-                    correctedText = itemNode.path("text").asText(correctedText);
-                    AppLogger.info("从item.text获取到文本");
-                }
+                // 添加一个整体性的纠错项
+                TextCorrection wholeCorrection = new TextCorrection(
+                    originalText.length() > 50 ? 
+                        originalText.substring(0, 50) + "..." : originalText,
+                    correctedText.length() > 50 ? 
+                        correctedText.substring(0, 50) + "..." : correctedText,
+                    "整体纠正"
+                );
+                corrections.add(wholeCorrection);
             }
             
-            // 如果没有从API获取到完整的纠正后文本，尝试自己构建
-            if (correctedText.equals(originalText) && !corrections.isEmpty()) {
-                correctedText = buildCorrectedText(originalText, corrections);
-            }
-            
-            // 记录解析结果
-            if (corrections.isEmpty()) {
-                AppLogger.info("DeepSeek API响应解析完成，未发现纠正项");
-            } else {
-                AppLogger.info("DeepSeek API响应解析完成，共有 " + corrections.size() + " 处纠正");
-            }
-            
-            return new CorrectionResult(correctedText, corrections);
         } catch (Exception e) {
-            AppLogger.error("解析DeepSeek API响应失败: " + e.getMessage(), e);
-            throw e;
-        }
-    }
-    
-    /**
-     * 基于原文和错误项列表构建校正后的文本
-     * 
-     * @param originalText 原始文本
-     * @param corrections 纠错项列表
-     * @return 校正后的文本
-     */
-    private static String buildCorrectedText(String originalText, List<TextCorrection> corrections) {
-        if (corrections.isEmpty()) {
-            return originalText;
+            AppLogger.error("解析API响应时出错: " + e.getMessage(), e);
         }
         
-        // 按照位置排序，从后向前替换，避免位置变化
-        corrections.sort((c1, c2) -> {
-            int pos1 = Integer.parseInt(c1.getPosition().replaceAll("位置: (\\d+)-.*", "$1"));
-            int pos2 = Integer.parseInt(c2.getPosition().replaceAll("位置: (\\d+)-.*", "$1"));
-            return Integer.compare(pos2, pos1); // 逆序，从后向前
-        });
-        
-        StringBuilder result = new StringBuilder(originalText);
-        
-        for (TextCorrection correction : corrections) {
-            String posStr = correction.getPosition().replaceAll("位置: (\\d+)-(\\d+)", "$1,$2");
-            String[] positions = posStr.split(",");
-            if (positions.length == 2) {
-                int beginPos = Integer.parseInt(positions[0]);
-                int endPos = Integer.parseInt(positions[1]);
-                
-                if (beginPos >= 0 && endPos <= result.length() && beginPos < endPos) {
-                    result.replace(beginPos, endPos, correction.getCorrected());
-                }
-            }
-        }
-        
-        return result.toString();
+        return new CorrectionResult(correctedText, corrections);
     }
     
     /**
@@ -811,5 +960,120 @@ public class DeepSeekTextCorrector {
         }
         
         return chunks;
+    }
+    
+    /**
+     * 在原文中查找句子的近似位置
+     * 当无法精确匹配句子时使用
+     * @param text 原始文本
+     * @param sentence 要查找的句子
+     * @return 找到的位置，如果找不到则返回0
+     */
+    private static int findApproximatePosition(String text, String sentence) {
+        if (text == null || sentence == null || text.isEmpty() || sentence.isEmpty()) {
+            return 0;
+        }
+        
+        // 如果句子较长，尝试使用前一部分进行匹配
+        if (sentence.length() > 20) {
+            String prefix = sentence.substring(0, 20);
+            int prefixPos = text.indexOf(prefix);
+            if (prefixPos != -1) {
+                return prefixPos;
+            }
+        }
+        
+        // 尝试寻找句子中的关键词
+        String[] words = sentence.split("\\s+|[,.!?;，。！？；]");
+        for (String word : words) {
+            if (word.length() > 3) {  // 只考虑较长的词
+                int wordPos = text.indexOf(word);
+                if (wordPos != -1) {
+                    return wordPos;
+                }
+            }
+        }
+        
+        // 若无法找到，返回0
+        return 0;
+    }
+    
+    /**
+     * 安全地解析API响应，如果解析失败则返回原文
+     * 这确保即使API响应有问题，应用程序也不会崩溃
+     * 
+     * @param originalText 原始文本
+     * @param jsonContent API返回的JSON内容
+     * @return 纠错结果对象
+     */
+    private static CorrectionResult safeParseResponse(String originalText, String jsonContent) {
+        if (originalText == null) {
+            return new CorrectionResult("", new ArrayList<>());
+        }
+        
+        try {
+            // 尝试解析API响应
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(jsonContent);
+            
+            // 确保返回了正确格式的响应
+            if (rootNode.has("item") && rootNode.get("item").has("correct_query")) {
+                String correctedText = rootNode.get("item").get("correct_query").asText();
+                
+                // 解析详情
+                List<TextCorrection> corrections = new ArrayList<>();
+                if (rootNode.get("item").has("details") && rootNode.get("item").get("details").isArray()) {
+                    JsonNode detailsArray = rootNode.get("item").get("details");
+                    
+                    for (JsonNode detail : detailsArray) {
+                        // 提取错误详情
+                        if (detail.has("vec_fragment") && detail.get("vec_fragment").isArray()) {
+                            JsonNode fragments = detail.get("vec_fragment");
+                            
+                            for (JsonNode fragment : fragments) {
+                                if (fragment.has("ori_frag") && fragment.has("correct_frag")) {
+                                    String original = fragment.get("ori_frag").asText();
+                                    String corrected = fragment.get("correct_frag").asText();
+                                    String position = "位置: 未知";
+                                    
+                                    if (fragment.has("begin_pos") && fragment.has("end_pos")) {
+                                        int beginPos = fragment.get("begin_pos").asInt();
+                                        int endPos = fragment.get("end_pos").asInt();
+                                        position = "位置: " + beginPos + "-" + endPos;
+                                    }
+                                    
+                                    TextCorrection correction = new TextCorrection(original, corrected, position);
+                                    
+                                    if (fragment.has("explain")) {
+                                        correction.setErrorType(fragment.get("explain").asText());
+                                    }
+                                    
+                                    corrections.add(correction);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 如果没有具体的错误项但文本已修改，添加一个整体性纠错
+                if (corrections.isEmpty() && !originalText.equals(correctedText)) {
+                    corrections.add(new TextCorrection(
+                        originalText.length() > 50 ? originalText.substring(0, 50) + "..." : originalText,
+                        correctedText.length() > 50 ? correctedText.substring(0, 50) + "..." : correctedText,
+                        "整体纠正"
+                    ));
+                }
+                
+                return new CorrectionResult(correctedText, corrections);
+            } else {
+                // 响应格式不正确，返回原文
+                AppLogger.warn("API响应格式不正确，返回原文");
+                return new CorrectionResult(originalText, new ArrayList<>());
+            }
+        } catch (Exception e) {
+            // 解析异常，记录错误并返回原文
+            AppLogger.error("解析API响应时发生异常: " + e.getMessage() + ", 返回原文", e);
+            return new CorrectionResult(originalText, new ArrayList<>());
+        }
     }
 } 

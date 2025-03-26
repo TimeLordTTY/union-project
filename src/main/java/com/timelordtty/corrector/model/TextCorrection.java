@@ -10,6 +10,7 @@ public class TextCorrection {
     private String original;  // 原始文本
     private String corrected; // 纠正后的文本
     private String position;  // 位置信息，格式为"位置: startPos-endPos"
+    private String errorType; // 错误类型，例如"拼写错误"、"语法错误"等
     
     /**
      * 构造函数
@@ -69,6 +70,22 @@ public class TextCorrection {
      */
     public void setPosition(String position) {
         this.position = position;
+    }
+    
+    /**
+     * 设置错误类型
+     * @param errorType 错误类型
+     */
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
+    }
+    
+    /**
+     * 获取错误类型
+     * @return 错误类型
+     */
+    public String getErrorType() {
+        return errorType;
     }
     
     @Override

@@ -1,32 +1,51 @@
 package com.timelordtty.corrector.controller;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.corrector.model.TextCorrection;
-import com.timelordtty.corrector.util.BaiduTextCorrector;
 import com.timelordtty.corrector.util.DeepSeekTextCorrector;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
+import javafx.stage.Stage;
+import javafx.concurrent.Task;
+import javafx.scene.paint.Color;
 
 /**
  * 文本校正控制器
- * 使用百度API或DeepSeek API进行文本校正功能
+ * 使用DeepSeek API进行文本校正功能
  */
 public class TextCorrectorController implements Initializable {
 
@@ -60,12 +79,10 @@ public class TextCorrectorController implements Initializable {
     @FXML
     private TableColumn<TextCorrection, String> positionColumn;
     
-    @FXML
-    private CheckBox useDeepSeekCheckBox;
-    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         System.out.println("文本校正器界面已初始化");
+        AppLogger.info("文本校正器界面已初始化");
         
         // 添加null检查以避免NullPointerException
         if (progressIndicator != null) {
@@ -79,52 +96,221 @@ public class TextCorrectorController implements Initializable {
             positionColumn.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getPosition()));
         }
         
-        // 在界面加载完成后立即预加载百度API Token
-        preloadBaiduToken();
+        // 设置文件拖放功能
+        setupFileDragAndDrop();
     }
     
     /**
-     * 预加载百度API Token
-     * 在进入Tab时就开始获取Token，避免第一次校正时的延迟
+     * 设置文件拖放功能
      */
-    private void preloadBaiduToken() {
-        AppLogger.info("开始预加载百度API Token");
+    private void setupFileDragAndDrop() {
+        if (inputTextArea == null) {
+            return;
+        }
         
-        // 在后台线程中执行，避免阻塞UI
-        new Thread(() -> {
-            try {
-                // 调用预加载Token方法
-                AppLogger.info("预加载Token: 尝试获取百度API访问令牌");
-                BaiduTextCorrector.preloadToken();
-                AppLogger.info("Token预加载请求已发送，将在后台处理");
-                
-                // 在UI线程中提示用户(可选)
-                Platform.runLater(() -> {
-                    // 这里可以更新UI，例如显示一个小图标表示API已准备好
-                    // 但为了不打扰用户，这里不显示任何提示
-                });
-            } catch (Exception e) {
-                AppLogger.error("预加载百度API Token时发生异常: " + e.getMessage(), e);
+        // 设置拖拽事件处理
+        inputTextArea.setOnDragOver(event -> {
+            // 判断是否是文件
+            if (event.getDragboard().hasFiles()) {
+                // 允许拖入
+                event.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
             }
-        }, "baidu-api-token-preload-thread").start();
+            event.consume();
+        });
+        
+        // 设置拖入事件处理
+        inputTextArea.setOnDragDropped(event -> {
+            boolean success = false;
+            javafx.scene.input.Dragboard dragboard = event.getDragboard();
+            
+            if (dragboard.hasFiles()) {
+                // 获取拖入的第一个文件
+                File file = dragboard.getFiles().get(0);
+                success = true;
+                
+                // 处理文件
+                processDroppedFile(file);
+            }
+            
+            event.setDropCompleted(success);
+            event.consume();
+        });
+        
+        // 设置拖入提示
+        inputTextArea.setOnDragEntered(event -> {
+            if (event.getDragboard().hasFiles()) {
+                inputTextArea.setStyle("-fx-border-color: #0078d7; -fx-border-width: 2px; -fx-border-style: dashed;");
+            }
+            event.consume();
+        });
+        
+        inputTextArea.setOnDragExited(event -> {
+            inputTextArea.setStyle("");
+            event.consume();
+        });
+    }
+    
+    /**
+     * 处理拖放的文件
+     */
+    private void processDroppedFile(File file) {
+        if (file == null || !file.exists()) {
+            AppLogger.warn("拖放的文件不存在或为空");
+            showAlert(Alert.AlertType.WARNING, "警告", "无法处理拖放的文件");
+            return;
+        }
+        
+        AppLogger.info("用户拖放了文件: " + file.getAbsolutePath() + 
+                       ", 大小: " + (file.length() / 1024) + " KB");
+        
+        // 判断文件类型是否支持
+        String fileName = file.getName().toLowerCase();
+        if (!(fileName.endsWith(".txt") || fileName.endsWith(".doc") || fileName.endsWith(".docx"))) {
+            AppLogger.warn("不支持的文件类型: " + fileName);
+            showAlert(Alert.AlertType.WARNING, "不支持的文件类型", 
+                    "目前仅支持TXT文本文件和Word文档(DOC/DOCX)。\n您拖放的文件: " + fileName);
+            return;
+        }
+        
+        // 显示进度指示器
+        if (progressIndicator != null) {
+            progressIndicator.setVisible(true);
+        }
+        
+        // 禁用按钮，避免重复操作
+        if (correctButton != null) {
+            correctButton.setDisable(true);
+        }
+        
+        // 异步加载文件内容，避免阻塞UI
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                // 读取文件内容
+                AppLogger.info("开始读取拖放的文件内容，这可能需要一些时间...");
+                String fileContent = readFileContent(file);
+                AppLogger.info("拖放文件内容读取完成，文本长度: " + fileContent.length() + " 字符");
+                return fileContent;
+            } catch (Exception e) {
+                AppLogger.error("读取拖放文件内容失败: " + e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        }).thenAccept(fileContent -> {
+            // 在UI线程中更新文本区域
+            Platform.runLater(() -> {
+                try {
+                    // 清空当前内容
+                    if (inputTextArea != null) {
+                        inputTextArea.clear();
+                    }
+                    if (resultTextArea != null) {
+                        resultTextArea.clear();
+                    }
+                    if (correctedTextFlow != null) {
+                        correctedTextFlow.getChildren().clear();
+                    }
+                    
+                    // 检查文件内容大小，显示警告
+                    if (fileContent.length() > 50000) {
+                        AppLogger.warn("拖放文件内容很大 (" + fileContent.length() + " 字符)，纠错可能需要较长时间");
+                        showAlert(Alert.AlertType.WARNING, "大文件提示", 
+                                "您拖放的文件内容较大 (" + (fileContent.length() / 1000) + " KB)，" +
+                                "纠错处理可能需要较长时间。\n\n" +
+                                "建议选择使用DeepSeek API以获得更好的大文本处理能力。");
+                    }
+                    
+                    // 设置文件内容到输入区域
+                    inputTextArea.setText(fileContent);
+                    
+                    // 使文本区域获得焦点
+                    inputTextArea.requestFocus();
+                    
+                    AppLogger.info("拖放文件内容已加载到输入框");
+                } finally {
+                    // 隐藏进度指示器
+                    if (progressIndicator != null) {
+                        progressIndicator.setVisible(false);
+                    }
+                    
+                    // 重新启用按钮
+                    if (correctButton != null) {
+                        correctButton.setDisable(false);
+                    }
+                    
+                    // 清除拖放样式
+                    if (inputTextArea != null) {
+                        inputTextArea.setStyle("");
+                    }
+                }
+            });
+        }).exceptionally(ex -> {
+            Platform.runLater(() -> {
+                // 发生异常时，隐藏进度指示器并重新启用按钮
+                if (progressIndicator != null) {
+                    progressIndicator.setVisible(false);
+                }
+                if (correctButton != null) {
+                    correctButton.setDisable(false);
+                }
+                if (inputTextArea != null) {
+                    inputTextArea.setStyle("");
+                }
+                
+                showAlert(Alert.AlertType.ERROR, "错误", "无法读取拖放文件内容: " + ex.getMessage());
+            });
+            return null;
+        });
+    }
+    
+    /**
+     * 从原文和修正文本中提取纠错项
+     */
+    private List<TextCorrection> extractCorrections(String original, String corrected) {
+        List<TextCorrection> corrections = new ArrayList<>();
+        
+        try {
+            if (original == null || corrected == null || original.equals(corrected)) {
+                return corrections;
+            }
+            
+            // 如果原文和纠正文本不同但没有具体纠错项，创建一个整体纠错项
+            TextCorrection wholeCorrection = new TextCorrection(
+                original.substring(0, Math.min(50, original.length())) + (original.length() > 50 ? "..." : ""),
+                corrected.substring(0, Math.min(50, corrected.length())) + (corrected.length() > 50 ? "..." : ""),
+                "整体修改"
+            );
+            corrections.add(wholeCorrection);
+            
+            AppLogger.info("创建了一个整体纠错项，因为没有具体纠错详情");
+            
+        } catch (Exception e) {
+            AppLogger.error("提取纠错项时出错: " + e.getMessage(), e);
+        }
+        
+        return corrections;
     }
     
     /**
      * 执行文本校正
      */
     @FXML
-    private void correctText() {
+    public void correctText() {
+        AppLogger.info("开始文本纠正");
+        
+        // 检查输入文本区域是否初始化
         if (inputTextArea == null) {
-            showAlert(Alert.AlertType.ERROR, "错误", "文本输入区域未初始化!");
+            showAlert(Alert.AlertType.ERROR, "错误", "输入文本区域未初始化");
             return;
         }
-        
+
+        // 获取输入文本
         String text = inputTextArea.getText();
-        if (text.isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "错误", "请输入需要校正的文本!");
+        
+        // 检查文本是否为空
+        if (text == null || text.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "警告", "请输入需要纠正的文本");
             return;
         }
-        
+
         // 清空之前的结果
         if (correctedTextFlow != null) {
             correctedTextFlow.getChildren().clear();
@@ -138,156 +324,96 @@ public class TextCorrectorController implements Initializable {
         if (correctionTableView != null) {
             correctionTableView.getItems().clear();
         }
-        
+
         // 显示进度指示器
         if (progressIndicator != null) {
             progressIndicator.setVisible(true);
         }
         
-        // 确定使用哪个API
-        boolean useDeepSeek = useDeepSeekCheckBox != null && useDeepSeekCheckBox.isSelected();
+        AppLogger.info("使用DeepSeek API进行文本纠正，长度: " + text.length());
         
-        // 记录用户操作和输入
-        AppLogger.info("====== 用户文本纠错操作开始 ======");
-        AppLogger.info("用户请求文本纠错，输入长度: " + text.length() + " 字符");
-        AppLogger.info("输入文本前100字符: " + text.substring(0, Math.min(text.length(), 100)) + (text.length() > 100 ? "..." : ""));
-        AppLogger.info("使用API: " + (useDeepSeek ? "DeepSeek" : "百度"));
-        
-        // 异步执行校正，避免UI冻结
-        CompletableFuture.runAsync(() -> {
-            try {
-                AppLogger.info("开始调用" + (useDeepSeek ? "DeepSeek" : "百度") + " API进行文本纠错");
-                long startTime = System.currentTimeMillis();
-                
-                // 调用API进行文本纠错
-                Object result;
-                if (useDeepSeek) {
-                    // 对于DeepSeek API，如果文本过长，使用分块处理
-                    final int LARGE_TEXT_THRESHOLD = 1000; // 定义长文本阈值
-                    if (text.length() > LARGE_TEXT_THRESHOLD) {
-                        AppLogger.info("文本长度超过" + LARGE_TEXT_THRESHOLD + "字符，将使用分块处理");
-                        result = DeepSeekTextCorrector.correctLargeText(text);
+        // 创建纠错任务
+        Task<DeepSeekTextCorrector.CorrectionResult> correctorTask = new Task<DeepSeekTextCorrector.CorrectionResult>() {
+            @Override
+            protected DeepSeekTextCorrector.CorrectionResult call() throws Exception {
+                // 使用DeepSeek API进行纠错
+                try {
+                    AppLogger.info("开始调用DeepSeek API进行纠错");
+                    DeepSeekTextCorrector deepSeekCorrector = new DeepSeekTextCorrector();
+                    
+                    // 对于长文本使用分块处理
+                    if (text.length() > 3000) {
+                        AppLogger.info("文本长度超过3000字符，使用分块处理");
+                        return deepSeekCorrector.correctLargeText(text);
                     } else {
-                        result = DeepSeekTextCorrector.correct(text);
+                        return deepSeekCorrector.correct(text);
                     }
-                } else {
-                    result = BaiduTextCorrector.correct(text);
+                } catch (Exception e) {
+                    AppLogger.error("调用DeepSeek API时出错: " + e.getMessage(), e);
+                    throw e;
                 }
-                
-                long duration = System.currentTimeMillis() - startTime;
-                String correctedText;
-                java.util.List<TextCorrection> correctionList;
-                
-                if (useDeepSeek) {
-                    DeepSeekTextCorrector.CorrectionResult deepSeekResult = (DeepSeekTextCorrector.CorrectionResult) result;
-                    correctedText = deepSeekResult.getCorrectedText();
-                    correctionList = deepSeekResult.getCorrections();
-                } else {
-                    BaiduTextCorrector.CorrectionResult baiduResult = (BaiduTextCorrector.CorrectionResult) result;
-                    correctedText = baiduResult.getCorrectedText();
-                    correctionList = baiduResult.getCorrections();
+            }
+        };
+
+        // 设置纠错任务成功完成后的操作
+        correctorTask.setOnSucceeded(event -> {
+            DeepSeekTextCorrector.CorrectionResult result = correctorTask.getValue();
+            
+            // 检查纠正结果是否为空
+            if (result == null || result.getCorrectedText() == null) {
+                showAlert(Alert.AlertType.ERROR, "错误", "获取纠正结果失败");
+                if (progressIndicator != null) {
+                    progressIndicator.setVisible(false);
                 }
-                
-                AppLogger.info("文本纠错调用完成，耗时: " + duration + "ms");
-                AppLogger.info("纠错结果: 原文本长度=" + text.length() + 
-                             ", 纠正后长度=" + correctedText.length() + 
-                             ", 纠正数量=" + correctionList.size());
-                
-                if (!correctionList.isEmpty()) {
-                    AppLogger.info("纠正详情:");
-                    for (int i = 0; i < correctionList.size(); i++) {
-                        TextCorrection correction = correctionList.get(i);
-                        AppLogger.info("  " + (i+1) + ". 原文: \"" + correction.getOriginal() + 
-                                     "\" -> 纠正: \"" + correction.getCorrected() + 
-                                     "\" " + correction.getPosition());
-                    }
-                } else {
-                    AppLogger.info("未发现需要纠正的内容");
+                return;
+            }
+            
+            String correctedText = result.getCorrectedText();
+            List<TextCorrection> correctionList = result.getCorrections();
+
+            AppLogger.info("DeepSeek API纠错成功，结果长度: " + correctedText.length() + 
+                         ", 发现 " + (correctionList != null ? correctionList.size() : 0) + " 处错误");
+
+            // 更新纠正后的文本区域
+            if (resultTextArea != null) {
+                resultTextArea.setText(correctedText);
+                AppLogger.info("已更新纠正后的文本区域");
+            }
+            
+            // 更新纠错表格
+            if (correctionTableView != null) {
+                correctionTableView.getItems().clear();
+                if (correctionList != null && !correctionList.isEmpty()) {
+                    correctionTableView.getItems().addAll(correctionList);
                 }
-                
-                // 检查是否有实际的纠正
-                boolean hasActualCorrections = false;
-                if (!text.equals(correctedText)) {
-                    hasActualCorrections = true;
-                    AppLogger.info("原文与纠正后文本不同，存在纠正");
-                }
-                
-                // 最终确定的纠正状态
-                final boolean finalHasCorrections = !correctionList.isEmpty() || hasActualCorrections;
-                final String finalCorrectedText = correctedText;
-                final java.util.List<TextCorrection> finalCorrectionList = correctionList;
-                
-                // 在UI线程中更新界面
-                Platform.runLater(() -> {
-                    AppLogger.info("开始更新UI展示纠错结果");
-                    
-                    // 更新校正后文本
-                    displayCorrectedText(text, finalCorrectedText);
-                    
-                    // 更新结果文本区域
-                    if (resultTextArea != null) {
-                        resultTextArea.setText(finalCorrectedText);
-                    }
-                    
-                    // 更新TableView
-                    if (correctionTableView != null) {
-                        correctionTableView.getItems().clear();
-                        if (!finalCorrectionList.isEmpty()) {
-                            correctionTableView.getItems().addAll(finalCorrectionList);
-                        }
-                    }
-                    
-                    // 更新纠错详情文本区域
-                    if (correctionDetailsTextArea != null) {
-                        if (finalHasCorrections) {
-                            StringBuilder sb = new StringBuilder();
-                            if (!finalCorrectionList.isEmpty()) {
-                                sb.append("发现 ").append(finalCorrectionList.size()).append(" 处需要纠正的内容：\n\n");
-                                
-                                for (TextCorrection correction : finalCorrectionList) {
-                                    sb.append("原文: \"").append(correction.getOriginal())
-                                      .append("\" -> 纠正: \"").append(correction.getCorrected())
-                                      .append("\" ").append(correction.getPosition()).append("\n");
-                                }
-                            } else {
-                                sb.append("文本已纠正，但可能采用了整体纠正方式，未获取到具体纠正项。");
-                            }
-                            correctionDetailsTextArea.setText(sb.toString());
-                        } else {
-                            correctionDetailsTextArea.setText("文本检查完成，未发现需要纠正的内容。");
-                        }
-                    }
-                    
-                    // 隐藏进度指示器
-                    if (progressIndicator != null) {
-                        progressIndicator.setVisible(false);
-                    }
-                    
-                    AppLogger.info("UI更新完成，向用户显示结果对话框");
-                    if (finalHasCorrections) {
-                        showAlert(Alert.AlertType.INFORMATION, "完成", 
-                             "文本校正已完成! " + (finalCorrectionList.isEmpty() ? 
-                             "文本已修正，但未获取到具体纠正项。" : 
-                             "发现 " + finalCorrectionList.size() + " 处错误。"));
-                    } else {
-                        showAlert(Alert.AlertType.INFORMATION, "完成", "文本校正已完成! 未发现错误。");
-                    }
-                    AppLogger.info("====== 用户文本纠错操作结束 ======");
-                });
-            } catch (Exception e) {
-                AppLogger.error("文本纠错失败: " + e.getMessage(), e);
-                AppLogger.error("异常堆栈信息: ", e);
-                
-                Platform.runLater(() -> {
-                    if (progressIndicator != null) {
-                        progressIndicator.setVisible(false);
-                    }
-                    AppLogger.info("向用户显示错误对话框: " + e.getMessage());
-                    showAlert(Alert.AlertType.ERROR, "错误", "文本校正失败: " + e.getMessage());
-                    AppLogger.info("====== 用户文本纠错操作结束(出错) ======");
-                });
+            }
+
+            // 显示纠正后的文本，但只显示错误统计信息，不显示完整文本
+            displayCorrectedText(text, correctedText, correctionList);
+
+            // 更新进度指示器
+            if (progressIndicator != null) {
+                progressIndicator.setVisible(false);
             }
         });
+        
+        // 设置任务执行失败后的操作
+        correctorTask.setOnFailed(event -> {
+            Throwable exception = correctorTask.getException();
+            AppLogger.error("纠错任务执行失败: " + (exception != null ? exception.getMessage() : "未知错误"), exception);
+
+            // 更新进度指示器
+            if (progressIndicator != null) {
+                progressIndicator.setVisible(false);
+            }
+            
+            // 显示错误提示
+            showAlert(Alert.AlertType.ERROR, "纠错失败", "文本纠正过程中出错: " + 
+                      (exception != null ? exception.getMessage() : "未知错误"));
+        });
+        
+        // 启动纠错任务
+        new Thread(correctorTask).start();
     }
     
     /**
@@ -345,74 +471,253 @@ public class TextCorrectorController implements Initializable {
     }
     
     /**
-     * 在TextFlow中显示校正后的文本，并高亮显示修改的部分
+     * 显示纠正的文本
      */
-    private void displayCorrectedText(String original, String corrected) {
-        // 如果correctedTextFlow为null，直接返回
-        if (correctedTextFlow == null) {
+    private void displayCorrectedText(String originalText, String correctedText, List<TextCorrection> corrections) {
+        AppLogger.info("显示纠正后的文本");
+        
+        if (originalText == null || correctedText == null) {
+            showAlert(Alert.AlertType.ERROR, "错误", "原文或纠正文本为空");
             return;
         }
         
-        correctedTextFlow.getChildren().clear();
+        // 显示进度指示器
+        progressIndicator.setVisible(false);
         
-        // 如果原文和纠正后的文本相同，直接显示原文
-        if (original.equals(corrected)) {
-            Text text = new Text(original);
-            text.setFill(javafx.scene.paint.Color.BLACK);
-            correctedTextFlow.getChildren().add(text);
-            return;
-        }
+        // 清空之前的结果
+        if (correctedTextFlow != null) correctedTextFlow.getChildren().clear();
+        if (correctionTableView != null) correctionTableView.getItems().clear();
         
-        // 如果有纠正列表，使用纠正列表来标记错误
-        if (correctionTableView != null && !correctionTableView.getItems().isEmpty()) {
-            // 获取所有纠正
-            java.util.List<TextCorrection> corrections = correctionTableView.getItems();
-            
-            // 将纠正项按位置排序
-            corrections.sort((c1, c2) -> {
-                int pos1 = extractStartPosition(c1.getPosition());
-                int pos2 = extractStartPosition(c2.getPosition());
-                return Integer.compare(pos1, pos2);
-            });
-            
-            int currentIndex = 0;
-            for (TextCorrection correction : corrections) {
-                int startPos = extractStartPosition(correction.getPosition());
-                int endPos = extractEndPosition(correction.getPosition());
-                
-                // 确保位置有效
-                if (startPos < 0 || endPos > original.length() || startPos >= endPos) {
-                    continue;
+        try {
+            // 不再显示完整文本，只在resultTextArea中显示
+            // 只显示错误列表和统计信息
+            if (corrections != null && !corrections.isEmpty()) {
+                if (correctionTableView != null) {
+                    correctionTableView.getItems().addAll(corrections);
                 }
                 
-                // 添加错误前的正常文本
-                if (startPos > currentIndex) {
-                    Text normalText = new Text(original.substring(currentIndex, startPos));
-                    normalText.setFill(javafx.scene.paint.Color.BLACK);
-                    correctedTextFlow.getChildren().add(normalText);
+                // 显示错误数量统计
+                int correctionCount = corrections.size();
+                String summary = String.format("共发现 %d 处错误", correctionCount);
+                
+                // 添加统计信息到TextFlow，但不添加完整文本
+                if (correctedTextFlow != null) {
+                    // 只添加错误统计和详情按钮
+                    Text summaryText = new Text(summary);
+                    summaryText.setStyle("-fx-font-weight: bold;");
+                    correctedTextFlow.getChildren().add(summaryText);
+                    
+                    // 添加查看详情按钮
+                    addViewDetailsButton();
                 }
                 
-                // 添加错误文本（标红）
-                Text errorText = new Text(original.substring(startPos, endPos));
-                errorText.setFill(javafx.scene.paint.Color.RED);
-                errorText.setUnderline(true);
-                correctedTextFlow.getChildren().add(errorText);
+                AppLogger.info("显示了 " + correctionCount + " 处错误");
+            } else {
+                // 没有发现错误
+                if (correctedTextFlow != null) {
+                    Text noErrorText = new Text("未发现需要纠正的内容");
+                    noErrorText.setStyle("-fx-font-style: italic; -fx-fill: green;");
+                    correctedTextFlow.getChildren().add(noErrorText);
+                }
                 
-                currentIndex = endPos;
+                AppLogger.info("未发现错误，原文和纠正后的文本相同");
             }
             
-            // 添加最后一部分正常文本
-            if (currentIndex < original.length()) {
-                Text normalText = new Text(original.substring(currentIndex));
-                normalText.setFill(javafx.scene.paint.Color.BLACK);
-                correctedTextFlow.getChildren().add(normalText);
-            }
-        } else {
-            // 没有详细的纠正列表，使用差异比较
-            applySinglePassDiff(original, corrected);
+        } catch (OutOfMemoryError e) {
+            AppLogger.error("显示纠正文本时内存溢出: " + e.getMessage(), e);
+            handleMemoryOverflow();
+        } catch (Exception e) {
+            AppLogger.error("显示纠正文本时出错: " + e.getMessage(), e);
+            showAlert(Alert.AlertType.ERROR, "错误", "显示纠正文本时出错: " + e.getMessage());
         }
     }
     
+    /**
+     * 处理内存溢出异常
+     */
+    private void handleMemoryOverflow() {
+        AppLogger.error("显示文本时发生内存溢出");
+        
+        // 清空显示区域
+        if (correctedTextFlow != null) correctedTextFlow.getChildren().clear();
+        
+        // 显示错误提示
+        if (correctedTextFlow != null) {
+            Text errorText = new Text("内存溢出：文本过大，无法显示完整差异\n\n");
+            errorText.setFill(javafx.scene.paint.Color.RED);
+            errorText.setStyle("-fx-font-weight: bold;");
+            
+            Text suggestionText = new Text(
+                "建议：\n" +
+                "1. 减少文本长度，分段处理\n" +
+                "2. 增加JVM内存设置 (-Xmx512m或更高)\n" +
+                "3. 尝试使用导出功能保存结果"
+            );
+            suggestionText.setFill(javafx.scene.paint.Color.BLACK);
+            
+            correctedTextFlow.getChildren().addAll(errorText, suggestionText);
+        }
+        
+        // 显示弹窗提示
+        showAlert(
+            Alert.AlertType.ERROR, 
+            "内存溢出", 
+            "文本过大，无法显示完整差异。请减少文本长度或增加JVM内存设置。"
+        );
+    }
+    
+    /**
+     * 显示警告对话框
+     */
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    /**
+     * 根据文件类型读取内容
+     */
+    private String readFileContent(File file) throws Exception {
+        String fileName = file.getName().toLowerCase();
+        StringBuilder content = new StringBuilder();
+        
+        // 检查文件大小，过大会记录警告
+        long fileSizeKB = file.length() / 1024;
+        if (fileSizeKB > 1024) {
+            AppLogger.warn("文件较大: " + fileSizeKB + " KB，读取可能需要较长时间");
+        }
+        
+        if (fileName.endsWith(".txt")) {
+            // 读取TXT文件
+            AppLogger.info("读取TXT文件内容");
+            try (BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(new FileInputStream(file), detectCharset(file)))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+        } else if (fileName.endsWith(".docx")) {
+            // 读取DOCX文件 (新格式Word)
+            AppLogger.info("读取DOCX(新格式Word)文件内容");
+            try (FileInputStream fis = new FileInputStream(file);
+                 XWPFDocument document = new XWPFDocument(fis);
+                 XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+                content.append(extractor.getText());
+            }
+        } else if (fileName.endsWith(".doc")) {
+            // 读取DOC文件 (旧格式Word)
+            AppLogger.info("读取DOC(旧格式Word)文件内容");
+            try (FileInputStream fis = new FileInputStream(file);
+                 HWPFDocument document = new HWPFDocument(fis);
+                 WordExtractor extractor = new WordExtractor(document)) {
+                content.append(extractor.getText());
+            }
+        } else {
+            // 尝试作为文本文件读取
+            AppLogger.info("尝试作为普通文本文件读取");
+            try (BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(new FileInputStream(file), detectCharset(file)))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+        }
+        
+        return content.toString();
+    }
+    
+    /**
+     * 尝试检测文本文件的字符编码
+     */
+    private java.nio.charset.Charset detectCharset(File file) {
+        // 默认使用UTF-8
+        java.nio.charset.Charset charset = StandardCharsets.UTF_8;
+        
+        // 尝试检测编码
+        byte[] buf = new byte[4096];
+        try (FileInputStream fis = new FileInputStream(file)) {
+            int read = fis.read(buf, 0, buf.length);
+            if (read > 0) {
+                // 检查BOM标记
+                if (buf[0] == (byte)0xEF && buf[1] == (byte)0xBB && buf[2] == (byte)0xBF) {
+                    charset = StandardCharsets.UTF_8;
+                    AppLogger.info("检测到UTF-8 BOM标记");
+                } else if (buf[0] == (byte)0xFE && buf[1] == (byte)0xFF) {
+                    charset = StandardCharsets.UTF_16BE;
+                    AppLogger.info("检测到UTF-16BE BOM标记");
+                } else if (buf[0] == (byte)0xFF && buf[1] == (byte)0xFE) {
+                    charset = StandardCharsets.UTF_16LE;
+                    AppLogger.info("检测到UTF-16LE BOM标记");
+                } else {
+                    // 尝试判断是否为GBK
+                    boolean maybeGBK = false;
+                    for (int i = 0; i < read; i++) {
+                        // GBK编码的特征
+                        if (buf[i] < 0) {
+                            if (i + 1 < read) {
+                                int c = (buf[i] & 0xff) << 8 | (buf[i + 1] & 0xff);
+                                if (c >= 0x8140 && c <= 0xFEFE) {
+                                    maybeGBK = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (maybeGBK) {
+                        try {
+                            charset = java.nio.charset.Charset.forName("GBK");
+                            AppLogger.info("可能是GBK编码，尝试使用GBK解码");
+                        } catch (Exception e) {
+                            AppLogger.warn("不支持GBK编码，将使用UTF-8");
+                        }
+                    } else {
+                        AppLogger.info("未检测到特殊编码标记，使用默认UTF-8");
+                    }
+                }
+            }
+        } catch (IOException e) {
+            AppLogger.warn("检测字符编码时出错: " + e.getMessage() + "，使用默认UTF-8");
+        }
+        
+        return charset;
+    }
+    
+    /**
+     * 上传文件（Word或TXT）进行纠错
+     */
+    @FXML
+    private void uploadFile() {
+        AppLogger.info("用户点击上传文件按钮");
+        
+        // 创建文件选择器
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("选择文件");
+        
+        // 设置文件过滤器
+        fileChooser.getExtensionFilters().addAll(
+            new ExtensionFilter("文本文件", "*.txt"),
+            new ExtensionFilter("Word文档", "*.doc", "*.docx"),
+            new ExtensionFilter("所有文件", "*.*")
+        );
+        
+        // 显示文件选择对话框
+        Stage stage = (Stage) inputTextArea.getScene().getWindow();
+        File selectedFile = fileChooser.showOpenDialog(stage);
+        
+        if (selectedFile != null) {
+            // 处理选择的文件
+            processDroppedFile(selectedFile);
+        } else {
+            AppLogger.info("用户取消了文件选择");
+        }
+    }
+
     /**
      * 从位置字符串中提取开始位置
      */
@@ -436,121 +741,167 @@ public class TextCorrectorController implements Initializable {
             return -1;
         }
     }
-    
+
     /**
-     * 应用简单的差异比较并在TextFlow中显示
+     * 显示纠错详情，包含错误原因等更多信息
      */
-    private void applySinglePassDiff(String original, String corrected) {
-        // 如果原文和纠正后的文本长度差距较大，简单显示纠正后的文本
-        if (Math.abs(original.length() - corrected.length()) > original.length() * 0.3) {
-            Text text = new Text(corrected);
-            text.setFill(javafx.scene.paint.Color.BLACK);
-            correctedTextFlow.getChildren().add(text);
+    private void showCorrectionDetails() {
+        if (correctionTableView == null || correctionTableView.getItems().isEmpty()) {
+            showAlert(Alert.AlertType.INFORMATION, "详情", "未发现需要纠正的内容");
             return;
         }
         
-        // 尝试使用更好的差异比较
-        int[][] lcs = computeLCS(original, corrected);
-        int i = 0, j = 0;
-        StringBuilder currentNormal = new StringBuilder();
+        // 创建详情窗口
+        Stage detailStage = new Stage();
+        detailStage.setTitle("错误纠正详情");
         
-        while (i < original.length() && j < corrected.length()) {
-            if (original.charAt(i) == corrected.charAt(j)) {
-                // 相同字符
-                currentNormal.append(original.charAt(i));
-                i++;
-                j++;
-            } else {
-                // 先添加累积的正常文本
-                if (currentNormal.length() > 0) {
-                    Text normalText = new Text(currentNormal.toString());
-                    normalText.setFill(javafx.scene.paint.Color.BLACK);
-                    correctedTextFlow.getChildren().add(normalText);
-                    currentNormal = new StringBuilder();
+        // 创建表格视图
+        TableView<TextCorrection> detailsTable = new TableView<>();
+        detailsTable.setEditable(false);
+        
+        // 创建表格列
+        TableColumn<TextCorrection, String> indexCol = new TableColumn<>("序号");
+        indexCol.setCellValueFactory(p -> {
+            int index = correctionTableView.getItems().indexOf(p.getValue()) + 1;
+            return new javafx.beans.property.SimpleStringProperty(String.valueOf(index));
+        });
+        indexCol.setPrefWidth(50);
+        
+        TableColumn<TextCorrection, String> originalCol = new TableColumn<>("错误文本");
+        originalCol.setCellValueFactory(p -> 
+            new javafx.beans.property.SimpleStringProperty(p.getValue().getOriginal()));
+        originalCol.setPrefWidth(150);
+        
+        TableColumn<TextCorrection, String> correctedCol = new TableColumn<>("纠正文本");
+        correctedCol.setCellValueFactory(p -> 
+            new javafx.beans.property.SimpleStringProperty(p.getValue().getCorrected()));
+        correctedCol.setPrefWidth(150);
+        
+        TableColumn<TextCorrection, String> positionCol = new TableColumn<>("位置");
+        positionCol.setCellValueFactory(p -> 
+            new javafx.beans.property.SimpleStringProperty(p.getValue().getPosition()));
+        positionCol.setPrefWidth(100);
+        
+        // 添加列到表格
+        detailsTable.getColumns().addAll(indexCol, originalCol, correctedCol, positionCol);
+        
+        // 添加数据
+        detailsTable.getItems().addAll(correctionTableView.getItems());
+        
+        // 为表格添加样式
+        detailsTable.setStyle("-fx-font-size: 12px;");
+        
+        // 添加描述文本
+        Text descriptionText = new Text("发现 " + correctionTableView.getItems().size() + " 处错误，详情如下：");
+        descriptionText.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        // 创建导出按钮
+        Button exportButton = new Button("导出错误报告");
+        exportButton.setOnAction(e -> exportCorrectionReport(detailsTable.getItems()));
+        
+        // 创建布局
+        VBox vbox = new VBox(10);
+        vbox.setPadding(new javafx.geometry.Insets(10));
+        vbox.getChildren().addAll(descriptionText, detailsTable, exportButton);
+        
+        // 设置场景
+        Scene scene = new Scene(vbox, 600, 400);
+        detailStage.setScene(scene);
+        
+        // 显示窗口
+        detailStage.show();
+    }
+    
+    /**
+     * 导出错误报告到文件
+     */
+    private void exportCorrectionReport(java.util.List<TextCorrection> corrections) {
+        if (corrections == null || corrections.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "导出", "没有可导出的纠错信息");
+            return;
+        }
+        
+        // 创建文件选择器
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("保存错误报告");
+        fileChooser.getExtensionFilters().addAll(
+            new ExtensionFilter("文本文件", "*.txt"),
+            new ExtensionFilter("所有文件", "*.*")
+        );
+        fileChooser.setInitialFileName("错误报告_" + java.time.LocalDateTime.now().format(
+            java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".txt");
+        
+        // 显示保存对话框
+        Stage stage = (Stage) inputTextArea.getScene().getWindow();
+        File file = fileChooser.showSaveDialog(stage);
+        
+        if (file != null) {
+            try {
+                // 构建报告内容
+                StringBuilder report = new StringBuilder();
+                report.append("文本纠错报告\n");
+                report.append("生成时间: ").append(java.time.LocalDateTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n\n");
+                report.append("共发现 ").append(corrections.size()).append(" 处错误:\n\n");
+                
+                for (int i = 0; i < corrections.size(); i++) {
+                    TextCorrection correction = corrections.get(i);
+                    report.append(i+1).append(". 原文: \"").append(correction.getOriginal())
+                          .append("\" -> 纠正: \"").append(correction.getCorrected())
+                          .append("\" ").append(correction.getPosition()).append("\n");
                 }
                 
-                // 处理差异
-                int nextMatch = findNextMatch(original, corrected, i, j, lcs);
-                if (nextMatch == -1) {
-                    // 无法找到下一个匹配，添加剩余文本
-                    Text endText = new Text(corrected.substring(j));
-                    endText.setFill(javafx.scene.paint.Color.BLACK);
-                    correctedTextFlow.getChildren().add(endText);
-                    break;
-                }
+                // 写入文件
+                java.nio.file.Files.write(file.toPath(), report.toString().getBytes(StandardCharsets.UTF_8));
                 
-                // 添加错误文本
-                Text errorText = new Text(original.substring(i, nextMatch));
-                errorText.setFill(javafx.scene.paint.Color.RED);
-                errorText.setUnderline(true);
-                correctedTextFlow.getChildren().add(errorText);
+                showAlert(Alert.AlertType.INFORMATION, "导出成功", "错误报告已保存到: " + file.getAbsolutePath());
                 
-                i = nextMatch;
+            } catch (Exception e) {
+                AppLogger.error("导出错误报告失败: " + e.getMessage(), e);
+                showAlert(Alert.AlertType.ERROR, "导出失败", "无法保存错误报告: " + e.getMessage());
             }
-        }
-        
-        // 添加剩余的正常文本
-        if (currentNormal.length() > 0) {
-            Text normalText = new Text(currentNormal.toString());
-            normalText.setFill(javafx.scene.paint.Color.BLACK);
-            correctedTextFlow.getChildren().add(normalText);
-        }
-        
-        // 添加剩余的纠正文本
-        if (j < corrected.length()) {
-            Text remainingText = new Text(corrected.substring(j));
-            remainingText.setFill(javafx.scene.paint.Color.BLACK);
-            correctedTextFlow.getChildren().add(remainingText);
         }
     }
     
     /**
-     * 计算最长公共子序列
+     * 添加查看详情按钮
      */
-    private int[][] computeLCS(String s1, String s2) {
-        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-        
-        for (int i = 1; i <= s1.length(); i++) {
-            for (int j = 1; j <= s2.length(); j++) {
-                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                } else {
-                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+    public void addViewDetailsButton() {
+        if (correctionTableView != null && !correctionTableView.getItems().isEmpty()) {
+            Button viewDetailsButton = new Button("查看错误详情");
+            viewDetailsButton.setStyle("-fx-font-weight: bold; -fx-base: #4a86e8;");
+            viewDetailsButton.setOnAction(e -> showCorrectionDetails());
+            
+            // 如果correctedTextFlow不为空，添加按钮
+            if (correctedTextFlow != null) {
+                // 创建容器，水平排列
+                HBox buttonBox = new HBox(10);
+                buttonBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                buttonBox.setPadding(new javafx.geometry.Insets(5, 0, 0, 0));
+                
+                // 添加按钮
+                buttonBox.getChildren().add(viewDetailsButton);
+                
+                // 创建文本节点
+                Text infoText = new Text(" 点击查看详细的错误列表和修改说明");
+                infoText.setFill(javafx.scene.paint.Color.DARKBLUE);
+                infoText.setStyle("-fx-font-style: italic;");
+                
+                // 将按钮和文本添加到容器
+                buttonBox.getChildren().add(infoText);
+                
+                // 替换之前的提示文本
+                int lastIndex = correctedTextFlow.getChildren().size() - 1;
+                if (lastIndex >= 0 && correctedTextFlow.getChildren().get(lastIndex) instanceof Text) {
+                    Text lastText = (Text) correctedTextFlow.getChildren().get(lastIndex);
+                    if (lastText.getText().contains("鼠标悬停")) {
+                        correctedTextFlow.getChildren().remove(lastIndex);
+                    }
                 }
+                
+                // 添加按钮容器
+                correctedTextFlow.getChildren().add(buttonBox);
             }
         }
-        
-        return dp;
-    }
-    
-    /**
-     * 在给定位置之后找到下一个匹配
-     */
-    private int findNextMatch(String s1, String s2, int i, int j, int[][] lcs) {
-        if (i >= s1.length() || j >= s2.length()) {
-            return -1;
-        }
-        
-        // 简单实现：查找下一个相同字符
-        for (int k = i; k < s1.length(); k++) {
-            for (int l = j; l < s2.length(); l++) {
-                if (s1.charAt(k) == s2.charAt(l)) {
-                    return k;
-                }
-            }
-        }
-        
-        return -1;
-    }
-    
-    /**
-     * 显示警告对话框
-     */
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 } 
