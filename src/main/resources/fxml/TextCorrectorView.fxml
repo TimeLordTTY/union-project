@@ -22,6 +22,8 @@
             <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
             <Button text="上传文件" onAction="#uploadFile" HBox.hgrow="NEVER"/>
             <Region HBox.hgrow="ALWAYS" />
+            <Button text="替换规则" fx:id="replaceRuleButton" onAction="#openReplaceRuleDialog" style="-fx-base: #8BC34A;" HBox.hgrow="NEVER"/>
+            <Button text="执行替换" fx:id="executeReplaceButton" onAction="#executeReplace" style="-fx-base: #8BC34A;" HBox.hgrow="NEVER"/>
         </HBox>
         
         <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本...&#10;或者点击&quot;上传文件&quot;按钮上传Word/TXT文件...&#10;也可以直接拖放文件到此处..." wrapText="true" VBox.vgrow="ALWAYS"/>
@@ -30,18 +32,18 @@
                  style="-fx-background-color: #f7f7ff; -fx-padding: 8 10; -fx-border-color: #d0d0e8; -fx-border-radius: 3; -fx-font-size: 13px;" />
         
         <HBox spacing="10" alignment="CENTER_LEFT">
-            <Label text="纠错结果:"/>
+            <Label text="处理结果:"/>
             <Button text="复制结果" onAction="#copyResult" HBox.hgrow="NEVER"/>
             <ProgressIndicator fx:id="progressIndicator" visible="false" />
         </HBox>
         
-        <TextArea fx:id="resultTextArea" promptText="纠错后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
+        <TextArea fx:id="resultTextArea" promptText="处理后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
         
-        <!-- 隐藏的TableView，保留以避免代码引用错误 -->
+        <!-- 隐藏的TableView，用于显示错误和替换项 -->
         <TableView fx:id="correctionTableView" VBox.vgrow="NEVER" visible="false" managed="false">
             <columns>
                 <TableColumn fx:id="originalColumn" text="原文" prefWidth="200"/>
-                <TableColumn fx:id="correctedColumn" text="纠正" prefWidth="200"/>
+                <TableColumn fx:id="correctedColumn" text="修改后" prefWidth="200"/>
                 <TableColumn fx:id="positionColumn" text="位置" prefWidth="100"/>
             </columns>
         </TableView>

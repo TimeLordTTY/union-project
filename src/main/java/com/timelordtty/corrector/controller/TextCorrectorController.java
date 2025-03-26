@@ -18,11 +18,14 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import com.timelordtty.AppLogger;
+import com.timelordtty.corrector.model.ReplaceRule;
 import com.timelordtty.corrector.model.TextCorrection;
 import com.timelordtty.corrector.util.DeepSeekTextCorrector;
+import com.timelordtty.corrector.util.ReplaceOperation;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -39,6 +42,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.concurrent.Task;
 import javafx.scene.paint.Color;
@@ -78,6 +82,23 @@ public class TextCorrectorController implements Initializable {
     
     @FXML
     private TableColumn<TextCorrection, String> positionColumn;
+    
+    @FXML
+    private Button replaceRuleButton;
+    
+    @FXML
+    private Button executeReplaceButton;
+    
+    // 替换规则列表
+    private List<ReplaceRule> replaceRules = new ArrayList<>();
+    
+    // 表示操作类型（纠错或替换）
+    private enum OperationType {
+        CORRECTION, REPLACEMENT
+    }
+    
+    // 当前操作类型
+    private OperationType currentOperation = OperationType.CORRECTION;
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -295,6 +316,9 @@ public class TextCorrectorController implements Initializable {
     @FXML
     public void correctText() {
         AppLogger.info("开始文本纠正");
+        
+        // 设置当前操作类型为纠错
+        currentOperation = OperationType.CORRECTION;
         
         // 检查输入文本区域是否初始化
         if (inputTextArea == null) {
@@ -743,17 +767,211 @@ public class TextCorrectorController implements Initializable {
     }
 
     /**
+     * 打开替换规则对话框
+     */
+    @FXML
+    public void openReplaceRuleDialog() {
+        try {
+            // 加载替换规则对话框FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReplaceRuleDialog.fxml"));
+            VBox dialogRoot = loader.load();
+            
+            // 获取控制器
+            ReplaceRuleDialogController controller = loader.getController();
+            
+            // 设置已有的替换规则
+            controller.setRuleList(replaceRules);
+            
+            // 创建对话框
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("文本替换规则管理");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(inputTextArea.getScene().getWindow());
+            
+            // 设置场景
+            Scene scene = new Scene(dialogRoot);
+            dialogStage.setScene(scene);
+            
+            // 显示对话框并等待关闭
+            dialogStage.showAndWait();
+            
+            // 获取更新后的替换规则列表
+            replaceRules = controller.getRuleList();
+            
+            AppLogger.info("替换规则对话框已关闭，当前有 " + replaceRules.size() + " 条规则");
+            
+        } catch (Exception e) {
+            AppLogger.error("打开替换规则对话框失败: " + e.getMessage(), e);
+            showAlert(Alert.AlertType.ERROR, "错误", "打开替换规则对话框失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 执行文本替换
+     */
+    @FXML
+    public void executeReplace() {
+        if (replaceRules == null || replaceRules.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "警告", "请先添加替换规则");
+            return;
+        }
+        
+        // 获取输入文本
+        String text = inputTextArea.getText();
+        if (text == null || text.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "警告", "请输入需要替换的文本");
+            return;
+        }
+        
+        AppLogger.info("开始执行文本替换，文本长度: " + text.length());
+        
+        // 清空之前的结果
+        if (correctedTextFlow != null) {
+            correctedTextFlow.getChildren().clear();
+        }
+        if (correctionDetailsTextArea != null) {
+            correctionDetailsTextArea.clear();
+        }
+        if (resultTextArea != null) {
+            resultTextArea.clear();
+        }
+        if (correctionTableView != null) {
+            correctionTableView.getItems().clear();
+        }
+        
+        // 显示进度指示器
+        if (progressIndicator != null) {
+            progressIndicator.setVisible(true);
+        }
+        
+        // 设置当前操作类型为替换
+        currentOperation = OperationType.REPLACEMENT;
+        
+        // 创建替换任务
+        Task<ReplaceOperation.ReplaceResult> replaceTask = new Task<>() {
+            @Override
+            protected ReplaceOperation.ReplaceResult call() throws Exception {
+                return ReplaceOperation.replace(text, replaceRules);
+            }
+        };
+        
+        // 替换任务成功完成后的操作
+        replaceTask.setOnSucceeded(event -> {
+            ReplaceOperation.ReplaceResult result = replaceTask.getValue();
+            String replacedText = result.getReplacedText();
+            List<TextCorrection> replacements = result.getReplacements();
+            
+            AppLogger.info("文本替换完成，替换后文本长度: " + replacedText.length() + 
+                          ", 执行了 " + replacements.size() + " 处替换");
+            
+            // 更新文本区域
+            if (resultTextArea != null) {
+                resultTextArea.setText(replacedText);
+            }
+            
+            // 更新替换表格
+            if (correctionTableView != null) {
+                correctionTableView.getItems().clear();
+                if (!replacements.isEmpty()) {
+                    correctionTableView.getItems().addAll(replacements);
+                }
+            }
+            
+            // 显示替换结果
+            displayReplacementResults(text, replacedText, replacements);
+            
+            // 隐藏进度指示器
+            if (progressIndicator != null) {
+                progressIndicator.setVisible(false);
+            }
+        });
+        
+        // 替换任务执行失败后的操作
+        replaceTask.setOnFailed(event -> {
+            Throwable exception = replaceTask.getException();
+            AppLogger.error("替换任务执行失败: " + (exception != null ? exception.getMessage() : "未知错误"), exception);
+            
+            // 隐藏进度指示器
+            if (progressIndicator != null) {
+                progressIndicator.setVisible(false);
+            }
+            
+            // 显示错误提示
+            showAlert(Alert.AlertType.ERROR, "替换失败", "文本替换过程中出错: " + 
+                     (exception != null ? exception.getMessage() : "未知错误"));
+        });
+        
+        // 启动替换任务
+        new Thread(replaceTask).start();
+    }
+    
+    /**
+     * 显示替换结果
+     */
+    private void displayReplacementResults(String originalText, String replacedText, List<TextCorrection> replacements) {
+        AppLogger.info("显示替换结果");
+        
+        // 显示进度指示器
+        progressIndicator.setVisible(false);
+        
+        // 清空之前的结果
+        if (correctedTextFlow != null) correctedTextFlow.getChildren().clear();
+        
+        try {
+            // 不再显示完整文本，只在resultTextArea中显示
+            // 只显示错误列表和统计信息
+            if (replacements != null && !replacements.isEmpty()) {
+                // 显示替换数量统计
+                int replacementCount = replacements.size();
+                String summary = String.format("共执行了 %d 处替换", replacementCount);
+                
+                // 添加统计信息到TextFlow，但不添加完整文本
+                if (correctedTextFlow != null) {
+                    // 只添加替换统计和详情按钮
+                    Text summaryText = new Text(summary);
+                    summaryText.setStyle("-fx-font-weight: bold;");
+                    correctedTextFlow.getChildren().add(summaryText);
+                    
+                    // 添加查看详情按钮
+                    addViewDetailsButton();
+                }
+                
+                AppLogger.info("显示了 " + replacementCount + " 处替换");
+            } else {
+                // 没有执行替换
+                if (correctedTextFlow != null) {
+                    Text noReplaceText = new Text("未执行任何替换操作");
+                    noReplaceText.setStyle("-fx-font-style: italic; -fx-fill: green;");
+                    correctedTextFlow.getChildren().add(noReplaceText);
+                }
+                
+                AppLogger.info("未执行替换，替换前后文本相同");
+            }
+            
+        } catch (Exception e) {
+            AppLogger.error("显示替换结果时出错: " + e.getMessage(), e);
+            showAlert(Alert.AlertType.ERROR, "错误", "显示替换结果时出错: " + e.getMessage());
+        }
+    }
+    
+    /**
      * 显示纠错详情，包含错误原因等更多信息
      */
     private void showCorrectionDetails() {
         if (correctionTableView == null || correctionTableView.getItems().isEmpty()) {
-            showAlert(Alert.AlertType.INFORMATION, "详情", "未发现需要纠正的内容");
+            showAlert(Alert.AlertType.INFORMATION, "详情", "未发现需要修改的内容");
             return;
         }
         
         // 创建详情窗口
         Stage detailStage = new Stage();
-        detailStage.setTitle("错误纠正详情");
+        
+        // 根据当前操作类型设置标题
+        if (currentOperation == OperationType.REPLACEMENT) {
+            detailStage.setTitle("文本替换详情");
+        } else {
+            detailStage.setTitle("错误纠正详情");
+        }
         
         // 创建表格视图
         TableView<TextCorrection> detailsTable = new TableView<>();
@@ -767,12 +985,12 @@ public class TextCorrectorController implements Initializable {
         });
         indexCol.setPrefWidth(50);
         
-        TableColumn<TextCorrection, String> originalCol = new TableColumn<>("错误文本");
+        TableColumn<TextCorrection, String> originalCol = new TableColumn<>("原文本");
         originalCol.setCellValueFactory(p -> 
             new javafx.beans.property.SimpleStringProperty(p.getValue().getOriginal()));
         originalCol.setPrefWidth(150);
         
-        TableColumn<TextCorrection, String> correctedCol = new TableColumn<>("纠正文本");
+        TableColumn<TextCorrection, String> correctedCol = new TableColumn<>("修改后");
         correctedCol.setCellValueFactory(p -> 
             new javafx.beans.property.SimpleStringProperty(p.getValue().getCorrected()));
         correctedCol.setPrefWidth(150);
@@ -792,11 +1010,12 @@ public class TextCorrectorController implements Initializable {
         detailsTable.setStyle("-fx-font-size: 12px;");
         
         // 添加描述文本
-        Text descriptionText = new Text("发现 " + correctionTableView.getItems().size() + " 处错误，详情如下：");
+        String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
+        Text descriptionText = new Text("发现 " + correctionTableView.getItems().size() + " 处" + operation + "，详情如下：");
         descriptionText.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         
         // 创建导出按钮
-        Button exportButton = new Button("导出错误报告");
+        Button exportButton = new Button("导出" + operation + "报告");
         exportButton.setOnAction(e -> exportCorrectionReport(detailsTable.getItems()));
         
         // 创建布局
@@ -868,7 +1087,8 @@ public class TextCorrectorController implements Initializable {
      */
     public void addViewDetailsButton() {
         if (correctionTableView != null && !correctionTableView.getItems().isEmpty()) {
-            Button viewDetailsButton = new Button("查看错误详情");
+            String buttonText = currentOperation == OperationType.REPLACEMENT ? "查看替换详情" : "查看错误详情";
+            Button viewDetailsButton = new Button(buttonText);
             viewDetailsButton.setStyle("-fx-font-weight: bold; -fx-base: #4a86e8;");
             viewDetailsButton.setOnAction(e -> showCorrectionDetails());
             
@@ -883,7 +1103,8 @@ public class TextCorrectorController implements Initializable {
                 buttonBox.getChildren().add(viewDetailsButton);
                 
                 // 创建文本节点
-                Text infoText = new Text(" 点击查看详细的错误列表和修改说明");
+                String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
+                Text infoText = new Text(" 点击查看详细的" + operation + "列表和修改说明");
                 infoText.setFill(javafx.scene.paint.Color.DARKBLUE);
                 infoText.setStyle("-fx-font-style: italic;");
                 

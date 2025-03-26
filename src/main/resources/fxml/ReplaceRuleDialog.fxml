@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.timelordtty.corrector.controller.ReplaceRuleDialogController"
+      prefHeight="500.0" prefWidth="600.0">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <Label text="文本替换规则管理" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+    
+    <!-- 替换规则表格 -->
+    <TableView fx:id="ruleTableView" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="originalColumn" text="原文本" prefWidth="250"/>
+            <TableColumn fx:id="replacementColumn" text="替换为" prefWidth="250"/>
+        </columns>
+        <placeholder>
+            <Label text="请添加替换规则" />
+        </placeholder>
+    </TableView>
+    
+    <!-- 添加和编辑规则的表单 -->
+    <GridPane hgap="10" vgap="10">
+        <padding>
+            <Insets top="10" />
+        </padding>
+        
+        <Label text="原文本:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+        <TextField fx:id="originalTextField" promptText="输入要查找的文本或正则表达式" 
+                  GridPane.rowIndex="0" GridPane.columnIndex="1" />
+        
+        <Label text="替换为:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+        <TextField fx:id="replacementTextField" promptText="输入替换后的文本" 
+                  GridPane.rowIndex="1" GridPane.columnIndex="1" />
+        
+        <HBox spacing="10" alignment="CENTER_RIGHT" GridPane.rowIndex="2" GridPane.columnIndex="1">
+            <Button text="添加规则" onAction="#addRule" style="-fx-base: #8BC34A;"/>
+            <Button text="更新选中" onAction="#updateRule" />
+            <Button text="删除选中" onAction="#deleteRule" style="-fx-base: #F44336;"/>
+        </HBox>
+    </GridPane>
+    
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="上移" onAction="#moveRuleUp" />
+        <Button text="下移" onAction="#moveRuleDown" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Button text="导入规则" onAction="#importRules" />
+        <Button text="导出规则" onAction="#exportRules" />
+        <Button text="清空规则" onAction="#clearRules" style="-fx-base: #F44336;"/>
+        <Button text="确定" onAction="#saveAndClose" defaultButton="true" style="-fx-base: #2196F3;"/>
+    </HBox>
+    
+    <Label text="说明: 可以使用Java正则表达式作为查找文本，例如 \d+ 匹配任意数字" style="-fx-font-style: italic; -fx-text-fill: #666666;"/>
+</VBox> 
