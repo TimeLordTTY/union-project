@@ -52,23 +52,28 @@ public class ProjectAddDialogController {
             // 设置日期选择器格式
             setupDatePickers();
             
-            // 注册文本字段监听
-            setupTextFieldListeners();
+            // 初始化校验标签
+            validationLabel.setTextFill(Color.RED);
+            validationLabel.setText("");
             
             // 设置默认值
             onlineDatePicker.setValue(LocalDate.now());
             registrationPeriodField.setText("5");
             reviewPeriodField.setText("20");
             
-            // 初始化校验标签
-            validationLabel.setTextFill(Color.RED);
-            validationLabel.setText("");
+            // 注册文本字段监听
+            setupTextFieldListeners();
             
             // 触发自动计算
             calculateDates();
             
             // 配置按钮事件
             setupButtonActions();
+            
+            // 初始默认禁用确定按钮，直到输入项目名称
+            if (dialogPane != null) {
+                dialogPane.lookupButton(ButtonType.OK).setDisable(true);
+            }
         } catch (Exception e) {
             AppLogger.error("初始化项目添加对话框控制器时发生异常: " + e.getMessage(), e);
         }
@@ -109,6 +114,11 @@ public class ProjectAddDialogController {
      * 设置文本字段监听器
      */
     private void setupTextFieldListeners() {
+        // 项目名称变更监听，实时验证并控制按钮状态
+        projectNameField.textProperty().addListener((obs, oldValue, newValue) -> {
+            validateProjectName();
+        });
+        
         // 上网日期变更监听
         onlineDatePicker.valueProperty().addListener((obs, oldValue, newValue) -> {
             calculateDates();
@@ -139,21 +149,55 @@ public class ProjectAddDialogController {
     }
     
     /**
+     * 验证项目名称并控制确定按钮状态
+     */
+    private void validateProjectName() {
+        String name = projectNameField.getText().trim();
+        
+        if (name.isEmpty()) {
+            // 项目名称为空，禁用确定按钮并显示错误提示
+            projectNameField.setStyle("-fx-border-color: red; -fx-border-width: 1px;");
+            validationLabel.setText("请输入项目名称");
+            validationLabel.setVisible(true);
+            
+            // 禁用确定按钮
+            if (dialogPane != null) {
+                dialogPane.lookupButton(ButtonType.OK).setDisable(true);
+            }
+        } else {
+            // 项目名称有效，启用确定按钮并清除错误提示
+            projectNameField.setStyle("");
+            validationLabel.setText("");
+            validationLabel.setVisible(false);
+            
+            // 启用确定按钮
+            if (dialogPane != null) {
+                dialogPane.lookupButton(ButtonType.OK).setDisable(false);
+            }
+        }
+    }
+    
+    /**
      * 计算相关日期
      */
     private void calculateDates() {
         LocalDate onlineDate = onlineDatePicker.getValue();
-        String regPeriodText = registrationPeriodField.getText();
-        String reviewPeriodText = reviewPeriodField.getText();
+        String regPeriodText = registrationPeriodField.getText().trim();
+        String reviewPeriodText = reviewPeriodField.getText().trim();
         
         // 清除之前的提示信息
         validationLabel.setText("");
         
+        // 计算报名截止日期，但只在上网日期和报名期限都有值时进行
         if (onlineDate != null && !regPeriodText.isEmpty()) {
             try {
                 int regPeriod = Integer.parseInt(regPeriodText);
-                LocalDate regEndDate = DateCalculator.calculateDateAfterWorkingDays(onlineDate, regPeriod);
-                registrationEndDateLabel.setText(DateCalculator.formatDate(regEndDate));
+                if (regPeriod > 0) {
+                    LocalDate regEndDate = DateCalculator.calculateDateAfterWorkingDays(onlineDate, regPeriod);
+                    registrationEndDateLabel.setText(DateCalculator.formatDate(regEndDate));
+                } else {
+                    registrationEndDateLabel.setText("");
+                }
             } catch (NumberFormatException e) {
                 registrationEndDateLabel.setText("无效的输入");
             }
@@ -161,14 +205,21 @@ public class ProjectAddDialogController {
             registrationEndDateLabel.setText("");
         }
         
+        // 计算最早评审日期，但只在上网日期和评审周期都有值时进行
         if (onlineDate != null && !reviewPeriodText.isEmpty()) {
             try {
                 int reviewPeriod = Integer.parseInt(reviewPeriodText);
-                LocalDate earliestReviewDate = DateCalculator.calculateFirstWorkingDayAfterNaturalDays(onlineDate, reviewPeriod);
-                earliestReviewDateLabel.setText(DateCalculator.formatDate(earliestReviewDate));
-                
-                // 验证预计评审日期是否晚于最早评审日期
-                validateReviewDates();
+                if (reviewPeriod > 0) {
+                    LocalDate earliestReviewDate = DateCalculator.calculateFirstWorkingDayAfterNaturalDays(onlineDate, reviewPeriod);
+                    earliestReviewDateLabel.setText(DateCalculator.formatDate(earliestReviewDate));
+                    
+                    // 验证预计评审日期是否晚于最早评审日期，但只在预计评审日期已设置时验证
+                    if (expectedReviewDatePicker.getValue() != null) {
+                        validateReviewDates();
+                    }
+                } else {
+                    earliestReviewDateLabel.setText("");
+                }
             } catch (NumberFormatException e) {
                 earliestReviewDateLabel.setText("无效的输入");
             }
@@ -186,7 +237,10 @@ public class ProjectAddDialogController {
         
         LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
         
-        if (expectedReviewDate != null && !earliestReviewDateLabel.getText().isEmpty() && !earliestReviewDateLabel.getText().equals("无效的输入")) {
+        // 只在预计评审日期和最早评审日期都有值时才进行验证
+        if (expectedReviewDate != null && 
+            !earliestReviewDateLabel.getText().isEmpty() && 
+            !earliestReviewDateLabel.getText().equals("无效的输入")) {
             try {
                 LocalDate earliestReviewDate = LocalDate.parse(earliestReviewDateLabel.getText());
                 
@@ -195,6 +249,7 @@ public class ProjectAddDialogController {
                 }
             } catch (Exception e) {
                 // 解析日期失败，不做处理
+                AppLogger.error("解析日期失败: " + e.getMessage(), e);
             }
         }
     }
@@ -218,6 +273,9 @@ public class ProjectAddDialogController {
         // 计算并显示报名截止日期和最早评审日期
         registrationEndDateLabel.setText(DateCalculator.formatDate(project.getRegistrationEndDate()));
         earliestReviewDateLabel.setText(DateCalculator.formatDate(project.getEarliestReviewDate()));
+        
+        // 编辑模式下，如果项目名称已填写，启用确定按钮
+        validateProjectName();
     }
     
     /**
@@ -228,14 +286,32 @@ public class ProjectAddDialogController {
         if (validateInputs()) {
             String name = projectNameField.getText();
             LocalDate onlineDate = onlineDatePicker.getValue();
-            int regPeriod = Integer.parseInt(registrationPeriodField.getText());
-            int reviewPeriod = Integer.parseInt(reviewPeriodField.getText());
+            
+            // 处理可能为空的字段
+            int regPeriod = 0;
+            if (!registrationPeriodField.getText().trim().isEmpty()) {
+                regPeriod = Integer.parseInt(registrationPeriodField.getText());
+            }
+            
+            int reviewPeriod = 0;
+            if (!reviewPeriodField.getText().trim().isEmpty()) {
+                reviewPeriod = Integer.parseInt(reviewPeriodField.getText());
+            }
+            
             LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
             String remark = remarkArea.getText();
             
-            // 计算报名截止日期和最早评审日期
-            LocalDate regEndDate = DateCalculator.calculateDateAfterWorkingDays(onlineDate, regPeriod);
-            LocalDate earliestReviewDate = DateCalculator.calculateFirstWorkingDayAfterNaturalDays(onlineDate, reviewPeriod);
+            // 计算报名截止日期和最早评审日期，如果上网日期为空则设为null
+            LocalDate regEndDate = null;
+            LocalDate earliestReviewDate = null;
+            
+            if (onlineDate != null && regPeriod > 0) {
+                regEndDate = DateCalculator.calculateDateAfterWorkingDays(onlineDate, regPeriod);
+            }
+            
+            if (onlineDate != null && reviewPeriod > 0) {
+                earliestReviewDate = DateCalculator.calculateFirstWorkingDayAfterNaturalDays(onlineDate, reviewPeriod);
+            }
             
             // 如果是编辑模式，则更新现有项目
             if (isEditing) {
@@ -276,62 +352,50 @@ public class ProjectAddDialogController {
         // 清除之前的提示信息
         validationLabel.setText("");
         
-        // 验证项目名称
+        // 验证项目名称 - 只有项目名称是必填项
         if (projectNameField.getText().trim().isEmpty()) {
             validationLabel.setText("请输入项目名称");
+            projectNameField.setStyle("-fx-border-color: red; -fx-border-width: 1px;");
             return false;
+        } else {
+            projectNameField.setStyle("");
         }
         
-        // 验证上网日期
-        if (onlineDatePicker.getValue() == null) {
-            validationLabel.setText("请选择上网日期");
-            return false;
-        }
-        
-        // 验证报名期限
-        if (registrationPeriodField.getText().trim().isEmpty()) {
-            validationLabel.setText("请输入报名期限");
-            return false;
-        }
-        
-        try {
-            int regPeriod = Integer.parseInt(registrationPeriodField.getText());
-            if (regPeriod <= 0) {
-                validationLabel.setText("报名期限必须大于0");
+        // 验证报名期限 - 如果已填写，必须是有效的正整数
+        if (!registrationPeriodField.getText().trim().isEmpty()) {
+            try {
+                int regPeriod = Integer.parseInt(registrationPeriodField.getText());
+                if (regPeriod <= 0) {
+                    validationLabel.setText("报名期限必须大于0");
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                validationLabel.setText("报名期限必须是有效的数字");
                 return false;
             }
-        } catch (NumberFormatException e) {
-            validationLabel.setText("报名期限必须是有效的数字");
-            return false;
         }
         
-        // 验证评审周期
-        if (reviewPeriodField.getText().trim().isEmpty()) {
-            validationLabel.setText("请输入评审周期");
-            return false;
-        }
-        
-        try {
-            int reviewPeriod = Integer.parseInt(reviewPeriodField.getText());
-            if (reviewPeriod <= 0) {
-                validationLabel.setText("评审周期必须大于0");
+        // 验证评审周期 - 如果已填写，必须是有效的正整数
+        if (!reviewPeriodField.getText().trim().isEmpty()) {
+            try {
+                int reviewPeriod = Integer.parseInt(reviewPeriodField.getText());
+                if (reviewPeriod <= 0) {
+                    validationLabel.setText("评审周期必须大于0");
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                validationLabel.setText("评审周期必须是有效的数字");
                 return false;
             }
-        } catch (NumberFormatException e) {
-            validationLabel.setText("评审周期必须是有效的数字");
-            return false;
         }
         
-        // 验证预计评审日期
-        if (expectedReviewDatePicker.getValue() == null) {
-            validationLabel.setText("请选择预计评审日期");
-            return false;
-        }
-        
-        // 验证预计评审日期是否晚于最早评审日期
+        // 验证预计评审日期和最早评审日期 - 只在两者都有值时检查
         LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
         
-        if (!earliestReviewDateLabel.getText().isEmpty() && !earliestReviewDateLabel.getText().equals("无效的输入")) {
+        if (expectedReviewDate != null && onlineDatePicker.getValue() != null && 
+            !reviewPeriodField.getText().trim().isEmpty() && 
+            !earliestReviewDateLabel.getText().isEmpty() && 
+            !earliestReviewDateLabel.getText().equals("无效的输入")) {
             try {
                 LocalDate earliestReviewDate = LocalDate.parse(earliestReviewDateLabel.getText());
                 
@@ -368,6 +432,19 @@ public class ProjectAddDialogController {
             // 处理确定按钮点击
             dialogPane.lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
                 AppLogger.info("确定按钮被点击");
+                
+                // 先验证项目名称
+                String name = projectNameField.getText().trim();
+                if (name.isEmpty()) {
+                    AppLogger.info("项目名称为空，禁止提交");
+                    projectNameField.setStyle("-fx-border-color: red; -fx-border-width: 1px;");
+                    validationLabel.setText("请输入项目名称");
+                    validationLabel.setVisible(true);
+                    event.consume(); // 如果项目名称为空，取消事件传播
+                    return;
+                }
+                
+                // 再验证其他输入
                 if (!validateInputs()) {
                     event.consume(); // 如果验证失败，取消事件传播
                 }

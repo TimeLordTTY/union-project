@@ -49,15 +49,25 @@ public class ProjectService {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
+            // 先检查表是否存在，如果存在则先删除
+            try {
+                String dropSql = "DROP TABLE IF EXISTS projects";
+                stmt.execute(dropSql);
+                AppLogger.info("删除旧的projects表以更新结构");
+            } catch (SQLException e) {
+                AppLogger.error("删除旧表失败：" + e.getMessage(), e);
+                // 继续执行，尝试创建新表
+            }
+            
             String sql = "CREATE TABLE IF NOT EXISTS projects (" +
                          "id IDENTITY PRIMARY KEY, " +
                          "name VARCHAR(255) NOT NULL, " +
-                         "review_period INT NOT NULL, " +
-                         "online_date DATE NOT NULL, " +
-                         "registration_period INT NOT NULL, " +
-                         "registration_end_date DATE NOT NULL, " +
-                         "earliest_review_date DATE NOT NULL, " +
-                         "expected_review_date DATE NOT NULL, " +
+                         "review_period INT DEFAULT 0, " +
+                         "online_date DATE, " +
+                         "registration_period INT DEFAULT 0, " +
+                         "registration_end_date DATE, " +
+                         "earliest_review_date DATE, " +
+                         "expected_review_date DATE, " +
                          "remark TEXT" +
                          ")";
             
@@ -86,18 +96,37 @@ public class ProjectService {
         
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM projects ORDER BY online_date DESC")) {
+             ResultSet rs = stmt.executeQuery("SELECT * FROM projects ORDER BY online_date DESC NULLS LAST")) {
             
             while (rs.next()) {
                 Project project = new Project();
                 project.setId(rs.getLong("id"));
                 project.setName(rs.getString("name"));
                 project.setReviewPeriod(rs.getInt("review_period"));
-                project.setOnlineDate(rs.getDate("online_date").toLocalDate());
+                
+                // 处理可能为null的日期字段
+                Date onlineDate = rs.getDate("online_date");
+                if (onlineDate != null) {
+                    project.setOnlineDate(onlineDate.toLocalDate());
+                }
+                
                 project.setRegistrationPeriod(rs.getInt("registration_period"));
-                project.setRegistrationEndDate(rs.getDate("registration_end_date").toLocalDate());
-                project.setEarliestReviewDate(rs.getDate("earliest_review_date").toLocalDate());
-                project.setExpectedReviewDate(rs.getDate("expected_review_date").toLocalDate());
+                
+                Date regEndDate = rs.getDate("registration_end_date");
+                if (regEndDate != null) {
+                    project.setRegistrationEndDate(regEndDate.toLocalDate());
+                }
+                
+                Date earliestReviewDate = rs.getDate("earliest_review_date");
+                if (earliestReviewDate != null) {
+                    project.setEarliestReviewDate(earliestReviewDate.toLocalDate());
+                }
+                
+                Date expectedReviewDate = rs.getDate("expected_review_date");
+                if (expectedReviewDate != null) {
+                    project.setExpectedReviewDate(expectedReviewDate.toLocalDate());
+                }
+                
                 project.setRemark(rs.getString("remark"));
                 
                 projects.add(project);
@@ -138,11 +167,35 @@ public class ProjectService {
             
             pstmt.setString(1, project.getName());
             pstmt.setInt(2, project.getReviewPeriod());
-            pstmt.setDate(3, Date.valueOf(project.getOnlineDate()));
+            
+            // 处理可能为null的日期字段
+            if (project.getOnlineDate() != null) {
+                pstmt.setDate(3, Date.valueOf(project.getOnlineDate()));
+            } else {
+                pstmt.setNull(3, java.sql.Types.DATE);
+            }
+            
             pstmt.setInt(4, project.getRegistrationPeriod());
-            pstmt.setDate(5, Date.valueOf(project.getRegistrationEndDate()));
-            pstmt.setDate(6, Date.valueOf(project.getEarliestReviewDate()));
-            pstmt.setDate(7, Date.valueOf(project.getExpectedReviewDate()));
+            
+            // 处理可能为null的日期字段
+            if (project.getRegistrationEndDate() != null) {
+                pstmt.setDate(5, Date.valueOf(project.getRegistrationEndDate()));
+            } else {
+                pstmt.setNull(5, java.sql.Types.DATE);
+            }
+            
+            if (project.getEarliestReviewDate() != null) {
+                pstmt.setDate(6, Date.valueOf(project.getEarliestReviewDate()));
+            } else {
+                pstmt.setNull(6, java.sql.Types.DATE);
+            }
+            
+            if (project.getExpectedReviewDate() != null) {
+                pstmt.setDate(7, Date.valueOf(project.getExpectedReviewDate()));
+            } else {
+                pstmt.setNull(7, java.sql.Types.DATE);
+            }
+            
             pstmt.setString(8, project.getRemark());
             
             int affectedRows = pstmt.executeUpdate();
@@ -183,11 +236,35 @@ public class ProjectService {
             
             pstmt.setString(1, project.getName());
             pstmt.setInt(2, project.getReviewPeriod());
-            pstmt.setDate(3, Date.valueOf(project.getOnlineDate()));
+            
+            // 处理可能为null的日期字段
+            if (project.getOnlineDate() != null) {
+                pstmt.setDate(3, Date.valueOf(project.getOnlineDate()));
+            } else {
+                pstmt.setNull(3, java.sql.Types.DATE);
+            }
+            
             pstmt.setInt(4, project.getRegistrationPeriod());
-            pstmt.setDate(5, Date.valueOf(project.getRegistrationEndDate()));
-            pstmt.setDate(6, Date.valueOf(project.getEarliestReviewDate()));
-            pstmt.setDate(7, Date.valueOf(project.getExpectedReviewDate()));
+            
+            // 处理可能为null的日期字段
+            if (project.getRegistrationEndDate() != null) {
+                pstmt.setDate(5, Date.valueOf(project.getRegistrationEndDate()));
+            } else {
+                pstmt.setNull(5, java.sql.Types.DATE);
+            }
+            
+            if (project.getEarliestReviewDate() != null) {
+                pstmt.setDate(6, Date.valueOf(project.getEarliestReviewDate()));
+            } else {
+                pstmt.setNull(6, java.sql.Types.DATE);
+            }
+            
+            if (project.getExpectedReviewDate() != null) {
+                pstmt.setDate(7, Date.valueOf(project.getExpectedReviewDate()));
+            } else {
+                pstmt.setNull(7, java.sql.Types.DATE);
+            }
+            
             pstmt.setString(8, project.getRemark());
             pstmt.setLong(9, project.getId());
             

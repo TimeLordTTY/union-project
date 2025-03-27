@@ -714,60 +714,51 @@ public class ProjectCalendarController {
             scrollPane.setOnMouseEntered(null);
             scrollPane.setOnMouseExited(null);
 
-            // 仅为当前月份的日期查找项目
-            if (isCurrentMonth) {
-                // 查找该日期的所有项目并添加标记
-                List<Project> projectsForDate = projectService.getProjectsForDate(date);
-                if (projectsForDate != null && !projectsForDate.isEmpty()) {
-                    // 按项目分组，记录每个项目的所有日期类型
-                    Map<Project, List<String>> projectDateTypes = new HashMap<>();
+            // 查找该日期的所有项目并添加标记（无论是否为当前月份）
+            List<Project> projectsForDate = projectService.getProjectsForDate(date);
+            if (projectsForDate != null && !projectsForDate.isEmpty()) {
+                // 按项目分组，记录每个项目的所有日期类型
+                Map<Project, List<String>> projectDateTypes = new HashMap<>();
+                
+                // 遍历所有项目，收集每个项目的所有日期类型
+                for (Project project : projectsForDate) {
+                    List<String> dateTypes = new ArrayList<>();
                     
-                    // 遍历所有项目，收集每个项目的所有日期类型
-                    for (Project project : projectsForDate) {
-                        List<String> dateTypes = new ArrayList<>();
-                        
-                        // 检查项目的各个日期是否匹配当前日期
-                        if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
-                            dateTypes.add("上网");
-                        }
-                        if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
-                            dateTypes.add("报名截止");
-                        }
-                        if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
-                            dateTypes.add("最早评审");
-                        }
-                        if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
-                            dateTypes.add("预计评审");
-                        }
-                        
-                        projectDateTypes.put(project, dateTypes);
+                    // 检查项目的各个日期是否匹配当前日期，并且日期不为null
+                    if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
+                        dateTypes.add("上网");
+                    }
+                    if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
+                        dateTypes.add("报名截止");
+                    }
+                    if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
+                        dateTypes.add("最早评审");
+                    }
+                    if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
+                        dateTypes.add("预计评审");
                     }
                     
-                    // 项目数量
-                    int projectCount = projectDateTypes.size();
-                    boolean hasMultipleProjects = projectCount > 1;
+                    // 只有当项目在当前日期有关联的日期类型时才添加到列表
+                    if (!dateTypes.isEmpty()) {
+                        projectDateTypes.put(project, dateTypes);
+                    }
+                }
+                
+                // 项目数量
+                int projectCount = projectDateTypes.size();
+                boolean hasMultipleProjects = projectCount > 1;
+                
+                // 为每个项目创建标记
+                for (Map.Entry<Project, List<String>> entry : projectDateTypes.entrySet()) {
+                    Project project = entry.getKey();
+                    List<String> dateTypes = entry.getValue();
                     
-                    // 为每个项目创建标记
-                    for (Map.Entry<Project, List<String>> entry : projectDateTypes.entrySet()) {
-                        Project project = entry.getKey();
-                        List<String> dateTypes = entry.getValue();
-                        
-                        // 如果一个项目有多个日期类型，则为每个日期类型创建单独的行
-                        if (dateTypes.size() > 1) {
-                            for (String dateType : dateTypes) {
-                                List<String> singleType = new ArrayList<>();
-                                singleType.add(dateType);
-                                HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, singleType);
-                                
-                                // 添加点击和双击事件
-                                setupProjectMarkerEvents(projectMarkerBox, project);
-                                
-                                // 添加到项目容器
-                                projectContainer.getChildren().add(projectMarkerBox);
-                            }
-                        } else {
-                            // 创建项目标记
-                            HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, dateTypes);
+                    // 如果一个项目有多个日期类型，则为每个日期类型创建单独的行
+                    if (dateTypes.size() > 1) {
+                        for (String dateType : dateTypes) {
+                            List<String> singleType = new ArrayList<>();
+                            singleType.add(dateType);
+                            HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, singleType);
                             
                             // 添加点击和双击事件
                             setupProjectMarkerEvents(projectMarkerBox, project);
@@ -775,25 +766,34 @@ public class ProjectCalendarController {
                             // 添加到项目容器
                             projectContainer.getChildren().add(projectMarkerBox);
                         }
+                    } else {
+                        // 创建项目标记
+                        HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, dateTypes);
+                        
+                        // 添加点击和双击事件
+                        setupProjectMarkerEvents(projectMarkerBox, project);
+                        
+                        // 添加到项目容器
+                        projectContainer.getChildren().add(projectMarkerBox);
                     }
-                    
-                    // 如果单元格中的项目很多，设置更紧凑的布局
-                    if (projectContainer.getChildren().size() > 3) {
-                        projectContainer.setSpacing(1);
-                        for (javafx.scene.Node node : projectContainer.getChildren()) {
-                            if (node instanceof HBox) {
-                                ((HBox) node).setPadding(new Insets(0, 1, 0, 1));
-                            }
+                }
+                
+                // 如果单元格中的项目很多，设置更紧凑的布局
+                if (projectContainer.getChildren().size() > 3) {
+                    projectContainer.setSpacing(1);
+                    for (javafx.scene.Node node : projectContainer.getChildren()) {
+                        if (node instanceof HBox) {
+                            ((HBox) node).setPadding(new Insets(0, 1, 0, 1));
                         }
                     }
                 }
-            }
-            
-            // 如果当前单元格中恰好有1个项目但是需要显示2行以上（多个日期类型），确保布局合理
-            if (projectContainer.getChildren().size() > 0 && projectContainer.getChildren().size() <= 2) {
-                VBox.setMargin(projectContainer.getChildren().get(0), new Insets(2, 0, 2, 0));
-                if (projectContainer.getChildren().size() == 2) {
-                    VBox.setMargin(projectContainer.getChildren().get(1), new Insets(2, 0, 2, 0));
+                
+                // 如果当前单元格中恰好有1个项目但是需要显示2行以上（多个日期类型），确保布局合理
+                if (projectContainer.getChildren().size() > 0 && projectContainer.getChildren().size() <= 2) {
+                    VBox.setMargin(projectContainer.getChildren().get(0), new Insets(2, 0, 2, 0));
+                    if (projectContainer.getChildren().size() == 2) {
+                        VBox.setMargin(projectContainer.getChildren().get(1), new Insets(2, 0, 2, 0));
+                    }
                 }
             }
             
@@ -926,12 +926,15 @@ public class ProjectCalendarController {
             tooltipText.append("\n日期类型: ").append(String.join(", ", dateTypes));
         }
         
-        // 添加其他日期信息
+        // 添加其他日期信息，仅展示非空日期
         if (project.getOnlineDate() != null) {
             tooltipText.append("\n上网日期: ").append(DateCalculator.formatDate(project.getOnlineDate()));
         }
         if (project.getRegistrationEndDate() != null) {
             tooltipText.append("\n报名截止: ").append(DateCalculator.formatDate(project.getRegistrationEndDate()));
+        }
+        if (project.getEarliestReviewDate() != null) {
+            tooltipText.append("\n最早评审: ").append(DateCalculator.formatDate(project.getEarliestReviewDate()));
         }
         if (project.getExpectedReviewDate() != null) {
             tooltipText.append("\n预计评审: ").append(DateCalculator.formatDate(project.getExpectedReviewDate()));
@@ -970,23 +973,24 @@ public class ProjectCalendarController {
         Color textColor = Color.BLACK;
         
         // 根据日期类型设置不同的背景色
-        if (date.equals(project.getOnlineDate())) {
+        if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
             markerStyle = "-fx-background-color: #E3F2FD; -fx-background-radius: 3;";
             textColor = Color.BLUE;
-        } else if (date.equals(project.getRegistrationEndDate())) {
+        } else if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
             markerStyle = "-fx-background-color: #FFF8E1; -fx-background-radius: 3;";
             textColor = Color.ORANGE;
-        } else if (date.equals(project.getEarliestReviewDate())) {
+        } else if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
             markerStyle = "-fx-background-color: #E8F5E9; -fx-background-radius: 3;";
             textColor = Color.GREEN;
-        } else if (date.equals(project.getExpectedReviewDate())) {
+        } else if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
             markerStyle = "-fx-background-color: #FFEBEE; -fx-background-radius: 3;";
             textColor = Color.RED;
         }
         
         // 判断是否需要高亮显示（本周或下周的重要日期）
         LocalDate dateToCheck = null;
-        if (date.equals(project.getRegistrationEndDate()) || date.equals(project.getExpectedReviewDate())) {
+        if ((project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) || 
+            (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate()))) {
             dateToCheck = date;
         }
         
@@ -1093,10 +1097,25 @@ public class ProjectCalendarController {
         // 检查项目的所有关键日期是否都已过期5天以上
         LocalDate fiveDaysAgo = today.minusDays(5);
         
-        return project.getOnlineDate().isBefore(fiveDaysAgo) &&
-               project.getRegistrationEndDate().isBefore(fiveDaysAgo) &&
-               project.getEarliestReviewDate().isBefore(fiveDaysAgo) &&
-               project.getExpectedReviewDate().isBefore(fiveDaysAgo);
+        // 如果有任何一个日期未设置或未过期5天，则项目未过期
+        if (project.getOnlineDate() == null || !project.getOnlineDate().isBefore(fiveDaysAgo)) {
+            return false;
+        }
+        
+        if (project.getRegistrationEndDate() == null || !project.getRegistrationEndDate().isBefore(fiveDaysAgo)) {
+            return false;
+        }
+        
+        if (project.getEarliestReviewDate() == null || !project.getEarliestReviewDate().isBefore(fiveDaysAgo)) {
+            return false;
+        }
+        
+        if (project.getExpectedReviewDate() == null || !project.getExpectedReviewDate().isBefore(fiveDaysAgo)) {
+            return false;
+        }
+        
+        // 所有设置了的日期都过期5天以上，项目才算过期
+        return true;
     }
     
     /**
@@ -1773,13 +1792,13 @@ public class ProjectCalendarController {
      * 根据项目和日期获取日期类型
      */
     private String getDateType(Project project, LocalDate date) {
-        if (date.equals(project.getOnlineDate())) {
+        if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
             return "上网日期";
-        } else if (date.equals(project.getRegistrationEndDate())) {
+        } else if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
             return "报名截止";
-        } else if (date.equals(project.getEarliestReviewDate())) {
+        } else if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
             return "最早评审";
-        } else if (date.equals(project.getExpectedReviewDate())) {
+        } else if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
             return "预计评审";
         }
         return "其他";
