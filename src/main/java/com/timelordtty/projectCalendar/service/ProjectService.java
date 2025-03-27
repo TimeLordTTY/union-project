@@ -1,6 +1,7 @@
 package com.timelordtty.projectCalendar.service;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -49,29 +50,70 @@ public class ProjectService {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
-            // 先检查表是否存在，如果存在则先删除
+            // 检查表是否存在
+            boolean tableExists = false;
             try {
-                String dropSql = "DROP TABLE IF EXISTS projects";
-                stmt.execute(dropSql);
-                AppLogger.info("删除旧的projects表以更新结构");
+                ResultSet rs = conn.getMetaData().getTables(null, null, "PROJECTS", null);
+                tableExists = rs.next();
+                rs.close();
+                
+                if (tableExists) {
+                    AppLogger.info("项目表已存在，将保留现有数据");
+                } else {
+                    AppLogger.info("项目表不存在，将创建新表");
+                }
             } catch (SQLException e) {
-                AppLogger.error("删除旧表失败：" + e.getMessage(), e);
-                // 继续执行，尝试创建新表
+                AppLogger.error("检查表是否存在时出错：" + e.getMessage(), e);
             }
             
-            String sql = "CREATE TABLE IF NOT EXISTS projects (" +
-                         "id IDENTITY PRIMARY KEY, " +
-                         "name VARCHAR(255) NOT NULL, " +
-                         "review_period INT DEFAULT 0, " +
-                         "online_date DATE, " +
-                         "registration_period INT DEFAULT 0, " +
-                         "registration_end_date DATE, " +
-                         "earliest_review_date DATE, " +
-                         "expected_review_date DATE, " +
-                         "remark TEXT" +
-                         ")";
+            // 如果表不存在，创建新表
+            if (!tableExists) {
+                String sql = "CREATE TABLE IF NOT EXISTS projects (" +
+                             "id IDENTITY PRIMARY KEY, " +
+                             "name VARCHAR(255) NOT NULL, " +
+                             "review_period INT DEFAULT 0, " +
+                             "online_date DATE, " +
+                             "registration_period INT DEFAULT 0, " +
+                             "registration_end_date DATE, " +
+                             "earliest_review_date DATE, " +
+                             "expected_review_date DATE, " +
+                             "remark TEXT" +
+                             ")";
+                
+                stmt.execute(sql);
+                AppLogger.info("项目表成功创建");
+            } else {
+                // 检查表结构是否需要更新
+                // 这里可以添加检查列是否存在以及类型是否匹配的代码
+                // 如果需要更新表结构，使用ALTER TABLE语句而不是DROP和CREATE
+                
+                try {
+                    // 检查online_date列是否允许为NULL
+                    ResultSet columns = conn.getMetaData().getColumns(null, null, "PROJECTS", "ONLINE_DATE");
+                    if (columns.next()) {
+                        int nullable = columns.getInt("NULLABLE");
+                        if (nullable == DatabaseMetaData.columnNoNulls) {
+                            // 需要更新表结构，允许日期为NULL
+                            AppLogger.info("更新表结构：允许日期字段为NULL");
+                            try {
+                                stmt.execute("ALTER TABLE projects ALTER COLUMN online_date DATE NULL");
+                                stmt.execute("ALTER TABLE projects ALTER COLUMN registration_end_date DATE NULL");
+                                stmt.execute("ALTER TABLE projects ALTER COLUMN earliest_review_date DATE NULL");
+                                stmt.execute("ALTER TABLE projects ALTER COLUMN expected_review_date DATE NULL");
+                                AppLogger.info("表结构已更新");
+                            } catch (SQLException e) {
+                                AppLogger.error("更新表结构失败：" + e.getMessage(), e);
+                                // 错误不致命，继续执行
+                            }
+                        }
+                    }
+                    columns.close();
+                } catch (SQLException e) {
+                    AppLogger.error("检查列属性时出错：" + e.getMessage(), e);
+                    // 错误不致命，继续执行
+                }
+            }
             
-            stmt.execute(sql);
             AppLogger.info("项目日历数据库初始化成功");
             
         } catch (SQLException e) {

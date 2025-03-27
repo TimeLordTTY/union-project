@@ -19,6 +19,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import java.time.format.DateTimeFormatter;
+import javafx.application.Platform;
 
 /**
  * 项目添加对话框控制器
@@ -67,13 +68,23 @@ public class ProjectAddDialogController {
             // 触发自动计算
             calculateDates();
             
-            // 配置按钮事件
-            setupButtonActions();
+            // 使用Platform.runLater确保在JavaFX线程完成UI初始化后设置按钮事件和禁用状态
+            javafx.application.Platform.runLater(() -> {
+                // 配置按钮事件
+                setupButtonActions();
+                
+                // 初始默认禁用确定按钮，直到输入项目名称
+                if (dialogPane != null) {
+                    dialogPane.lookupButton(ButtonType.OK).setDisable(true);
+                    AppLogger.info("初始禁用确定按钮");
+                } else {
+                    AppLogger.error("initialize方法中dialogPane为null，无法禁用确定按钮");
+                }
+                
+                // 初始验证项目名称
+                validateProjectName();
+            });
             
-            // 初始默认禁用确定按钮，直到输入项目名称
-            if (dialogPane != null) {
-                dialogPane.lookupButton(ButtonType.OK).setDisable(true);
-            }
         } catch (Exception e) {
             AppLogger.error("初始化项目添加对话框控制器时发生异常: " + e.getMessage(), e);
         }
@@ -185,8 +196,10 @@ public class ProjectAddDialogController {
         String regPeriodText = registrationPeriodField.getText().trim();
         String reviewPeriodText = reviewPeriodField.getText().trim();
         
-        // 清除之前的提示信息
-        validationLabel.setText("");
+        // 清除之前可能存在的日期相关提示信息（但保留其他提示如项目名称验证）
+        if (validationLabel.getText().contains("评审日期")) {
+            validationLabel.setText("");
+        }
         
         // 计算报名截止日期，但只在上网日期和报名期限都有值时进行
         if (onlineDate != null && !regPeriodText.isEmpty()) {
@@ -213,9 +226,18 @@ public class ProjectAddDialogController {
                     LocalDate earliestReviewDate = DateCalculator.calculateFirstWorkingDayAfterNaturalDays(onlineDate, reviewPeriod);
                     earliestReviewDateLabel.setText(DateCalculator.formatDate(earliestReviewDate));
                     
-                    // 验证预计评审日期是否晚于最早评审日期，但只在预计评审日期已设置时验证
-                    if (expectedReviewDatePicker.getValue() != null) {
-                        validateReviewDates();
+                    // 验证最早评审日期与预计评审日期的关系
+                    LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
+                    if (expectedReviewDate != null) {
+                        if (expectedReviewDate.isBefore(earliestReviewDate)) {
+                            // 如果预计评审日期早于最早评审日期，显示提示（但不阻止操作）
+                            validationLabel.setText("当前预计评审日期早于最早评审日期");
+                            validationLabel.setVisible(true);
+                        } else if (earliestReviewDate.isAfter(expectedReviewDate)) {
+                            // 如果最早评审日期晚于预计评审日期，显示提示（但不阻止操作）
+                            validationLabel.setText("当前最早评审日期晚于预计评审日期");
+                            validationLabel.setVisible(true);
+                        }
                     }
                 } else {
                     earliestReviewDateLabel.setText("");
@@ -232,8 +254,10 @@ public class ProjectAddDialogController {
      * 校验预计评审日期和最早评审日期
      */
     private void validateReviewDates() {
-        // 清除之前的提示信息
-        validationLabel.setText("");
+        // 清除之前可能存在的日期相关提示信息
+        if (validationLabel.getText().contains("评审日期")) {
+            validationLabel.setText("");
+        }
         
         LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
         
@@ -245,7 +269,13 @@ public class ProjectAddDialogController {
                 LocalDate earliestReviewDate = LocalDate.parse(earliestReviewDateLabel.getText());
                 
                 if (expectedReviewDate.isBefore(earliestReviewDate)) {
+                    // 如果预计评审日期早于最早评审日期，显示提示（但不阻止操作）
                     validationLabel.setText("当前预计评审日期早于最早评审日期");
+                    validationLabel.setVisible(true);
+                } else if (earliestReviewDate.isAfter(expectedReviewDate)) {
+                    // 如果最早评审日期晚于预计评审日期，显示提示（但不阻止操作）
+                    validationLabel.setText("当前最早评审日期晚于预计评审日期");
+                    validationLabel.setVisible(true);
                 }
             } catch (Exception e) {
                 // 解析日期失败，不做处理
@@ -349,8 +379,10 @@ public class ProjectAddDialogController {
      * @return 是否验证通过
      */
     private boolean validateInputs() {
-        // 清除之前的提示信息
-        validationLabel.setText("");
+        // 清除之前的提示信息，但保留评审日期相关的提示（因为这只是警告不阻止提交）
+        if (!validationLabel.getText().contains("评审日期")) {
+            validationLabel.setText("");
+        }
         
         // 验证项目名称 - 只有项目名称是必填项
         if (projectNameField.getText().trim().isEmpty()) {
@@ -389,34 +421,7 @@ public class ProjectAddDialogController {
             }
         }
         
-        // 验证预计评审日期和最早评审日期 - 只在两者都有值时检查
-        LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
-        
-        if (expectedReviewDate != null && onlineDatePicker.getValue() != null && 
-            !reviewPeriodField.getText().trim().isEmpty() && 
-            !earliestReviewDateLabel.getText().isEmpty() && 
-            !earliestReviewDateLabel.getText().equals("无效的输入")) {
-            try {
-                LocalDate earliestReviewDate = LocalDate.parse(earliestReviewDateLabel.getText());
-                
-                if (expectedReviewDate.isBefore(earliestReviewDate)) {
-                    String message = "当前预计评审日期早于最早评审日期";
-                    validationLabel.setText(message);
-                    
-                    // 弹出提示对话框
-                    Alert alert = new Alert(AlertType.WARNING);
-                    alert.setTitle("日期校验");
-                    alert.setHeaderText("日期校验失败");
-                    alert.setContentText(message);
-                    alert.showAndWait();
-                    
-                    return false;
-                }
-            } catch (Exception e) {
-                // 解析日期失败，继续验证
-                AppLogger.error("解析日期失败: " + e.getMessage(), e);
-            }
-        }
+        // 注意：不再阻止提交预计评审日期早于最早评审日期的项目，只在UI中提示
         
         return true;
     }
