@@ -400,50 +400,47 @@ echo pause
 echo ====================
 echo 11. 创建自述文件
 echo ====================
-(
-echo # 项目日历使用说明
-echo.
-echo ## 启动方法
-echo.
-echo 1. 双击"启动项目日历.bat"文件启动应用
-echo 2. 如果启动失败，请双击"调试启动.bat"获取更详细的错误信息
-echo.
-echo ## 功能介绍
-echo.
-echo 本软件包含多个实用功能模块：
-echo.
-echo ### 项目日历
-echo - 支持项目管理与日程提醒
-echo - 自动计算报名截止日期和最早评审日期
-echo - 包含2024和2025年初始化法定节假日信息
-echo - 数据自动保存到本地数据库
-echo.
-echo ### 金额转换
-echo - 支持数字金额与中文大写金额互转
-echo.
-echo ### 文档生成
-echo - 支持根据模板生成Word文档和Excel表格
-echo.
-echo ### 文本纠错
-echo - 支持中文文本的常见错误检查与修正
-echo.
-echo ## 注意事项
-echo.
-echo - 此应用包含完整运行环境，无需安装Java
-echo - 运行环境和库文件保存在service_data目录下
-echo - 日志文件保存在service_data\logs目录下
-echo - 程序数据保存在data目录下，请勿手动修改
-echo - 如果程序无法启动，请使用调试启动脚本收集错误信息
-echo.
-echo ## 升级说明
-echo.
-echo 如需升级应用程序但保留当前项目日历数据：
-echo 1. 备份当前的"data"目录（包含您的项目数据）
-echo 2. 卸载旧版或删除整个应用程序文件夹
-echo 3. 安装新版本
-echo 4. 将备份的"data"目录覆盖到新版本的相同位置
-echo 5. 启动应用程序，您的项目数据应该自动加载
-) > "%APP_DIR%\使用说明.txt"
+echo # ❤ 给宝宝的专属项目管理小助手使用指南 ❤> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ## ✨ 启动宝宝的项目管理小助手>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo 双击「启动助手.bat」开启小助手~>> "%APP_DIR%\使用说明.txt"
+echo 遇到小故障时，点「调试小助手.bat」之后发送错误信息给你的男朋友就好了哦~>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ## 💼 专属于宝宝的项目管理小助手>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ### 📅 项目日历（含贴心彩蛋）>> "%APP_DIR%\使用说明.txt"
+echo - 支持项目管理与项目提醒>> "%APP_DIR%\使用说明.txt"
+echo - 自动计算报名截止日期和最早评审日期>> "%APP_DIR%\使用说明.txt"
+echo - 内置2024-2025年节假日（偷偷标注了我们的纪念日），>> "%APP_DIR%\使用说明.txt"
+echo - 数据自动保存到「宝宝的专属空间（本地硬盘上😀）」，安全又安心>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ### 🔢 金额转换器>> "%APP_DIR%\使用说明.txt"
+echo - 支持数字↔中文大写（有特别彩蛋哦）>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ### 📄 文档生成器>> "%APP_DIR%\使用说明.txt"
+echo - 一键（三键😂）生成标准文档>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ### ✍ 文本校对员>> "%APP_DIR%\使用说明.txt"
+echo - 使用DS自动修正错别字（偷偷内置了一些不会生效的替换规则哦😘）>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ## 🌸 给宝宝的温柔叮嘱>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo - 程序已打包完整环境，不用费心配置（宝宝只管用，技术问题交给我💖）>> "%APP_DIR%\使用说明.txt"
+echo - service_data 是程序的心脏，请别随意修改哦（修改也不是不行，毕竟我这里都有备份😉）>> "%APP_DIR%\使用说明.txt"
+echo - data 文件夹装着宝宝的工作成果>> "%APP_DIR%\使用说明.txt"
+echo - 日志在 service_data\logs 里，藏着小助手的工作内容，如果出问题了就把这个发给最爱你的男朋友就好了哦>> "%APP_DIR%\使用说明.txt"
+echo - 从这个版本开始，项目管理小助手会包含很多彩蛋，宝宝可以慢慢探索哦>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo ## 🚀 升级指南>> "%APP_DIR%\使用说明.txt"
+echo.>> "%APP_DIR%\使用说明.txt"
+echo 你可爱的男朋友进行了升级，但是数据要怎么办呢？跟着我进行下面的操作哦：>> "%APP_DIR%\使用说明.txt"
+echo 1. 右键给"data"文件夹一个复制粘贴的备份>> "%APP_DIR%\使用说明.txt"
+echo 2. 卸载旧版本>> "%APP_DIR%\使用说明.txt"
+echo 3. 安装新版本（当然啦，宝宝如果开心，可以直接覆盖全部文件，不需要删除内容哦）>> "%APP_DIR%\使用说明.txt"
+echo 4. 将备份好的"data"文件夹覆盖到新版本的相同位置就好啦>> "%APP_DIR%\使用说明.txt"
+echo 5. 启动时会看到：「欢迎回来，最棒的宝宝」>> "%APP_DIR%\使用说明.txt"
 
 echo ====================
 echo 12. 测试应用程序启动
