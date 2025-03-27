@@ -976,6 +976,10 @@ public class ProjectCalendarController {
                     bgColor = "#FFEBEE";
                     textColor = "#D32F2F";
                     break;
+                case "专家评审":
+                    bgColor = "#E1BEE7";
+                    textColor = "#9C27B0";
+                    break;
             }
         }
         
@@ -1633,7 +1637,7 @@ public class ProjectCalendarController {
             LocalDate today = LocalDate.now();
             LocalDate regEndDate = project.getRegistrationEndDate();
             LocalDate reviewDate = project.getExpectedReviewDate();
-            LocalDate expertDate = project.getExpertReviewTime() != null ? 
+            LocalDate expertReviewDate = project.getExpertReviewTime() != null ? 
                 project.getExpertReviewTime().toLocalDate() : null;
             
             StringBuilder sb = new StringBuilder(project.getName());
@@ -1645,9 +1649,9 @@ public class ProjectCalendarController {
             boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || 
                 (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
                 
-            boolean isExpertDateInRange = expertDate != null && 
-                (isDateInCurrentWeek(expertDate) || 
-                (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertDate)));
+            boolean isExpertReviewDateInRange = expertReviewDate != null && 
+                (isDateInCurrentWeek(expertReviewDate) || 
+                (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertReviewDate)));
             
             // 添加日期信息
             if (isRegEndDateInRange) {
@@ -1655,29 +1659,36 @@ public class ProjectCalendarController {
             }
             
             if (isReviewDateInRange) {
+                String timeStr = "";
                 if (project.getExpectedReviewTime() != null) {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                    sb.append(" - 开标时间: ").append(project.getExpectedReviewTime().format(formatter));
+                    timeStr = DateCalculator.formatDate(reviewDate) + " " + 
+                        String.format("%02d:%02d", project.getExpectedReviewTime().getHour(), project.getExpectedReviewTime().getMinute());
                 } else {
-                    sb.append(" - 开标时间: ").append(DateCalculator.formatDate(reviewDate));
+                    timeStr = DateCalculator.formatDate(reviewDate);
                 }
+                
+                sb.append(" - 开标时间: ").append(timeStr);
             }
             
-            if (isExpertDateInRange && project.getExpertReviewTime() != null) {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                sb.append(" - 专家评审: ").append(project.getExpertReviewTime().format(formatter));
+            if (isExpertReviewDateInRange && project.getExpertReviewTime() != null) {
+                String timeStr = "";
+                if (project.getExpertReviewTime() != null) {
+                    timeStr = DateCalculator.formatDate(expertReviewDate) + " " + 
+                        String.format("%02d:%02d", project.getExpertReviewTime().getHour(), project.getExpertReviewTime().getMinute());
+                } else {
+                    timeStr = DateCalculator.formatDate(expertReviewDate);
+                }
+                
+                sb.append(" - 专家评审时间: ").append(timeStr);
             }
             
-            // 设置文本
+            // 更新提醒文本
             scrollingReminderLabel.setText(sb.toString());
             
-            // 更新索引
+            // 更新当前索引
             currentReminderIndex = (currentReminderIndex + 1) % reminderProjects.size();
         } catch (Exception e) {
-            AppLogger.error("显示下一个提醒时发生异常: " + e.getMessage(), e);
-            if (scrollingReminderLabel != null) {
-                scrollingReminderLabel.setText("提醒加载失败");
-            }
+            AppLogger.error("显示下一条提醒时发生异常: " + e.getMessage(), e);
         }
     }
     
@@ -1746,14 +1757,20 @@ public class ProjectCalendarController {
             
             LocalDate regEndDate = project.getRegistrationEndDate();
             LocalDate reviewDate = project.getExpectedReviewDate();
+            LocalDate expertReviewDate = project.getExpertReviewTime() != null ? 
+                project.getExpertReviewTime().toLocalDate() : null;
             
             VBox datesBox = new VBox(2);
             
             // 检查报名截止日期是否在时间范围内
             boolean isRegEndDateInRange = isDateInCurrentWeek(regEndDate) || (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(regEndDate));
             
-            // 检查预计评审日期是否在时间范围内
+            // 检查开标时间是否在时间范围内
             boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
+            
+            // 检查专家评审时间是否在时间范围内
+            boolean isExpertReviewDateInRange = expertReviewDate != null && 
+                (isDateInCurrentWeek(expertReviewDate) || (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertReviewDate)));
             
             // 添加符合条件的日期
             if (isRegEndDateInRange) {
@@ -1786,8 +1803,16 @@ public class ProjectCalendarController {
             }
             
             if (isReviewDateInRange) {
-                Label reviewLabel = new Label("预计评审: " + DateCalculator.formatDate(reviewDate));
-                reviewLabel.setStyle("-fx-text-fill: #4CAF50;");
+                String timeStr = "";
+                if (project.getExpectedReviewTime() != null) {
+                    timeStr = DateCalculator.formatDate(reviewDate) + " " + 
+                        String.format("%02d:%02d", project.getExpectedReviewTime().getHour(), project.getExpectedReviewTime().getMinute());
+                } else {
+                    timeStr = DateCalculator.formatDate(reviewDate);
+                }
+                
+                Label reviewLabel = new Label("开标时间: " + timeStr);
+                reviewLabel.setStyle("-fx-text-fill: #D32F2F;");
                 reviewLabel.setFont(Font.font("System", 10));
                 datesBox.getChildren().add(reviewLabel);
                 
@@ -1814,24 +1839,45 @@ public class ProjectCalendarController {
                 });
             }
             
-            projectRow.getChildren().addAll(nameLabel, datesBox);
-            HBox.setHgrow(datesBox, Priority.ALWAYS);
-            
-            // 添加点击事件
-            projectRow.setOnMouseClicked(event -> {
-                // 在左侧表格中选择该项目
-                projectTableView.getSelectionModel().select(project);
-                projectTableView.scrollTo(project);
-                
-                // 如果是双击，显示详情并关闭弹窗
-                if (event.getClickCount() == 2) {
-                    showProjectDetail(project);
-                    reminderListPopup.close();
-                    reminderListPopup = null;
+            if (isExpertReviewDateInRange) {
+                String timeStr = "";
+                if (project.getExpertReviewTime() != null) {
+                    timeStr = DateCalculator.formatDate(expertReviewDate) + " " + 
+                        String.format("%02d:%02d", project.getExpertReviewTime().getHour(), project.getExpertReviewTime().getMinute());
+                } else {
+                    timeStr = DateCalculator.formatDate(expertReviewDate);
                 }
                 
-                event.consume();
-            });
+                Label expertReviewLabel = new Label("专家评审时间: " + timeStr);
+                expertReviewLabel.setStyle("-fx-text-fill: #9C27B0;");
+                expertReviewLabel.setFont(Font.font("System", 10));
+                datesBox.getChildren().add(expertReviewLabel);
+                
+                // 添加点击日期跳转事件
+                expertReviewLabel.setCursor(Cursor.HAND);
+                expertReviewLabel.setOnMouseClicked(event -> {
+                    // 关闭提醒列表弹窗
+                    if (reminderListPopup != null) {
+                        reminderListPopup.close();
+                        reminderListPopup = null;
+                    }
+                    
+                    // 跳转到对应月份
+                    navigateToMonth(expertReviewDate);
+                    
+                    // 选中项目
+                    Platform.runLater(() -> {
+                        projectTableView.getSelectionModel().clearSelection();
+                        projectTableView.getSelectionModel().select(project);
+                        projectTableView.scrollTo(project);
+                    });
+                    
+                    event.consume();
+                });
+            }
+            
+            projectRow.getChildren().addAll(nameLabel, datesBox);
+            HBox.setHgrow(datesBox, Priority.ALWAYS);
             
             itemsContainer.getChildren().add(projectRow);
         }
