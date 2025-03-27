@@ -219,19 +219,27 @@ public class ProjectService {
      */
     public List<Project> getThisWeekAndNextWeekProjects() {
         try {
-        LocalDate today = LocalDate.now();
-            LocalDate endOfNextWeek = today.plusDays(14); // 两周内
+            LocalDate today = LocalDate.now();
+            LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
+            LocalDate endOfWeek = startOfWeek.plusDays(6);
+            LocalDate startOfNextWeek = endOfWeek.plusDays(1);
+            LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
             
+            boolean isFriday = today.getDayOfWeek() == DayOfWeek.FRIDAY;
+            LocalDate endDate = isFriday ? endOfNextWeek : endOfWeek;
+            
+            // 筛选项目：只有报名截止日期和预计评审日期在范围内的项目
             return projects.stream()
                 .filter(project -> {
-                    // 检查项目的关键日期是否在本周或下周
+                    // 检查项目的报名截止日期是否在范围内
                     boolean isRegistrationEndDateInRange = project.getRegistrationEndDate() != null && 
                                                          !project.getRegistrationEndDate().isBefore(today) && 
-                                                         !project.getRegistrationEndDate().isAfter(endOfNextWeek);
+                                                         !project.getRegistrationEndDate().isAfter(endDate);
                     
+                    // 检查项目的预计评审日期是否在范围内
                     boolean isExpectedReviewDateInRange = project.getExpectedReviewDate() != null && 
                                                         !project.getExpectedReviewDate().isBefore(today) && 
-                                                        !project.getExpectedReviewDate().isAfter(endOfNextWeek);
+                                                        !project.getExpectedReviewDate().isAfter(endDate);
                     
                     return isRegistrationEndDateInRange || isExpectedReviewDateInRange;
                 })
@@ -272,7 +280,7 @@ public class ProjectService {
             LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
             LocalDate endOfWeek = startOfWeek.plusDays(6);
             
-            // 检查项目的关键日期是否在本周内
+            // 检查项目的报名截止日期或预计评审日期是否在本周内
             return (project.getRegistrationEndDate() != null && 
                    !project.getRegistrationEndDate().isBefore(startOfWeek) && 
                    !project.getRegistrationEndDate().isAfter(endOfWeek)) ||
@@ -301,7 +309,7 @@ public class ProjectService {
             LocalDate startOfNextWeek = startOfWeek.plusDays(7);
             LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
             
-            // 检查项目的关键日期是否在下周内
+            // 检查项目的报名截止日期或预计评审日期是否在下周内
             return (project.getRegistrationEndDate() != null && 
                    !project.getRegistrationEndDate().isBefore(startOfNextWeek) && 
                    !project.getRegistrationEndDate().isAfter(endOfNextWeek)) ||

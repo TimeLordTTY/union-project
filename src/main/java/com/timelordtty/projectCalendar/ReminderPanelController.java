@@ -129,7 +129,7 @@ public class ReminderPanelController {
         nameLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
         
         // 项目关键日期（预计评审日期和报名截止日期）
-        HBox datesBox = new HBox(10);
+        VBox datesBox = new VBox(3);
         
         LocalDate today = LocalDate.now();
         LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
@@ -137,22 +137,46 @@ public class ReminderPanelController {
         LocalDate startOfNextWeek = endOfWeek.plusDays(1);
         LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
         
+        // 检查报名截止日期
         LocalDate regEndDate = project.getRegistrationEndDate();
-        if ((regEndDate.isEqual(startOfWeek) || regEndDate.isAfter(startOfWeek)) && 
-            (regEndDate.isEqual(endOfNextWeek) || regEndDate.isBefore(endOfNextWeek))) {
+        if (regEndDate != null && ((regEndDate.isEqual(startOfWeek) || regEndDate.isAfter(startOfWeek)) && 
+            (regEndDate.isEqual(endOfWeek) || regEndDate.isBefore(endOfWeek)))) {
             
+            HBox dateLabelBox = new HBox(3);
             Label regEndLabel = new Label("报名截止: " + DateCalculator.formatDate(regEndDate));
             regEndLabel.setStyle("-fx-background-color: #fff8e1; -fx-padding: 2 5 2 5; -fx-background-radius: 3;");
-            datesBox.getChildren().add(regEndLabel);
+            dateLabelBox.getChildren().add(regEndLabel);
+            datesBox.getChildren().add(dateLabelBox);
+        } else if (today.getDayOfWeek() == DayOfWeek.FRIDAY && regEndDate != null && 
+                  ((regEndDate.isEqual(startOfNextWeek) || regEndDate.isAfter(startOfNextWeek)) && 
+                   (regEndDate.isEqual(endOfNextWeek) || regEndDate.isBefore(endOfNextWeek)))) {
+            
+            HBox dateLabelBox = new HBox(3);
+            Label regEndLabel = new Label("报名截止(下周): " + DateCalculator.formatDate(regEndDate));
+            regEndLabel.setStyle("-fx-background-color: #fff8e1; -fx-padding: 2 5 2 5; -fx-background-radius: 3;");
+            dateLabelBox.getChildren().add(regEndLabel);
+            datesBox.getChildren().add(dateLabelBox);
         }
         
+        // 检查预计评审日期
         LocalDate reviewDate = project.getExpectedReviewDate();
-        if ((reviewDate.isEqual(startOfWeek) || reviewDate.isAfter(startOfWeek)) && 
-            (reviewDate.isEqual(endOfNextWeek) || reviewDate.isBefore(endOfNextWeek))) {
+        if (reviewDate != null && ((reviewDate.isEqual(startOfWeek) || reviewDate.isAfter(startOfWeek)) && 
+            (reviewDate.isEqual(endOfWeek) || reviewDate.isBefore(endOfWeek)))) {
             
+            HBox dateLabelBox = new HBox(3);
             Label reviewLabel = new Label("预计评审: " + DateCalculator.formatDate(reviewDate));
-            reviewLabel.setStyle("-fx-background-color: #f1f8e9; -fx-padding: 2 5 2 5; -fx-background-radius: 3;");
-            datesBox.getChildren().add(reviewLabel);
+            reviewLabel.setStyle("-fx-background-color: #ffebee; -fx-padding: 2 5 2 5; -fx-background-radius: 3;");
+            dateLabelBox.getChildren().add(reviewLabel);
+            datesBox.getChildren().add(dateLabelBox);
+        } else if (today.getDayOfWeek() == DayOfWeek.FRIDAY && reviewDate != null && 
+                  ((reviewDate.isEqual(startOfNextWeek) || reviewDate.isAfter(startOfNextWeek)) && 
+                   (reviewDate.isEqual(endOfNextWeek) || reviewDate.isBefore(endOfNextWeek)))) {
+            
+            HBox dateLabelBox = new HBox(3);
+            Label reviewLabel = new Label("预计评审(下周): " + DateCalculator.formatDate(reviewDate));
+            reviewLabel.setStyle("-fx-background-color: #ffebee; -fx-padding: 2 5 2 5; -fx-background-radius: 3;");
+            dateLabelBox.getChildren().add(reviewLabel);
+            datesBox.getChildren().add(dateLabelBox);
         }
         
         // 点击跳转功能
@@ -160,11 +184,31 @@ public class ReminderPanelController {
             // 如果设置了日期选择回调，调用该回调以跳转到项目日期
             if (onDateSelectedCallback != null) {
                 // 跳转到最近的一个关键日期（报名截止或预计评审）
-                LocalDate targetDate = reviewDate;
-                if (regEndDate.isBefore(reviewDate) && regEndDate.isAfter(today)) {
+                LocalDate targetDate = null;
+                
+                // 优先选择本周内的日期
+                if (regEndDate != null && ((regEndDate.isEqual(startOfWeek) || regEndDate.isAfter(startOfWeek)) && 
+                                          (regEndDate.isEqual(endOfWeek) || regEndDate.isBefore(endOfWeek)))) {
                     targetDate = regEndDate;
+                } else if (reviewDate != null && ((reviewDate.isEqual(startOfWeek) || reviewDate.isAfter(startOfWeek)) && 
+                                                 (reviewDate.isEqual(endOfWeek) || reviewDate.isBefore(endOfWeek)))) {
+                    targetDate = reviewDate;
+                } 
+                // 如果是周五且没有本周日期，选择下周日期
+                else if (today.getDayOfWeek() == DayOfWeek.FRIDAY) {
+                    if (regEndDate != null && ((regEndDate.isEqual(startOfNextWeek) || regEndDate.isAfter(startOfNextWeek)) && 
+                                              (regEndDate.isEqual(endOfNextWeek) || regEndDate.isBefore(endOfNextWeek)))) {
+                        targetDate = regEndDate;
+                    } else if (reviewDate != null && ((reviewDate.isEqual(startOfNextWeek) || reviewDate.isAfter(startOfNextWeek)) && 
+                                                     (reviewDate.isEqual(endOfNextWeek) || reviewDate.isBefore(endOfNextWeek)))) {
+                        targetDate = reviewDate;
+                    }
                 }
-                onDateSelectedCallback.accept(targetDate);
+                
+                // 如果有合适的目标日期，跳转到该日期
+                if (targetDate != null) {
+                    onDateSelectedCallback.accept(targetDate);
+                }
             }
             
             // 折叠提醒面板，但不关闭

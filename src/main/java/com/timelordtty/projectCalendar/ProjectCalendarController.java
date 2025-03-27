@@ -1039,11 +1039,10 @@ public class ProjectCalendarController {
             boolean dateInCurrentWeek = isDateInCurrentWeek(dateToCheck);
             boolean dateInNextWeek = isDateInNextWeek(dateToCheck);
             LocalDate today = LocalDate.now();
-            boolean isWeekEnd = today.getDayOfWeek() == DayOfWeek.FRIDAY || 
-                               today.getDayOfWeek() == DayOfWeek.SATURDAY || 
-                               today.getDayOfWeek() == DayOfWeek.SUNDAY;
+            boolean isFriday = today.getDayOfWeek() == DayOfWeek.FRIDAY;
             
-            isHighlighted = dateInCurrentWeek || (isWeekEnd && dateInNextWeek);
+            // 本周内的重要日期或当天是周五时下周的重要日期需要高亮
+            isHighlighted = dateInCurrentWeek || (isFriday && dateInNextWeek);
         }
         
         // 设置不同的样式
@@ -1051,6 +1050,7 @@ public class ProjectCalendarController {
             marker.setStyle("-fx-background-color: #BDBDBD; -fx-background-radius: 3;");
             textColor = Color.WHITE;
         } else if (isHighlighted) {
+            // 淡黄色背景高亮显示
             marker.setStyle("-fx-background-color: #FFFDE7; -fx-background-radius: 3; -fx-border-color: #FFD600; -fx-border-radius: 3; -fx-border-width: 1;");
         } else {
             marker.setStyle(markerStyle);
