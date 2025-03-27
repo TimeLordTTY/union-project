@@ -1,6 +1,9 @@
 package com.timelordtty.projectCalendar;
 
 import java.time.LocalDate;
+import java.util.Objects;
+
+import com.timelordtty.projectCalendar.model.Status;
 
 /**
  * 项目模型类
@@ -106,8 +109,69 @@ public class Project {
         this.remark = remark;
     }
 
+    /**
+     * 获取项目当前状态文本
+     * @return 状态文本
+     */
+    public String getStatusText() {
+        LocalDate today = LocalDate.now();
+        
+        // 如果预计评审日期已过，则已完成
+        if (expectedReviewDate != null && expectedReviewDate.isBefore(today)) {
+            return Status.COMPLETED.getText();
+        }
+        
+        // 如果上网日期已过，报名截止日期未到，则进行中
+        if (onlineDate != null && onlineDate.isBefore(today) || onlineDate.isEqual(today)) {
+            if (registrationEndDate != null && (registrationEndDate.isAfter(today) || registrationEndDate.isEqual(today))) {
+                return Status.IN_PROGRESS.getText();
+            }
+        }
+        
+        // 如果上网日期未到，则即将开始
+        if (onlineDate != null && onlineDate.isAfter(today)) {
+            return Status.UPCOMING.getText();
+        }
+        
+        // 如果报名截止日期已过，预计评审日期未到，则进行中
+        if (registrationEndDate != null && registrationEndDate.isBefore(today)) {
+            if (expectedReviewDate != null && expectedReviewDate.isAfter(today)) {
+                return Status.IN_PROGRESS.getText();
+            }
+        }
+        
+        // 如果报名截止日期已过，但没有设置预计评审日期，则已过期
+        if (registrationEndDate != null && registrationEndDate.isBefore(today) && expectedReviewDate == null) {
+            return Status.EXPIRED.getText();
+        }
+        
+        // 默认为进行中
+        return Status.IN_PROGRESS.getText();
+    }
+    
+    /**
+     * 获取项目状态
+     * @return 状态枚举
+     */
+    public Status getStatus() {
+        return Status.fromText(getStatusText());
+    }
+
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Project project = (Project) o;
+        return id.equals(project.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 } 

@@ -212,35 +212,55 @@ public class ProjectCalendarController {
             // 确保对话框位于正确的位置
             dialog.initOwner(addProjectButton.getScene().getWindow());
             
+            // 给控制器一点时间初始化
+            Platform.runLater(() -> {
+                try {
+                    AppLogger.info("确保控制器完全初始化");
+                    if (controller.getDialogPane() == null) {
+                        controller.setDialogPane(dialogPane);
+                    }
+                    
+                    // 添加项目时设置初始日期
+                    controller.setInitialDate(LocalDate.now());
+                    
+                    // 确保名称字段获得焦点
+                    Platform.runLater(() -> {
+                        dialog.getDialogPane().getScene().getWindow().requestFocus();
+                    });
+                } catch (Exception e) {
+                    AppLogger.error("初始化对话框控制器时发生异常: " + e.getMessage(), e);
+                }
+            });
+            
             AppLogger.info("显示项目添加对话框");
             // 显示对话框并等待直到用户关闭
             Optional<ButtonType> result = dialog.showAndWait();
             
             // 如果用户点击了确定按钮
             if (result.isPresent() && result.get() == ButtonType.OK) {
-                // 获取控制器中的项目数据
+                // 获取新项目
                 Project newProject = controller.getProject();
                 if (newProject != null) {
-                    AppLogger.info("用户提交项目数据: " + newProject.getName());
-                    boolean saveResult = projectService.saveProject(newProject);
-                    if (saveResult) {
-                        AppLogger.info("项目数据保存成功: " + newProject.getName());
+                    // 保存项目
+                    boolean saved = projectService.saveProject(newProject);
+                    if (saved) {
+                        AppLogger.info("成功添加项目: " + newProject.getName());
                         statusLabel.setText("项目 '" + newProject.getName() + "' 添加成功");
-                        updateCalendarView(); // 更新日历视图
-                        refreshReminders(); // 刷新提醒
+                        refreshAllViews();
                     } else {
-                        AppLogger.error("项目数据保存失败: " + newProject.getName());
-                        statusLabel.setText("项目添加失败");
+                        AppLogger.error("添加项目失败: " + newProject.getName());
+                        showAlert("添加项目失败", "无法保存新项目，请稍后再试。", javafx.scene.control.Alert.AlertType.ERROR);
                     }
-                } else {
-                    AppLogger.info("用户提交数据无效");
                 }
             } else {
-                AppLogger.info("用户取消添加项目");
+                AppLogger.info("用户取消了添加项目");
             }
         } catch (IOException e) {
-            AppLogger.error("加载项目添加对话框失败: " + e.getMessage(), e);
-            statusLabel.setText("加载添加窗口失败");
+            AppLogger.error("打开项目添加对话框时发生IO异常: " + e.getMessage(), e);
+            showAlert("无法添加项目", "打开项目添加对话框时发生异常: " + e.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            AppLogger.error("添加项目时发生未知异常: " + e.getMessage(), e);
+            showAlert("无法添加项目", "添加项目时发生未知异常: " + e.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
         }
     }
     
@@ -323,7 +343,6 @@ public class ProjectCalendarController {
             DialogPane dialogPane = loader.load();
             
             ProjectAddDialogController controller = loader.getController();
-            controller.setProject(project); // 设置要编辑的项目
             
             // 创建对话框
             Dialog<ButtonType> dialog = new Dialog<>();
@@ -338,35 +357,56 @@ public class ProjectCalendarController {
             // 确保对话框位于正确的位置
             dialog.initOwner(projectTableView.getScene().getWindow());
             
+            // 给控制器一点时间初始化
+            Platform.runLater(() -> {
+                try {
+                    AppLogger.info("确保控制器完全初始化");
+                    if (controller.getDialogPane() == null) {
+                        controller.setDialogPane(dialogPane);
+                    }
+                    
+                    // 设置项目数据（放在这里确保对话框已初始化）
+                    controller.setProject(project);
+                    
+                    // 确保对话框中按钮状态正确
+                    javafx.scene.Node okButton = dialogPane.lookupButton(ButtonType.OK);
+                    if (okButton != null && project.getName() != null && !project.getName().trim().isEmpty()) {
+                        okButton.setDisable(false);
+                        AppLogger.info("确保编辑项目对话框确定按钮已启用");
+                    }
+                } catch (Exception e) {
+                    AppLogger.error("初始化对话框控制器时发生异常: " + e.getMessage(), e);
+                }
+            });
+            
             AppLogger.info("显示项目编辑对话框");
             // 显示对话框并等待直到用户关闭
             Optional<ButtonType> result = dialog.showAndWait();
             
             // 如果用户点击了确定按钮
             if (result.isPresent() && result.get() == ButtonType.OK) {
-                // 获取控制器中的项目数据
+                // 获取编辑后的项目
                 Project editedProject = controller.getProject();
                 if (editedProject != null) {
-                    AppLogger.info("用户提交编辑后的项目数据: " + editedProject.getName());
-                    boolean saveResult = projectService.saveProject(editedProject);
-                    if (saveResult) {
-                        AppLogger.info("项目数据更新成功: " + editedProject.getName());
-                        statusLabel.setText("项目 '" + editedProject.getName() + "' 更新成功");
-                        updateCalendarView(); // 更新日历视图
-                        refreshReminders(); // 刷新提醒
+                    // 保存项目
+                    boolean saved = projectService.saveProject(editedProject);
+                    if (saved) {
+                        AppLogger.info("成功更新项目: " + editedProject.getName());
+                        refreshAllViews();
                     } else {
-                        AppLogger.error("项目数据更新失败: " + editedProject.getName());
-                        statusLabel.setText("项目更新失败");
+                        AppLogger.error("更新项目失败: " + editedProject.getName());
+                        showAlert("更新项目失败", "无法保存编辑后的项目，请稍后再试。", javafx.scene.control.Alert.AlertType.ERROR);
                     }
-                } else {
-                    AppLogger.info("用户提交的编辑数据无效");
                 }
             } else {
-                AppLogger.info("用户取消编辑项目");
+                AppLogger.info("用户取消了项目编辑");
             }
         } catch (IOException e) {
-            AppLogger.error("加载项目编辑对话框失败: " + e.getMessage(), e);
-            statusLabel.setText("加载编辑窗口失败");
+            AppLogger.error("打开项目编辑对话框时发生IO异常: " + e.getMessage(), e);
+            showAlert("无法编辑项目", "打开项目编辑对话框时发生异常: " + e.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
+        } catch (Exception e) {
+            AppLogger.error("编辑项目时发生未知异常: " + e.getMessage(), e);
+            showAlert("无法编辑项目", "编辑项目时发生未知异常: " + e.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
         }
     }
     
@@ -1051,7 +1091,7 @@ public class ProjectCalendarController {
             projectTableView.getSelectionModel().select(project);
             projectTableView.scrollTo(project);
             
-            // 如果是双击，显示项目详情
+            // 如果是双击，显示详情
             if (event.getClickCount() == 2) {
                 showProjectDetail(project);
             }
@@ -1066,6 +1106,10 @@ public class ProjectCalendarController {
      * @return 是否在当前周内
      */
     private boolean isDateInCurrentWeek(LocalDate date) {
+        if (date == null) {
+            return false;
+        }
+        
         LocalDate now = LocalDate.now();
         LocalDate startOfWeek = now.minusDays(now.getDayOfWeek().getValue() - 1);
         LocalDate endOfWeek = startOfWeek.plusDays(6);
@@ -1079,6 +1123,10 @@ public class ProjectCalendarController {
      * @return 是否在下一周内
      */
     private boolean isDateInNextWeek(LocalDate date) {
+        if (date == null) {
+            return false;
+        }
+        
         LocalDate now = LocalDate.now();
         LocalDate startOfWeek = now.minusDays(now.getDayOfWeek().getValue() - 1);
         LocalDate startOfNextWeek = startOfWeek.plusDays(7);
@@ -1803,4 +1851,45 @@ public class ProjectCalendarController {
         }
         return "其他";
     }
-} 
+    
+    /**
+     * 刷新所有视图
+     * 供MainController调用，刷新项目表、日历视图和提醒区域
+     */
+    public void refreshAllViews() {
+        try {
+            AppLogger.info("开始刷新所有视图");
+            
+            // 刷新项目列表
+            projectService.refreshProjects();
+            
+            // 刷新项目表格
+            projectTableView.setItems(projectService.getProjects());
+            projectTableView.refresh();
+            
+            // 刷新日历视图
+            updateCalendarView();
+            
+            // 刷新提醒区域
+            refreshReminders();
+            
+            AppLogger.info("所有视图刷新完成");
+        } catch (Exception e) {
+            AppLogger.error("刷新所有视图时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 显示提醒对话框
+     * @param title 标题
+     * @param message 消息内容
+     * @param alertType 对话框类型
+     */
+    private void showAlert(String title, String message, javafx.scene.control.Alert.AlertType alertType) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}

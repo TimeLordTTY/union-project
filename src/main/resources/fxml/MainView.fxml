@@ -33,7 +33,7 @@ fx:controller="com.timelordtty.MainController">
    <center>
       <StackPane>
         <!-- 主项目日历视图 -->
-        <fx:include source="ProjectCalendarView.fxml"/>
+        <fx:include fx:id="projectCalendar" source="ProjectCalendarView.fxml"/>
         
         <!-- 小工具容器，默认隐藏 -->
         <VBox fx:id="toolsContainer" visible="false" StackPane.alignment="TOP_RIGHT" 

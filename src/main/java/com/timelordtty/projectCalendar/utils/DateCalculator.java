@@ -178,4 +178,18 @@ public class DateCalculator {
     public static void clearCache() {
         workdayCache.clear();
     }
+    
+    /**
+     * 计算从开始日期起指定工作日数后的日期
+     * @param startDate 开始日期
+     * @param workingDays 工作日数
+     * @return 计算后的日期
+     */
+    public static LocalDate addWorkingDays(LocalDate startDate, int workingDays) {
+        if (startDate == null || workingDays <= 0) {
+            return startDate;
+        }
+        
+        return calculateDateAfterWorkingDays(startDate, workingDays);
+    }
 } 

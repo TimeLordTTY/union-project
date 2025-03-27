@@ -2,7 +2,6 @@ package com.timelordtty;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,6 +13,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /**
@@ -24,45 +24,101 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            AppLogger.info("应用程序启动中...");
+            AppLogger.info("启动应用程序");
             
-            // 加载主界面FXML
-            URL fxmlUrl = getClass().getResource("/fxml/MainView.fxml");
-            if (fxmlUrl == null) {
-                AppLogger.error("找不到FXML资源: /fxml/MainView.fxml");
-                
-                // 尝试另一个路径
-                fxmlUrl = getClass().getResource("/MainView.fxml");
-                if (fxmlUrl == null) {
-                    showErrorAndExit("资源加载错误", "无法加载主界面FXML资源", "请确保应用程序安装正确，且资源文件未被损坏。");
-                    return;
-                }
-                AppLogger.info("从备用路径加载FXML: /MainView.fxml");
-            } else {
-                AppLogger.info("成功加载FXML: " + fxmlUrl);
-            }
-            
-            FXMLLoader loader = new FXMLLoader(fxmlUrl);
+            // 加载主界面
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(getClass().getResource("/fxml/MainView.fxml"));
             Parent root = loader.load();
             
-            // 设置标题和场景
-            primaryStage.setTitle("项目日历");
-            primaryStage.setScene(new Scene(root, 800, 600));
+            // 创建场景
+            Scene scene = new Scene(root, 1200, 800);
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            
+            // 配置主舞台
+            primaryStage.setTitle("项目日历管理系统");
+            primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);
+            
+            // 设置应用图标（若有）
+            try {
+                // 尝试从资源路径加载
+                InputStream iconStream = getClass().getResourceAsStream("/images/app_icon.png");
+                if (iconStream != null) {
+                    primaryStage.getIcons().add(new Image(iconStream));
+                    AppLogger.info("成功加载应用图标");
+                } else {
+                    // 如果图标不存在，则创建一个简单的内存中图标
+                    AppLogger.info("图标文件不存在，使用程序生成的图标");
+                    
+                    // 创建一个简单的JavaFX内存图标（16x16像素的小图标）
+                    javafx.scene.canvas.Canvas canvas = new javafx.scene.canvas.Canvas(16, 16);
+                    javafx.scene.canvas.GraphicsContext gc = canvas.getGraphicsContext2D();
+                    
+                    // 绘制日历图标
+                    gc.setFill(javafx.scene.paint.Color.rgb(141, 110, 99)); // #8D6E63 褐色
+                    gc.fillRect(0, 0, 16, 16);
+                    
+                    gc.setStroke(javafx.scene.paint.Color.rgb(93, 64, 55)); // #5D4037 深褐色
+                    gc.strokeRect(0, 0, 16, 16);
+                    
+                    // 绘制日历顶部
+                    gc.setFill(javafx.scene.paint.Color.rgb(93, 64, 55));
+                    gc.fillRect(0, 0, 16, 4);
+                    
+                    // 绘制白色文本区域
+                    gc.setFill(javafx.scene.paint.Color.WHITE);
+                    gc.fillRect(2, 6, 12, 8);
+                    
+                    // 绘制日历格线
+                    gc.setStroke(javafx.scene.paint.Color.LIGHTGRAY);
+                    gc.strokeLine(5, 6, 5, 14);
+                    gc.strokeLine(9, 6, 9, 14);
+                    gc.strokeLine(2, 10, 14, 10);
+                    
+                    // 转换为JavaFX图像
+                    javafx.scene.image.WritableImage image = new javafx.scene.image.WritableImage(16, 16);
+                    canvas.snapshot(null, image);
+                    
+                    primaryStage.getIcons().add(image);
+                }
+            } catch (Exception e) {
+                AppLogger.warn("未能加载应用图标: " + e.getMessage());
+            }
+            
+            // 显示主窗口
             primaryStage.show();
             
-            AppLogger.info("应用启动成功!");
+            AppLogger.info("应用程序启动完成");
         } catch (Exception e) {
-            AppLogger.error("应用启动失败: " + e.getMessage(), e);
-            showErrorAndExit("启动错误", "应用程序启动失败", "错误详情: " + e.getMessage());
+            AppLogger.error("应用程序启动失败: " + e.getMessage(), e);
         }
     }
     
+    /**
+     * 应用初始化
+     */
     @Override
     public void init() throws Exception {
         super.init();
-        initLogging();
+        AppLogger.info("初始化应用程序");
+        
+        // 在这里可以添加应用程序的初始化逻辑
+        // 例如创建必要的目录、加载配置等
+    }
+    
+    /**
+     * 应用关闭时的清理工作
+     */
+    @Override
+    public void stop() throws Exception {
+        AppLogger.info("关闭应用程序");
+        
+        // 在这里可以添加应用程序关闭时的清理逻辑
+        // 例如保存未保存的数据、释放资源等
+        
+        super.stop();
     }
     
     /**

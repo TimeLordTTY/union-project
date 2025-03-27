@@ -40,6 +40,7 @@ public class ProjectAddDialogController {
     private ProjectService projectService;
     private Project editingProject;
     private boolean isEditing = false;
+    private boolean isReadOnly = false;
     
     /**
      * 初始化控制器
@@ -69,22 +70,16 @@ public class ProjectAddDialogController {
             calculateDates();
             
             // 使用Platform.runLater确保在JavaFX线程完成UI初始化后设置按钮事件和禁用状态
-            javafx.application.Platform.runLater(() -> {
-                // 配置按钮事件
-                setupButtonActions();
-                
-                // 初始默认禁用确定按钮，直到输入项目名称
-                if (dialogPane != null) {
-                    dialogPane.lookupButton(ButtonType.OK).setDisable(true);
-                    AppLogger.info("初始禁用确定按钮");
-                } else {
-                    AppLogger.error("initialize方法中dialogPane为null，无法禁用确定按钮");
+            Platform.runLater(() -> {
+                try {
+                    // 如果dialogPane已经被设置，则设置按钮事件
+                    if (dialogPane != null) {
+                        setupButtonActions();
+                    }
+                } catch (Exception e) {
+                    AppLogger.error("设置按钮事件时发生异常: " + e.getMessage(), e);
                 }
-                
-                // 初始验证项目名称
-                validateProjectName();
             });
-            
         } catch (Exception e) {
             AppLogger.error("初始化项目添加对话框控制器时发生异常: " + e.getMessage(), e);
         }
@@ -304,8 +299,20 @@ public class ProjectAddDialogController {
         registrationEndDateLabel.setText(DateCalculator.formatDate(project.getRegistrationEndDate()));
         earliestReviewDateLabel.setText(DateCalculator.formatDate(project.getEarliestReviewDate()));
         
-        // 编辑模式下，如果项目名称已填写，启用确定按钮
-        validateProjectName();
+        // 编辑模式下，直接启用确定按钮（只要有项目名称）
+        if (project.getName() != null && !project.getName().trim().isEmpty()) {
+            Platform.runLater(() -> {
+                if (dialogPane != null) {
+                    javafx.scene.Node okButton = dialogPane.lookupButton(ButtonType.OK);
+                    if (okButton != null) {
+                        okButton.setDisable(false);
+                        AppLogger.info("编辑模式：启用确定按钮");
+                    }
+                }
+            });
+        } else {
+            validateProjectName(); // 无名称则验证
+        }
     }
     
     /**
@@ -430,40 +437,30 @@ public class ProjectAddDialogController {
      * 设置按钮事件
      */
     private void setupButtonActions() {
-        // 注册对话框按钮事件
-        if (dialogPane != null) {
-            AppLogger.info("设置项目添加对话框按钮事件");
+        try {
+            if (dialogPane == null) {
+                AppLogger.error("dialogPane为null，无法设置按钮事件");
+                return;
+            }
             
-            // 处理确定按钮点击
-            dialogPane.lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
-                AppLogger.info("确定按钮被点击");
+            // 获取确定按钮
+            javafx.scene.Node okButton = dialogPane.lookupButton(ButtonType.OK);
+            if (okButton != null) {
+                // 初始禁用确定按钮，直到输入项目名称
+                okButton.setDisable(true);
+                AppLogger.info("初始禁用确定按钮");
                 
-                // 先验证项目名称
-                String name = projectNameField.getText().trim();
-                if (name.isEmpty()) {
-                    AppLogger.info("项目名称为空，禁止提交");
-                    projectNameField.setStyle("-fx-border-color: red; -fx-border-width: 1px;");
-                    validationLabel.setText("请输入项目名称");
-                    validationLabel.setVisible(true);
-                    event.consume(); // 如果项目名称为空，取消事件传播
-                    return;
-                }
-                
-                // 再验证其他输入
-                if (!validateInputs()) {
-                    event.consume(); // 如果验证失败，取消事件传播
-                }
-            });
-            
-            // 确保确定和取消按钮有明确的样式
-            dialogPane.lookupButton(ButtonType.OK).getStyleClass().add("action-button");
-            dialogPane.lookupButton(ButtonType.CANCEL).getStyleClass().add("cancel-button");
-            
-            // 设置按钮文本
-            ((javafx.scene.control.Button) dialogPane.lookupButton(ButtonType.OK)).setText("确定");
-            ((javafx.scene.control.Button) dialogPane.lookupButton(ButtonType.CANCEL)).setText("取消");
-        } else {
-            AppLogger.error("dialogPane为null，无法设置按钮事件");
+                // 添加确定按钮的点击监听器，在提交前进行验证
+                okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+                    if (!validateInputs()) {
+                        event.consume(); // 阻止对话框关闭
+                    }
+                });
+            } else {
+                AppLogger.error("无法找到对话框确定按钮");
+            }
+        } catch (Exception e) {
+            AppLogger.error("设置按钮事件时发生异常: " + e.getMessage(), e);
         }
     }
     
@@ -476,6 +473,66 @@ public class ProjectAddDialogController {
             if (stage != null) {
                 stage.close();
             }
+        }
+    }
+    
+    /**
+     * 设置项目服务
+     * @param projectService 项目服务
+     */
+    public void setProjectService(ProjectService projectService) {
+        this.projectService = projectService;
+    }
+    
+    /**
+     * 设置初始日期
+     * @param initialDate 初始日期
+     */
+    public void setInitialDate(LocalDate initialDate) {
+        if (initialDate != null) {
+            onlineDatePicker.setValue(initialDate);
+            calculateDates();
+        }
+    }
+    
+    /**
+     * 设置是否只读模式
+     * @param readOnly 是否只读
+     */
+    public void setReadOnly(boolean readOnly) {
+        this.isReadOnly = readOnly;
+        
+        // 设置所有字段为只读
+        if (readOnly) {
+            projectNameField.setEditable(false);
+            reviewPeriodField.setEditable(false);
+            onlineDatePicker.setEditable(false);
+            onlineDatePicker.setDisable(true);
+            registrationPeriodField.setEditable(false);
+            registrationEndDateLabel.setDisable(true);
+            earliestReviewDateLabel.setDisable(true);
+            expectedReviewDatePicker.setEditable(false);
+            expectedReviewDatePicker.setDisable(true);
+            remarkArea.setEditable(false);
+        }
+    }
+    
+    /**
+     * 获取对话框面板
+     * @return 对话框面板
+     */
+    public DialogPane getDialogPane() {
+        return dialogPane;
+    }
+    
+    /**
+     * 设置对话框面板
+     * @param dialogPane 对话框面板
+     */
+    public void setDialogPane(DialogPane dialogPane) {
+        this.dialogPane = dialogPane;
+        if (dialogPane != null) {
+            setupButtonActions();
         }
     }
 } 

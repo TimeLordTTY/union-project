@@ -33,9 +33,10 @@ public class HolidayManager {
     private ObjectMapper objectMapper = new ObjectMapper();
     
     /**
-     * 获取单例实例
+     * 获取HolidayManager实例
+     * @return HolidayManager实例
      */
-    public static synchronized HolidayManager getInstance() {
+    public static HolidayManager getInstance() {
         if (instance == null) {
             instance = new HolidayManager();
         }
