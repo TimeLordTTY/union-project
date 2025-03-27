@@ -6,7 +6,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.timelordtty.AppLogger;
@@ -243,7 +246,7 @@ public class ProjectCalendarController {
     
     /**
      * 显示项目详情
-     * @param project 项目对象
+     * @param project 要显示详情的项目
      */
     private void showProjectDetail(Project project) {
         try {
@@ -606,9 +609,28 @@ public class ProjectCalendarController {
             dateCell.setMaxWidth(Double.MAX_VALUE);
             dateCell.setMaxHeight(Double.MAX_VALUE);
             
+            // 检查是否为非工作日（周末或法定假日）
+            boolean isWeekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+            boolean isHoliday = holidayManager.isHoliday(date);
+            boolean isNonWorkingDay = isWeekend || isHoliday;
+            
+            // 设置单元格背景色
+            String backgroundColor;
+            if (!isCurrentMonth) {
+                // 区分上个月和下个月的日期
+                if (date.isBefore(currentYearMonth.atDay(1))) {
+                    backgroundColor = "#F0F0F0"; // 上个月日期 - 浅灰色
+                } else {
+                    backgroundColor = "#F8F8F8"; // 下个月日期 - 更浅的灰色
+                }
+            } else if (isNonWorkingDay) {
+                backgroundColor = "#EEEEEE"; // 非工作日 - 中等灰色
+            } else {
+                backgroundColor = "white"; // 普通工作日 - 白色
+            }
+            
             // 设置明显的单元格边框和背景色
-            dateCell.setStyle("-fx-border-color: #CCCCCC; -fx-border-width: 0.5; -fx-background-color: " + 
-                             (isCurrentMonth ? "white" : "#F8F8F8") + ";");
+            dateCell.setStyle("-fx-border-color: #CCCCCC; -fx-border-width: 0.5; -fx-background-color: " + backgroundColor + ";");
             
             // 日期标签和今日标记HBox，水平布局
             HBox dateHeader = new HBox(5);
@@ -631,11 +653,8 @@ public class ProjectCalendarController {
             // 添加日期标签到dateHeader
             dateHeader.getChildren().add(dateLabel);
             
-            // 检查是否为今天，添加特殊标记
+            // 检查是否为今天，添加特殊标记（只有绿色小方块，不改变背景色）
             if (date.equals(LocalDate.now())) {
-                dateCell.getStyleClass().add("today-date-cell");
-                dateCell.setStyle(dateCell.getStyle() + "-fx-background-color: #E8F5E9;");
-                
                 // 创建今日标记（绿色小方块）
                 Rectangle todayMarker = new Rectangle(10, 10);
                 todayMarker.setFill(Color.web("#4CAF50"));
@@ -646,110 +665,135 @@ public class ProjectCalendarController {
                 dateHeader.getChildren().add(todayMarker);
             }
             
+            // 如果是节假日，添加节假日名称标签
+            if (isHoliday) {
+                String holidayName = holidayManager.getHolidayName(date);
+                if (holidayName != null && !holidayName.isEmpty()) {
+                    Label holidayLabel = new Label(holidayName);
+                    holidayLabel.setStyle("-fx-text-fill: #E53935; -fx-font-size: 11px;");
+                    holidayLabel.setAlignment(Pos.CENTER_RIGHT);
+                    // 使用Pane作为填充，让节假日标签靠右显示
+                    Pane spacer = new Pane();
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+                    dateHeader.getChildren().addAll(spacer, holidayLabel);
+                }
+            }
+            
             // 添加日期标题到单元格
             dateCell.getChildren().add(dateHeader);
             
             // 项目标记容器（可滚动）
             VBox projectContainer = new VBox(3);
+            projectContainer.setSpacing(3);
+            projectContainer.setFillWidth(true);
+
+            // 设置项目容器填充整个可用空间
+            projectContainer.prefWidthProperty().bind(dateCell.widthProperty().subtract(10)); // 减去内边距
+            VBox.setVgrow(projectContainer, Priority.ALWAYS);
+
             ScrollPane scrollPane = new ScrollPane(projectContainer);
             scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-            scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-            scrollPane.setPrefHeight(60);
+            scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // 始终不显示垂直滚动条，但仍可滚动
+            scrollPane.setFitToWidth(true); // 适应宽度
             scrollPane.setMinHeight(40);
-            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-            scrollPane.setPannable(true); // 允许用户拖动滚动
+            scrollPane.setFitToHeight(false); // 不适应高度，允许内容超出时滚动
+
+            // 绑定滚动面板高度到单元格剩余空间
+            scrollPane.prefHeightProperty().bind(dateCell.heightProperty().subtract(dateHeader.heightProperty()).subtract(15)); // 减去日期头部高度和内边距
             
+            // 设置强制隐藏滚动条的样式
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;" +
+                               "-fx-padding: 0; -fx-background-insets: 0;");
+            
+            // 防止任何情况下滚动条被显示
+            scrollPane.getStyleClass().addAll("project-cell-scroll-pane", "no-scroll-bar");
+            scrollPane.setPannable(true); // 允许用户拖动滚动
+
+            // 移除原有的鼠标进入/离开事件，不再切换滚动条的显示策略
+            // 滚动条通过CSS样式设置为透明，保留滚动功能但不可见
+            scrollPane.setOnMouseEntered(null);
+            scrollPane.setOnMouseExited(null);
+
             // 仅为当前月份的日期查找项目
             if (isCurrentMonth) {
                 // 查找该日期的所有项目并添加标记
                 List<Project> projectsForDate = projectService.getProjectsForDate(date);
                 if (projectsForDate != null && !projectsForDate.isEmpty()) {
+                    // 按项目分组，记录每个项目的所有日期类型
+                    Map<Project, List<String>> projectDateTypes = new HashMap<>();
+                    
+                    // 遍历所有项目，收集每个项目的所有日期类型
                     for (Project project : projectsForDate) {
-                        // 创建HBox来水平排列项目名和日期信息
-                        HBox projectMarkerBox = new HBox(3);
-                        projectMarkerBox.setAlignment(Pos.CENTER_LEFT);
-                        projectMarkerBox.setPadding(new Insets(2));
+                        List<String> dateTypes = new ArrayList<>();
                         
-                        // 项目标记
-                        Label projectMarker = new Label(project.getName());
-                        projectMarker.getStyleClass().add("project-marker");
-                        projectMarker.setPadding(new Insets(2, 4, 2, 4));
-                        
-                        // 根据日期类型设置不同背景色
+                        // 检查项目的各个日期是否匹配当前日期
+                        if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
+                            dateTypes.add("上网");
+                        }
                         if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
-                            projectMarker.setStyle("-fx-background-color: #FFF8E1; -fx-background-radius: 3; -fx-text-fill: #FF8F00;");
-                        } else if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
-                            projectMarker.setStyle("-fx-background-color: #FFEBEE; -fx-background-radius: 3; -fx-text-fill: #D32F2F;");
-                        } else if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
-                            projectMarker.setStyle("-fx-background-color: #E8F5E9; -fx-background-radius: 3; -fx-text-fill: #388E3C;");
-                        } else if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
-                            projectMarker.setStyle("-fx-background-color: #E3F2FD; -fx-background-radius: 3; -fx-text-fill: #1976D2;");
+                            dateTypes.add("报名截止");
+                        }
+                        if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
+                            dateTypes.add("最早评审");
+                        }
+                        if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
+                            dateTypes.add("预计评审");
                         }
                         
-                        // 文本溢出处理
-                        projectMarker.setMaxWidth(90);
-                        projectMarker.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
-                        // 使用CSS样式设置文本溢出显示为省略号
-                        projectMarker.setStyle(projectMarker.getStyle() + "-fx-text-overflow: ellipsis;");
-                        projectMarkerBox.getChildren().add(projectMarker);
-                        
-                        // 设置悬浮提示，显示完整项目信息
-                        Tooltip tooltip = new Tooltip(
-                                project.getName() + "\n" +
-                                (project.getRegistrationEndDate() != null ? "报名截止: " + DateCalculator.formatDate(project.getRegistrationEndDate()) + "\n" : "") +
-                                (project.getExpectedReviewDate() != null ? "预计评审: " + DateCalculator.formatDate(project.getExpectedReviewDate()) : "")
-                        );
-                        // 保持悬浮提示较长时间显示
-                        tooltip.setShowDelay(Duration.millis(100));
-                        tooltip.setShowDuration(Duration.seconds(20));
-                        tooltip.setStyle("-fx-background-color: #424242; -fx-text-fill: white;");
-                        Tooltip.install(projectMarkerBox, tooltip);
-                        
-                        // 添加点击事件，点击项目标记时选中对应项目
-                        projectMarkerBox.setOnMouseClicked(event -> {
-                            // 设置手型光标
-                            projectMarkerBox.setCursor(Cursor.HAND);
-                            
-                            // 如果当前月份与项目日期不同，切换到项目所在月份
-                            YearMonth projectMonth = YearMonth.from(
-                                    project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate()) ? 
-                                    project.getRegistrationEndDate() : project.getExpectedReviewDate()
-                            );
-                            YearMonth currentViewMonth = YearMonth.of(currentYearMonth.getYear(), currentYearMonth.getMonth());
-                            
-                            if (!projectMonth.equals(currentViewMonth)) {
-                                currentYearMonth = projectMonth;
-                                updateCalendarView();
-                            }
-                            
-                            // 选中表格中对应的项目
-                            projectTableView.getSelectionModel().clearSelection();
-                            projectTableView.getSelectionModel().select(project);
-                            projectTableView.scrollTo(project);
-                            
-                            // 阻止事件继续传播
-                            event.consume();
-                        });
-                        
-                        // 添加到项目容器
-                        projectContainer.getChildren().add(projectMarkerBox);
+                        projectDateTypes.put(project, dateTypes);
                     }
                     
-                    // 添加点击事件，点击日期单元格也能选中对应项目
-                    dateCell.setOnMouseClicked(event -> {
-                        // 清除当前选择
-                        projectTableView.getSelectionModel().clearSelection();
+                    // 项目数量
+                    int projectCount = projectDateTypes.size();
+                    boolean hasMultipleProjects = projectCount > 1;
+                    
+                    // 为每个项目创建标记
+                    for (Map.Entry<Project, List<String>> entry : projectDateTypes.entrySet()) {
+                        Project project = entry.getKey();
+                        List<String> dateTypes = entry.getValue();
                         
-                        // 选择与该日期关联的所有项目
-                        for (Project project : projectsForDate) {
-                            projectTableView.getSelectionModel().select(project);
+                        // 如果一个项目有多个日期类型，则为每个日期类型创建单独的行
+                        if (dateTypes.size() > 1) {
+                            for (String dateType : dateTypes) {
+                                List<String> singleType = new ArrayList<>();
+                                singleType.add(dateType);
+                                HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, singleType);
+                                
+                                // 添加点击和双击事件
+                                setupProjectMarkerEvents(projectMarkerBox, project);
+                                
+                                // 添加到项目容器
+                                projectContainer.getChildren().add(projectMarkerBox);
+                            }
+                        } else {
+                            // 创建项目标记
+                            HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, dateTypes);
+                            
+                            // 添加点击和双击事件
+                            setupProjectMarkerEvents(projectMarkerBox, project);
+                            
+                            // 添加到项目容器
+                            projectContainer.getChildren().add(projectMarkerBox);
                         }
-                        
-                        // 滚动到第一个选中的项目
-                        if (!projectsForDate.isEmpty()) {
-                            projectTableView.scrollTo(projectsForDate.get(0));
+                    }
+                    
+                    // 如果单元格中的项目很多，设置更紧凑的布局
+                    if (projectContainer.getChildren().size() > 3) {
+                        projectContainer.setSpacing(1);
+                        for (javafx.scene.Node node : projectContainer.getChildren()) {
+                            if (node instanceof HBox) {
+                                ((HBox) node).setPadding(new Insets(0, 1, 0, 1));
+                            }
                         }
-                    });
+                    }
+                }
+            }
+            
+            // 如果当前单元格中恰好有1个项目但是需要显示2行以上（多个日期类型），确保布局合理
+            if (projectContainer.getChildren().size() > 0 && projectContainer.getChildren().size() <= 2) {
+                VBox.setMargin(projectContainer.getChildren().get(0), new Insets(2, 0, 2, 0));
+                if (projectContainer.getChildren().size() == 2) {
+                    VBox.setMargin(projectContainer.getChildren().get(1), new Insets(2, 0, 2, 0));
                 }
             }
             
@@ -771,6 +815,138 @@ public class ProjectCalendarController {
             fallbackCell.getChildren().add(dateLabel);
             return fallbackCell;
         }
+    }
+    
+    /**
+     * 设置项目标记的点击和双击事件
+     * @param projectMarkerBox 项目标记HBox
+     * @param project 项目对象
+     */
+    private void setupProjectMarkerEvents(HBox projectMarkerBox, Project project) {
+        // 设置手型光标
+        projectMarkerBox.setCursor(Cursor.HAND);
+        
+        // 添加点击事件，点击项目标记时只选中该项目
+        projectMarkerBox.setOnMouseClicked(event -> {
+            // 只选中当前点击的项目
+            projectTableView.getSelectionModel().clearSelection();
+            projectTableView.getSelectionModel().select(project);
+            projectTableView.scrollTo(project);
+            
+            // 如果是双击，则显示项目详情
+            if (event.getClickCount() == 2) {
+                AppLogger.info("双击项目标记，显示项目详情: " + project.getName());
+                showProjectDetail(project);
+            }
+            
+            // 阻止事件继续传播
+            event.consume();
+        });
+    }
+    
+    /**
+     * 创建带日期类型的项目标记
+     * @param project 项目
+     * @param date 日期
+     * @param dateTypes 日期类型列表
+     * @return 项目标记HBox
+     */
+    private HBox createProjectMarkerWithDateTypes(Project project, LocalDate date, List<String> dateTypes) {
+        HBox projectMarkerBox = new HBox(3);
+        projectMarkerBox.setAlignment(Pos.CENTER_LEFT);
+        projectMarkerBox.setPadding(new Insets(1));
+        projectMarkerBox.getStyleClass().add("project-marker-row");
+        projectMarkerBox.setMaxWidth(Double.MAX_VALUE);
+        
+        // 项目名称标签
+        Label projectNameLabel = new Label(project.getName());
+        projectNameLabel.getStyleClass().add("project-marker");
+        projectNameLabel.setPadding(new Insets(1, 2, 1, 2));
+        
+        // 设置项目名称标签样式
+        String bgColor = "#F5F5F5"; // 默认背景色
+        String textColor = "#212121"; // 默认文字颜色
+        
+        // 根据第一个日期类型设置背景色和文字颜色
+        if (!dateTypes.isEmpty()) {
+            String firstType = dateTypes.get(0);
+            switch (firstType) {
+                case "上网":
+                    bgColor = "#E3F2FD";
+                    textColor = "#1976D2";
+                    break;
+                case "报名截止":
+                    bgColor = "#FFF8E1";
+                    textColor = "#FF8F00";
+                    break;
+                case "最早评审":
+                    bgColor = "#E8F5E9";
+                    textColor = "#388E3C";
+                    break;
+                case "预计评审":
+                    bgColor = "#FFEBEE";
+                    textColor = "#D32F2F";
+                    break;
+            }
+        }
+        
+        projectNameLabel.setStyle("-fx-background-color: " + bgColor + "; " +
+                                 "-fx-background-radius: 3; " +
+                                 "-fx-text-fill: " + textColor + ";");
+        
+        // 设置最大宽度并处理文本溢出
+        projectNameLabel.setMaxWidth(85);
+        projectNameLabel.setMinWidth(50);
+        projectNameLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+        HBox.setHgrow(projectNameLabel, Priority.ALWAYS);
+        
+        // 添加项目名称标签
+        projectMarkerBox.getChildren().add(projectNameLabel);
+        
+        // 创建日期类型标签
+        if (!dateTypes.isEmpty()) {
+            // 将所有日期类型合并为一个字符串
+            String dateTypeText = String.join("/", dateTypes);
+            
+            Label dateTypeLabel = new Label(dateTypeText);
+            dateTypeLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: " + textColor + ";");
+            dateTypeLabel.getStyleClass().add("date-type-label");
+            dateTypeLabel.setMaxWidth(55);
+            dateTypeLabel.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+            
+            // 添加日期类型标签
+            projectMarkerBox.getChildren().add(dateTypeLabel);
+        }
+        
+        // 设置悬浮提示，显示完整项目信息
+        StringBuilder tooltipText = new StringBuilder(project.getName());
+        
+        // 添加日期类型
+        if (!dateTypes.isEmpty()) {
+            tooltipText.append("\n日期类型: ").append(String.join(", ", dateTypes));
+        }
+        
+        // 添加其他日期信息
+        if (project.getOnlineDate() != null) {
+            tooltipText.append("\n上网日期: ").append(DateCalculator.formatDate(project.getOnlineDate()));
+        }
+        if (project.getRegistrationEndDate() != null) {
+            tooltipText.append("\n报名截止: ").append(DateCalculator.formatDate(project.getRegistrationEndDate()));
+        }
+        if (project.getExpectedReviewDate() != null) {
+            tooltipText.append("\n预计评审: ").append(DateCalculator.formatDate(project.getExpectedReviewDate()));
+        }
+        
+        Tooltip tooltip = new Tooltip(tooltipText.toString());
+        tooltip.setShowDelay(Duration.millis(100));
+        tooltip.setShowDuration(Duration.seconds(20));
+        tooltip.setStyle("-fx-background-color: #424242; -fx-text-fill: white;");
+        Tooltip.install(projectMarkerBox, tooltip);
+        
+        // 设置手型光标
+        projectMarkerBox.setCursor(Cursor.HAND);
+        
+        return projectMarkerBox;
     }
     
     /**
@@ -955,12 +1131,11 @@ public class ProjectCalendarController {
             // 预计评审图例
             HBox expectedLegend = createLegendItem("#ffebee", "预计评审", false);
             
-            // 过期项目图例
-            HBox expiredLegend = createLegendItem("#9e9e9e", "已过期5天", true);
+            // 删除非工作日图例项
             
             legendContainer.getChildren().addAll(
                 todayLegend, onlineLegend, regEndLegend, earliestLegend, 
-                expectedLegend, expiredLegend
+                expectedLegend
             );
             
             // 清除之前的图例（如果有）
