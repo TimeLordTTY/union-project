@@ -291,8 +291,11 @@ public class UIComponentFactory {
                 dateStr = formatDate(project.getRegistrationEndDate());
                 tipText += " (报名截止: " + dateStr + ")";
             } else if ("review".equals(markType)) {
-                dateStr = formatDate(project.getExpectedReviewDate());
-                tipText += " (预计评审: " + dateStr + ")";
+                if (project.getExpectedReviewTime() != null) {
+                    dateStr = formatDate(project.getExpectedReviewDate()) + " " +
+                    String.format("%02d:%02d", project.getExpectedReviewTime().getHour(), project.getExpectedReviewTime().getMinute());
+                    tipText += " (开标时间: " + dateStr + ")";
+                }
             }
             
             // 设置提示
@@ -360,8 +363,19 @@ public class UIComponentFactory {
             // 最早评审日期
             addInfoRow(infoGrid, 4, "最早评审:", formatDate(project.getEarliestReviewDate()));
             
-            // 预计评审日期
-            addInfoRow(infoGrid, 5, "预计评审:", formatDate(project.getExpectedReviewDate()));
+            // 开标时间
+            String expectedReviewTimeStr = "";
+            if (project.getExpectedReviewTime() != null) {
+                expectedReviewTimeStr = project.getExpectedReviewTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            }
+            addInfoRow(infoGrid, 5, "开标时间:", expectedReviewTimeStr);
+            
+            // 专家评审时间
+            String expertReviewTimeStr = "";
+            if (project.getExpertReviewTime() != null) {
+                expertReviewTimeStr = project.getExpertReviewTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            }
+            addInfoRow(infoGrid, 6, "专家评审:", expertReviewTimeStr);
             
             // 备注
             Label remarkLabel = new Label("备注:");

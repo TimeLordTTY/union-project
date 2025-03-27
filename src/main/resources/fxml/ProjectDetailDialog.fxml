@@ -49,17 +49,23 @@
             <Label fx:id="earliestReviewDateLabel" text="2024-04-15" GridPane.columnIndex="1" GridPane.rowIndex="4"
                    style="-fx-background-color: #E8F5E9; -fx-padding: 5 10; -fx-background-radius: 3;" />
             
-            <!-- 预计评审日期 -->
-            <Label text="预计评审日期:" GridPane.columnIndex="0" GridPane.rowIndex="5" 
+            <!-- 开标时间 -->
+            <Label text="开标时间:" GridPane.columnIndex="0" GridPane.rowIndex="5" 
                    style="-fx-font-weight: bold; -fx-text-fill: #5D4037;" />
-            <Label fx:id="expectedReviewDateLabel" text="2024-04-18" GridPane.columnIndex="1" GridPane.rowIndex="5"
+            <Label fx:id="expectedReviewDateLabel" text="2024-04-18 09:00" GridPane.columnIndex="1" GridPane.rowIndex="5"
                    style="-fx-background-color: #FFCDD2; -fx-padding: 5 10; -fx-background-radius: 3;" />
             
+            <!-- 专家评审时间 -->
+            <Label text="专家评审时间:" GridPane.columnIndex="0" GridPane.rowIndex="6" 
+                   style="-fx-font-weight: bold; -fx-text-fill: #5D4037;" />
+            <Label fx:id="expertReviewDateLabel" text="2024-04-25 09:00" GridPane.columnIndex="1" GridPane.rowIndex="6"
+                   style="-fx-background-color: #E1BEE7; -fx-padding: 5 10; -fx-background-radius: 3;" />
+            
             <!-- 项目备注 -->
-            <Label text="项目备注:" GridPane.columnIndex="0" GridPane.rowIndex="6" 
+            <Label text="项目备注:" GridPane.columnIndex="0" GridPane.rowIndex="7" 
                    style="-fx-font-weight: bold; -fx-text-fill: #5D4037; -fx-alignment: top-left;" 
                    GridPane.valignment="TOP" />
-            <Label fx:id="remarkLabel" text="" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="6" 
+            <Label fx:id="remarkLabel" text="" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="7" 
                    GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS" 
                    style="-fx-border-color: #BDBDBD; -fx-padding: 10; -fx-background-radius: 3; -fx-border-radius: 3; -fx-background-color: #FAFAFA;">
                 <minHeight>100</minHeight>

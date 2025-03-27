@@ -32,9 +32,10 @@
                 <TableView fx:id="projectTableView" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="nameColumn" prefWidth="120.0" text="项目名称" />
-                        <TableColumn fx:id="reviewPeriodColumn" prefWidth="40.0" text="评审周期" />
-                        <TableColumn fx:id="onlineDateColumn" prefWidth="80.0" text="上网日期" />
-                        <TableColumn fx:id="expectedReviewDateColumn" prefWidth="80.0" text="预计评审日期" />
+                        <TableColumn fx:id="onlineDateColumn" prefWidth="70.0" text="上网日期" />
+                        <TableColumn fx:id="registrationEndDateColumn" prefWidth="70.0" text="报名截止" />
+                        <TableColumn fx:id="expectedReviewDateColumn" prefWidth="80.0" text="开标时间" />
+                        <TableColumn fx:id="expertReviewDateColumn" prefWidth="80.0" text="专家评审" />
                     </columns>
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

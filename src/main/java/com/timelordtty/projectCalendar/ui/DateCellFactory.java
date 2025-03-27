@@ -2,6 +2,7 @@ package com.timelordtty.projectCalendar.ui;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -205,8 +206,11 @@ public class DateCellFactory {
                     if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
                         dateTypes.add("最早评审");
                     }
-                    if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
-                        dateTypes.add("预计评审");
+                    if (project.getExpectedReviewTime() != null && date.equals(project.getExpectedReviewTime().toLocalDate())) {
+                        dateTypes.add("开标");
+                    }
+                    if (project.getExpertReviewTime() != null && date.equals(project.getExpertReviewTime().toLocalDate())) {
+                        dateTypes.add("专家评审");
                     }
                     
                     // 只有当项目在当前日期有关联的日期类型时才添加到列表
@@ -347,9 +351,13 @@ public class DateCellFactory {
                     bgColor = "#E8F5E9";
                     textColor = "#388E3C";
                     break;
-                case "预计评审":
+                case "开标":
                     bgColor = "#FFEBEE";
                     textColor = "#D32F2F";
+                    break;
+                case "专家评审":
+                    bgColor = "#E1BEE7";
+                    textColor = "#9C27B0";
                     break;
             }
         }
@@ -400,8 +408,13 @@ public class DateCellFactory {
         if (project.getEarliestReviewDate() != null) {
             tooltipText.append("\n最早评审: ").append(DateCalculator.formatDate(project.getEarliestReviewDate()));
         }
-        if (project.getExpectedReviewDate() != null) {
-            tooltipText.append("\n预计评审: ").append(DateCalculator.formatDate(project.getExpectedReviewDate()));
+        if (project.getExpectedReviewTime() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            tooltipText.append("\n开标时间: ").append(project.getExpectedReviewTime().format(formatter));
+        }
+        if (project.getExpertReviewTime() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            tooltipText.append("\n专家评审时间: ").append(project.getExpertReviewTime().format(formatter));
         }
         
         Tooltip tooltip = new Tooltip(tooltipText.toString());
@@ -439,7 +452,8 @@ public class DateCellFactory {
             return false;
         }
         
-        if (project.getExpectedReviewDate() == null || !project.getExpectedReviewDate().isBefore(fiveDaysAgo)) {
+        if (project.getExpectedReviewTime() == null || 
+            !project.getExpectedReviewTime().toLocalDate().isBefore(fiveDaysAgo)) {
             return false;
         }
         
@@ -498,5 +512,29 @@ public class DateCellFactory {
          * @param date 被点击的日期
          */
         void onDateClicked(LocalDate date);
+    }
+    
+    // 添加辅助方法用于格式化日期时间
+    private String formatDateTime(LocalDate date) {
+        if (date == null) {
+            return "";
+        }
+        return DateCalculator.formatDate(date) + " 00:00";
+    }
+    
+    private String formatDateTime(java.util.Date date) {
+        if (date == null) {
+            return "";
+        }
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+        return sdf.format(date);
+    }
+    
+    private String formatDateTime(java.time.LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        return dateTime.format(formatter);
     }
 } 

@@ -2,6 +2,7 @@ package com.timelordtty.projectCalendar.ui;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -202,6 +203,7 @@ public class ReminderController {
             // 构建提醒文本
             LocalDate today = LocalDate.now();
             LocalDate regEndDate = project.getRegistrationEndDate();
+            LocalDate expertReviewDate = project.getExpertReviewDate();
             LocalDate reviewDate = project.getExpectedReviewDate();
             
             StringBuilder sb = new StringBuilder(project.getName());
@@ -210,15 +212,29 @@ public class ReminderController {
             boolean isRegEndDateInRange = isDateInCurrentWeek(regEndDate) || 
                                          (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(regEndDate));
             
-            // 检查预计评审日期是否在时间范围内
+            // 检查专家评审日期是否在时间范围内
+            boolean isExpertReviewDateInRange = isDateInCurrentWeek(expertReviewDate) || 
+                                            (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertReviewDate));
+            
+            // 检查开标时间是否在时间范围内
             boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || 
                                          (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
             
-            // 添加日期信息
+            // 添加日期信息，优先级：报名截止 > 专家评审 > 开标时间
             if (isRegEndDateInRange) {
                 sb.append(" - 报名截止: ").append(DateCalculator.formatDate(regEndDate));
+            } else if (isExpertReviewDateInRange) {
+                LocalDateTime expertReviewTime = project.getExpertReviewTime();
+                sb.append(" - 专家评审: ").append(
+                    DateCalculator.formatDate(expertReviewDate) + " " + 
+                    String.format("%02d:%02d", expertReviewTime.getHour(), expertReviewTime.getMinute())
+                );
             } else if (isReviewDateInRange) {
-                sb.append(" - 预计评审: ").append(DateCalculator.formatDate(reviewDate));
+                LocalDateTime reviewTime = project.getExpectedReviewTime();
+                sb.append(" - 开标时间: ").append(
+                    DateCalculator.formatDate(reviewDate) + " " + 
+                    String.format("%02d:%02d", reviewTime.getHour(), reviewTime.getMinute())
+                );
             }
             
             // 设置文本
@@ -307,7 +323,12 @@ public class ReminderController {
                 boolean isRegEndDateInRange = isDateInCurrentWeek(regEndDate) || 
                                             (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(regEndDate));
                 
-                // 检查预计评审日期是否在时间范围内
+                // 检查专家评审日期是否在时间范围内
+                LocalDate expertReviewDate = project.getExpertReviewDate();
+                boolean isExpertReviewDateInRange = isDateInCurrentWeek(expertReviewDate) || 
+                                                 (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertReviewDate));
+                
+                // 检查开标时间是否在时间范围内
                 boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || 
                                             (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
                 
@@ -341,8 +362,37 @@ public class ReminderController {
                     });
                 }
                 
+                if (isExpertReviewDateInRange) {
+                    Label expertReviewLabel = new Label("专家评审: " + DateCalculator.formatDate(expertReviewDate));
+                    expertReviewLabel.setStyle("-fx-text-fill: #4CAF50;");
+                    expertReviewLabel.setFont(Font.font("System", 10));
+                    datesBox.getChildren().add(expertReviewLabel);
+                    
+                    // 添加点击日期跳转事件
+                    expertReviewLabel.setCursor(Cursor.HAND);
+                    expertReviewLabel.setOnMouseClicked(event -> {
+                        // 关闭提醒列表弹窗
+                        if (reminderListPopup != null) {
+                            reminderListPopup.close();
+                            reminderListPopup = null;
+                        }
+                        
+                        // 跳转到对应日期
+                        if (onDateSelectedCallback != null) {
+                            onDateSelectedCallback.accept(expertReviewDate);
+                        }
+                        
+                        // 选中项目
+                        if (onProjectSelectedCallback != null) {
+                            onProjectSelectedCallback.accept(project);
+                        }
+                        
+                        event.consume();
+                    });
+                }
+                
                 if (isReviewDateInRange) {
-                    Label reviewLabel = new Label("预计评审: " + DateCalculator.formatDate(reviewDate));
+                    Label reviewLabel = new Label("开标时间: " + DateCalculator.formatDate(reviewDate));
                     reviewLabel.setStyle("-fx-text-fill: #4CAF50;");
                     reviewLabel.setFont(Font.font("System", 10));
                     datesBox.getChildren().add(reviewLabel);

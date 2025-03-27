@@ -3,6 +3,7 @@ package com.timelordtty.projectCalendar;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
@@ -64,9 +65,11 @@ public class ProjectCalendarController {
     
     @FXML private TableView<Project> projectTableView;
     @FXML private TableColumn<Project, String> nameColumn;
-    @FXML private TableColumn<Project, Number> reviewPeriodColumn;
+    @FXML private TableColumn<Project, Integer> reviewPeriodColumn;
     @FXML private TableColumn<Project, String> onlineDateColumn;
     @FXML private TableColumn<Project, String> expectedReviewDateColumn;
+    @FXML private TableColumn<Project, String> registrationEndDateColumn;
+    @FXML private TableColumn<Project, String> expertReviewDateColumn;
     
     @FXML private Button addProjectButton;
     @FXML private Button prevMonthButton;
@@ -176,14 +179,34 @@ public class ProjectCalendarController {
         nameColumn.setCellValueFactory(cellData -> 
             new SimpleStringProperty(cellData.getValue().getName()));
         
-        reviewPeriodColumn.setCellValueFactory(cellData -> 
-            new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getReviewPeriod()));
-        
+        // 报名截止日期列
+        registrationEndDateColumn.setCellValueFactory(cellData -> 
+            new SimpleStringProperty(DateCalculator.formatDate(cellData.getValue().getRegistrationEndDate())));
+            
         onlineDateColumn.setCellValueFactory(cellData -> 
             new SimpleStringProperty(DateCalculator.formatDate(cellData.getValue().getOnlineDate())));
         
-        expectedReviewDateColumn.setCellValueFactory(cellData -> 
-            new SimpleStringProperty(DateCalculator.formatDate(cellData.getValue().getExpectedReviewDate())));
+        // 开标时间列
+        expectedReviewDateColumn.setCellValueFactory(cellData -> {
+            LocalDateTime expectedTime = cellData.getValue().getExpectedReviewTime();
+            if (expectedTime != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                return new SimpleStringProperty(expectedTime.format(formatter));
+            } else {
+                return new SimpleStringProperty(DateCalculator.formatDate(cellData.getValue().getExpectedReviewDate()));
+            }
+        });
+        
+        // 专家评审列
+        expertReviewDateColumn.setCellValueFactory(cellData -> {
+            LocalDateTime expertTime = cellData.getValue().getExpertReviewTime();
+            if (expertTime != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                return new SimpleStringProperty(expertTime.format(formatter));
+            } else {
+                return new SimpleStringProperty("");
+            }
+        });
     }
     
     /**
@@ -288,12 +311,13 @@ public class ProjectCalendarController {
             Label reviewPeriodLabel = (Label) dialogPane.lookup("#reviewPeriodLabel");
             Label earliestReviewDateLabel = (Label) dialogPane.lookup("#earliestReviewDateLabel");
             Label expectedReviewDateLabel = (Label) dialogPane.lookup("#expectedReviewDateLabel");
+            Label expertReviewDateLabel = (Label) dialogPane.lookup("#expertReviewDateLabel");
             Label remarkLabel = (Label) dialogPane.lookup("#remarkLabel");
             
             // 检查是否成功找到所有标签
             if (projectNameLabel == null || onlineDateLabel == null || registrationPeriodLabel == null || 
                 registrationEndDateLabel == null || reviewPeriodLabel == null || earliestReviewDateLabel == null || 
-                expectedReviewDateLabel == null || remarkLabel == null) {
+                expectedReviewDateLabel == null || expertReviewDateLabel == null || remarkLabel == null) {
                 AppLogger.error("项目详情对话框的某些标签元素未找到");
             }
             
@@ -304,7 +328,29 @@ public class ProjectCalendarController {
             if (registrationEndDateLabel != null) registrationEndDateLabel.setText(DateCalculator.formatDate(project.getRegistrationEndDate()));
             if (reviewPeriodLabel != null) reviewPeriodLabel.setText(project.getReviewPeriod() + " 个自然日");
             if (earliestReviewDateLabel != null) earliestReviewDateLabel.setText(DateCalculator.formatDate(project.getEarliestReviewDate()));
-            if (expectedReviewDateLabel != null) expectedReviewDateLabel.setText(DateCalculator.formatDate(project.getExpectedReviewDate()));
+            
+            // 设置开标时间
+            if (expectedReviewDateLabel != null) {
+                LocalDateTime expectedTime = project.getExpectedReviewTime();
+                if (expectedTime != null) {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                    expectedReviewDateLabel.setText(expectedTime.format(formatter));
+                } else {
+                    expectedReviewDateLabel.setText(DateCalculator.formatDate(project.getExpectedReviewDate()));
+                }
+            }
+            
+            // 设置专家评审时间
+            if (expertReviewDateLabel != null) {
+                LocalDateTime expertTime = project.getExpertReviewTime();
+                if (expertTime != null) {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                    expertReviewDateLabel.setText(expertTime.format(formatter));
+                } else {
+                    expertReviewDateLabel.setText("未设置");
+                }
+            }
+            
             if (remarkLabel != null) remarkLabel.setText(project.getRemark() != null ? project.getRemark() : "");
             
             // 设置对话框样式
@@ -775,7 +821,10 @@ public class ProjectCalendarController {
                         dateTypes.add("最早评审");
                     }
                     if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
-                        dateTypes.add("预计评审");
+                        dateTypes.add("开标");
+                    }
+                    if (project.getExpertReviewTime() != null && date.equals(project.getExpertReviewTime().toLocalDate())) {
+                        dateTypes.add("专家评审");
                     }
                     
                     // 只有当项目在当前日期有关联的日期类型时才添加到列表
@@ -923,7 +972,7 @@ public class ProjectCalendarController {
                     bgColor = "#E8F5E9";
                     textColor = "#388E3C";
                     break;
-                case "预计评审":
+                case "开标":
                     bgColor = "#FFEBEE";
                     textColor = "#D32F2F";
                     break;
@@ -976,8 +1025,17 @@ public class ProjectCalendarController {
         if (project.getEarliestReviewDate() != null) {
             tooltipText.append("\n最早评审: ").append(DateCalculator.formatDate(project.getEarliestReviewDate()));
         }
-        if (project.getExpectedReviewDate() != null) {
-            tooltipText.append("\n预计评审: ").append(DateCalculator.formatDate(project.getExpectedReviewDate()));
+        if (project.getExpectedReviewTime() != null) {
+            tooltipText.append("\n开标时间: ").append(
+                DateCalculator.formatDate(project.getExpectedReviewDate()) + " " +
+                String.format("%02d:%02d", project.getExpectedReviewTime().getHour(), project.getExpectedReviewTime().getMinute())
+            );
+        }
+        if (project.getExpertReviewTime() != null) {
+            tooltipText.append("\n专家评审: ").append(
+                DateCalculator.formatDate(project.getExpertReviewDate()) + " " +
+                String.format("%02d:%02d", project.getExpertReviewTime().getHour(), project.getExpertReviewTime().getMinute())
+            );
         }
         
         Tooltip tooltip = new Tooltip(tooltipText.toString());
@@ -1025,12 +1083,16 @@ public class ProjectCalendarController {
         } else if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
             markerStyle = "-fx-background-color: #FFEBEE; -fx-background-radius: 3;";
             textColor = Color.RED;
+        } else if (project.getExpertReviewTime() != null && date.equals(project.getExpertReviewTime().toLocalDate())) {
+            markerStyle = "-fx-background-color: #E1BEE7; -fx-background-radius: 3;";
+            textColor = Color.PURPLE;
         }
         
         // 判断是否需要高亮显示（本周或下周的重要日期）
         LocalDate dateToCheck = null;
         if ((project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) || 
-            (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate()))) {
+            (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) ||
+            (project.getExpertReviewTime() != null && date.equals(project.getExpertReviewTime().toLocalDate()))) {
             dateToCheck = date;
         }
         
@@ -1195,38 +1257,24 @@ public class ProjectCalendarController {
             // 最早评审图例
             HBox earliestLegend = createLegendItem("#e8f5e9", "最早评审", false);
             
-            // 预计评审图例
-            HBox expectedLegend = createLegendItem("#ffebee", "预计评审", false);
+            // 开标时间图例
+            HBox expectedLegend = createLegendItem("#ffebee", "开标时间", false);
             
-            // 删除非工作日图例项
+            // 专家评审图例
+            HBox expertLegend = createLegendItem("#e1bee7", "专家评审", false);
             
+            // 添加图例到容器
             legendContainer.getChildren().addAll(
-                todayLegend, onlineLegend, regEndLegend, earliestLegend, 
-                expectedLegend
+                todayLegend, onlineLegend, regEndLegend, earliestLegend, expectedLegend, expertLegend
             );
             
-            // 清除之前的图例（如果有）
-            calendarContainer.getChildren().removeIf(node -> node.getId() != null && node.getId().equals("legend"));
-            
-            legendContainer.setId("legend");
-            
-            // 确保图例始终显示在ScrollPane之后、提醒区域之前
-            int scrollPaneIndex = -1;
-            for (int i = 0; i < calendarContainer.getChildren().size(); i++) {
-                if (calendarContainer.getChildren().get(i) == calendarScrollPane) {
-                    scrollPaneIndex = i;
-                    break;
-                }
-            }
-            
-            if (scrollPaneIndex >= 0) {
-                calendarContainer.getChildren().add(scrollPaneIndex + 1, legendContainer);
+            // 调整calendarContainer的孩子节点，如果图例已存在则替换，否则添加
+            if (calendarContainer.getChildren().size() > 1 && 
+                calendarContainer.getChildren().get(calendarContainer.getChildren().size() - 1) instanceof HBox) {
+                calendarContainer.getChildren().set(calendarContainer.getChildren().size() - 1, legendContainer);
             } else {
                 calendarContainer.getChildren().add(legendContainer);
             }
-            
-            // 设置为不随窗口大小变化而被隐藏
-            VBox.setVgrow(legendContainer, Priority.NEVER);
         } catch (Exception e) {
             AppLogger.error("创建日历图例时发生异常: " + e.getMessage(), e);
         }
@@ -1585,20 +1633,39 @@ public class ProjectCalendarController {
             LocalDate today = LocalDate.now();
             LocalDate regEndDate = project.getRegistrationEndDate();
             LocalDate reviewDate = project.getExpectedReviewDate();
+            LocalDate expertDate = project.getExpertReviewTime() != null ? 
+                project.getExpertReviewTime().toLocalDate() : null;
             
             StringBuilder sb = new StringBuilder(project.getName());
             
-            // 检查报名截止日期是否在时间范围内
-            boolean isRegEndDateInRange = isDateInCurrentWeek(regEndDate) || (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(regEndDate));
+            // 检查日期是否在时间范围内
+            boolean isRegEndDateInRange = isDateInCurrentWeek(regEndDate) || 
+                (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(regEndDate));
             
-            // 检查预计评审日期是否在时间范围内
-            boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
+            boolean isReviewDateInRange = isDateInCurrentWeek(reviewDate) || 
+                (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(reviewDate));
+                
+            boolean isExpertDateInRange = expertDate != null && 
+                (isDateInCurrentWeek(expertDate) || 
+                (today.getDayOfWeek() == DayOfWeek.FRIDAY && isDateInNextWeek(expertDate)));
             
             // 添加日期信息
             if (isRegEndDateInRange) {
                 sb.append(" - 报名截止: ").append(DateCalculator.formatDate(regEndDate));
-            } else if (isReviewDateInRange) {
-                sb.append(" - 预计评审: ").append(DateCalculator.formatDate(reviewDate));
+            }
+            
+            if (isReviewDateInRange) {
+                if (project.getExpectedReviewTime() != null) {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                    sb.append(" - 开标时间: ").append(project.getExpectedReviewTime().format(formatter));
+                } else {
+                    sb.append(" - 开标时间: ").append(DateCalculator.formatDate(reviewDate));
+                }
+            }
+            
+            if (isExpertDateInRange && project.getExpertReviewTime() != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                sb.append(" - 专家评审: ").append(project.getExpertReviewTime().format(formatter));
             }
             
             // 设置文本
@@ -1841,13 +1908,19 @@ public class ProjectCalendarController {
      */
     private String getDateType(Project project, LocalDate date) {
         if (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) {
-            return "上网日期";
-        } else if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
+            return "上网";
+        }
+        if (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) {
             return "报名截止";
-        } else if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
+        }
+        if (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) {
             return "最早评审";
-        } else if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
-            return "预计评审";
+        }
+        if (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate())) {
+            return "开标";
+        }
+        if (project.getExpertReviewTime() != null && date.equals(project.getExpertReviewTime().toLocalDate())) {
+            return "专家评审";
         }
         return "其他";
     }

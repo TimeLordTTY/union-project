@@ -201,10 +201,20 @@ public class ProjectService {
             return projects.stream()
                 .filter(project -> {
                     // 检查该日期是否是项目的任何关键日期
-                    return (project.getOnlineDate() != null && date.equals(project.getOnlineDate())) ||
-                           (project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate())) ||
-                           (project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate())) ||
-                           (project.getExpectedReviewDate() != null && date.equals(project.getExpectedReviewDate()));
+                    boolean isOnlineDate = project.getOnlineDate() != null && date.equals(project.getOnlineDate());
+                    boolean isRegistrationEndDate = project.getRegistrationEndDate() != null && date.equals(project.getRegistrationEndDate());
+                    boolean isEarliestReviewDate = project.getEarliestReviewDate() != null && date.equals(project.getEarliestReviewDate());
+                    
+                    // 检查专家评审时间
+                    boolean isExpertReviewDate = project.getExpertReviewTime() != null && 
+                                                date.equals(project.getExpertReviewTime().toLocalDate());
+                    
+                    // 检查开标时间
+                    boolean isExpectedReviewDate = project.getExpectedReviewTime() != null && 
+                                                 date.equals(project.getExpectedReviewTime().toLocalDate());
+                    
+                    return isOnlineDate || isRegistrationEndDate || isEarliestReviewDate || 
+                           isExpertReviewDate || isExpectedReviewDate;
                 })
                 .collect(Collectors.toList());
         } catch (Exception e) {
@@ -225,38 +235,61 @@ public class ProjectService {
             LocalDate startOfNextWeek = endOfWeek.plusDays(1);
             LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
             
-            boolean isFriday = today.getDayOfWeek() == DayOfWeek.FRIDAY;
-            LocalDate endDate = isFriday ? endOfNextWeek : endOfWeek;
+            // 根据今天是星期几，决定要获取的日期范围
+            LocalDate startDate = today; // 从今天开始
+            LocalDate endDate;
             
-            // 筛选项目：只有报名截止日期和预计评审日期在范围内的项目
+            DayOfWeek dayOfWeek = today.getDayOfWeek();
+            if (dayOfWeek == DayOfWeek.FRIDAY || dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+                // 如果今天是周五、周六或周日，提醒到下周末
+                endDate = endOfNextWeek;
+            } else {
+                // 如果是周一到周四，只提醒到本周末
+                endDate = endOfWeek;
+            }
+            
+            // 筛选项目：只有报名截止日期、开标时间和专家评审时间在范围内的项目
             return projects.stream()
                 .filter(project -> {
                     // 检查项目的报名截止日期是否在范围内
                     boolean isRegistrationEndDateInRange = project.getRegistrationEndDate() != null && 
-                                                         !project.getRegistrationEndDate().isBefore(today) && 
+                                                         !project.getRegistrationEndDate().isBefore(startDate) && 
                                                          !project.getRegistrationEndDate().isAfter(endDate);
                     
-                    // 检查项目的预计评审日期是否在范围内
-                    boolean isExpectedReviewDateInRange = project.getExpectedReviewDate() != null && 
-                                                        !project.getExpectedReviewDate().isBefore(today) && 
-                                                        !project.getExpectedReviewDate().isAfter(endDate);
+                    // 检查项目的专家评审时间是否在范围内
+                    boolean isExpertReviewDateInRange = project.getExpertReviewTime() != null && 
+                                                       !project.getExpertReviewTime().toLocalDate().isBefore(startDate) && 
+                                                       !project.getExpertReviewTime().toLocalDate().isAfter(endDate);
                     
-                    return isRegistrationEndDateInRange || isExpectedReviewDateInRange;
+                    // 检查项目的开标时间是否在范围内
+                    boolean isExpectedReviewDateInRange = project.getExpectedReviewTime() != null && 
+                                                        !project.getExpectedReviewTime().toLocalDate().isBefore(startDate) && 
+                                                        !project.getExpectedReviewTime().toLocalDate().isAfter(endDate);
+                    
+                    return isRegistrationEndDateInRange || isExpertReviewDateInRange || isExpectedReviewDateInRange;
                 })
                 .sorted(Comparator.comparing(p -> {
-                    // 首先按照最近的关键日期排序
+                    // 首先按照最近的关键日期排序（报名截止日期、专家评审时间、开标时间）
                     LocalDate date1 = p.getRegistrationEndDate();
-                    LocalDate date2 = p.getExpectedReviewDate();
+                    LocalDate date2 = p.getExpertReviewTime() != null ? p.getExpertReviewTime().toLocalDate() : null;
+                    LocalDate date3 = p.getExpectedReviewTime() != null ? p.getExpectedReviewTime().toLocalDate() : null;
                     
-                    if (date1 == null && date2 == null) {
-                        return LocalDate.MAX;
-                    } else if (date1 == null) {
-                        return date2;
-                    } else if (date2 == null) {
-                        return date1;
-                    } else {
-                        return date1.isBefore(date2) ? date1 : date2;
+                    LocalDate earliestDate = null;
+                    
+                    // 找出最早的有效日期
+                    if (date1 != null) {
+                        earliestDate = date1;
                     }
+                    
+                    if (date2 != null && (earliestDate == null || date2.isBefore(earliestDate))) {
+                        earliestDate = date2;
+                    }
+                    
+                    if (date3 != null && (earliestDate == null || date3.isBefore(earliestDate))) {
+                        earliestDate = date3;
+                    }
+                    
+                    return earliestDate != null ? earliestDate : LocalDate.MAX;
                 }))
                 .collect(Collectors.toList());
         } catch (Exception e) {
@@ -276,15 +309,18 @@ public class ProjectService {
         }
         
         try {
-            LocalDate today = LocalDate.now();
-            LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
-            LocalDate endOfWeek = startOfWeek.plusDays(6);
-            
-            // 检查项目的报名截止日期或预计评审日期是否在本周内
+        LocalDate today = LocalDate.now();
+        LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        LocalDate endOfWeek = startOfWeek.plusDays(6);
+        
+            // 检查项目的报名截止日期、专家评审时间或开标时间是否在本周内
             return (project.getRegistrationEndDate() != null && 
                    !project.getRegistrationEndDate().isBefore(startOfWeek) && 
                    !project.getRegistrationEndDate().isAfter(endOfWeek)) ||
-                   (project.getExpectedReviewDate() != null && 
+                  (project.getExpertReviewDate() != null && 
+                   !project.getExpertReviewDate().isBefore(startOfWeek) && 
+                   !project.getExpertReviewDate().isAfter(endOfWeek)) ||
+                  (project.getExpectedReviewDate() != null && 
                    !project.getExpectedReviewDate().isBefore(startOfWeek) && 
                    !project.getExpectedReviewDate().isAfter(endOfWeek));
         } catch (Exception e) {
@@ -304,16 +340,19 @@ public class ProjectService {
         }
         
         try {
-            LocalDate today = LocalDate.now();
-            LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        LocalDate today = LocalDate.now();
+        LocalDate startOfWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
             LocalDate startOfNextWeek = startOfWeek.plusDays(7);
-            LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
-            
-            // 检查项目的报名截止日期或预计评审日期是否在下周内
+        LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
+        
+            // 检查项目的报名截止日期、专家评审时间或开标时间是否在下周内
             return (project.getRegistrationEndDate() != null && 
                    !project.getRegistrationEndDate().isBefore(startOfNextWeek) && 
                    !project.getRegistrationEndDate().isAfter(endOfNextWeek)) ||
-                   (project.getExpectedReviewDate() != null && 
+                  (project.getExpertReviewDate() != null && 
+                   !project.getExpertReviewDate().isBefore(startOfNextWeek) && 
+                   !project.getExpertReviewDate().isAfter(endOfNextWeek)) ||
+                  (project.getExpectedReviewDate() != null && 
                    !project.getExpectedReviewDate().isBefore(startOfNextWeek) && 
                    !project.getExpectedReviewDate().isAfter(endOfNextWeek));
         } catch (Exception e) {
@@ -421,17 +460,19 @@ public class ProjectService {
                 }
                 
                 // 检查开标时间
-                if (!isInRange && project.getExpectedReviewDate() != null) {
-                    if (!project.getExpectedReviewDate().isBefore(startDate) && 
-                        !project.getExpectedReviewDate().isAfter(endDate)) {
+                if (!isInRange && project.getExpectedReviewTime() != null) {
+                    LocalDate expReviewDate = project.getExpectedReviewTime().toLocalDate();
+                    if (!expReviewDate.isBefore(startDate) && 
+                        !expReviewDate.isAfter(endDate)) {
                         isInRange = true;
                     }
                 }
                 
                 // 检查专家评审时间
-                if (!isInRange && project.getExpertReviewDate() != null) {
-                    if (!project.getExpertReviewDate().isBefore(startDate) && 
-                        !project.getExpertReviewDate().isAfter(endDate)) {
+                if (!isInRange && project.getExpertReviewTime() != null) {
+                    LocalDate expertReviewDate = project.getExpertReviewTime().toLocalDate();
+                    if (!expertReviewDate.isBefore(startDate) && 
+                        !expertReviewDate.isAfter(endDate)) {
                         isInRange = true;
                     }
                 }

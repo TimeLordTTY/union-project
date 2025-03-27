@@ -305,7 +305,7 @@ public class ProjectAddDialogController {
                     // 建议上网日期 = 开标时间 - 评审周期天数
                     LocalDate suggestedDate = expectedReviewDate.minusDays(reviewPeriod);
                     suggestedOnlineDateLabel.setText(
-                        "建议：" + DateCalculator.formatDate(suggestedDate)
+                        DateCalculator.formatDate(suggestedDate)
                     );
                 } else {
                     suggestedOnlineDateLabel.setText("");
