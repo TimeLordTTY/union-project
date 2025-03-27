@@ -36,7 +36,7 @@ public class MainApp extends Application {
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
             
             // 配置主舞台
-            primaryStage.setTitle("项目日历管理系统");
+            primaryStage.setTitle("项目管理小助手");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);
@@ -103,6 +103,10 @@ public class MainApp extends Application {
     public void init() throws Exception {
         super.init();
         AppLogger.info("初始化应用程序");
+        
+        // 初始化数据库
+        AppLogger.info("初始化数据库");
+        com.timelordtty.projectCalendar.utils.DatabaseManager.initialize();
         
         // 在这里可以添加应用程序的初始化逻辑
         // 例如创建必要的目录、加载配置等

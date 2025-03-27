@@ -26,7 +26,7 @@ public class DatabaseManager {
         "./data/" + DB_NAME,       // 应用根目录下的data文件夹
         "../data/" + DB_NAME,      // 应用上级目录下的data文件夹
         "../../data/" + DB_NAME,   // 应用上上级目录下的data文件夹
-        "./PersonalApps/项目日历/data/" + DB_NAME // 指定的项目日历数据目录
+        "./PersonalApps/项目管理小助手/data/" + DB_NAME // 指定的项目管理小助手数据目录
     };
     
     // 当前使用的数据库URL
@@ -42,8 +42,19 @@ public class DatabaseManager {
             "registration_period INTEGER NOT NULL, " +
             "registration_end_date DATE, " +
             "earliest_review_date DATE, " +
-            "expected_review_date DATE, " +
+            "expected_review_time TIMESTAMP, " +  // 开标时间，存储日期和时间
+            "expert_review_time TIMESTAMP, " +    // 专家评审时间，存储日期和时间
             "remark TEXT)";
+    
+    // 数据库结构升级SQL语句
+    private static final String ALTER_TABLE_ADD_EXPERT_REVIEW_TIME = 
+            "ALTER TABLE projects ADD COLUMN IF NOT EXISTS expert_review_time TIMESTAMP";
+    
+    private static final String ALTER_TABLE_RENAME_EXPECTED_REVIEW_DATE = 
+            "ALTER TABLE projects ALTER COLUMN expected_review_date RENAME TO expected_review_time";
+    
+    private static final String ALTER_TABLE_CHANGE_TYPE = 
+            "ALTER TABLE projects ALTER COLUMN expected_review_time TIMESTAMP";
     
     /**
      * 私有构造函数，防止实例化
@@ -80,7 +91,58 @@ public class DatabaseManager {
                  Statement stmt = conn.createStatement()) {
                 
                 // 创建项目表
+                AppLogger.info("执行表创建SQL: " + CREATE_PROJECTS_TABLE);
                 stmt.execute(CREATE_PROJECTS_TABLE);
+                
+                // 尝试进行表结构升级
+                try {
+                    // 检查列是否存在，不存在则添加
+                    DatabaseMetaData meta = conn.getMetaData();
+                    
+                    // 检查专家评审时间字段
+                    boolean hasExpertReviewTime = false;
+                    ResultSet columns = meta.getColumns(null, null, "PROJECTS", "EXPERT_REVIEW_TIME");
+                    if (columns.next()) {
+                        hasExpertReviewTime = true;
+                        AppLogger.info("表结构检查：专家评审时间字段已存在");
+                    } else {
+                        columns = meta.getColumns(null, null, "projects", "expert_review_time");
+                        if (columns.next()) {
+                            hasExpertReviewTime = true;
+                            AppLogger.info("表结构检查：专家评审时间字段已存在（小写）");
+                        }
+                    }
+                    
+                    // 如果专家评审时间字段不存在，添加它
+                    if (!hasExpertReviewTime) {
+                        AppLogger.info("升级表结构：添加专家评审时间字段");
+                        stmt.execute(ALTER_TABLE_ADD_EXPERT_REVIEW_TIME);
+                    }
+                    
+                    // 检查开标时间字段类型
+                    boolean needsTypeChange = false;
+                    columns = meta.getColumns(null, null, "PROJECTS", "EXPECTED_REVIEW_TIME");
+                    if (!columns.next()) {
+                        columns = meta.getColumns(null, null, "projects", "expected_review_time");
+                        if (!columns.next()) {
+                            // 如果expected_review_time不存在，检查expected_review_date是否存在
+                            columns = meta.getColumns(null, null, "PROJECTS", "EXPECTED_REVIEW_DATE");
+                            if (columns.next()) {
+                                needsTypeChange = true;
+                                AppLogger.info("升级表结构：需要将expected_review_date重命名为expected_review_time");
+                                try {
+                                    stmt.execute(ALTER_TABLE_RENAME_EXPECTED_REVIEW_DATE);
+                                    stmt.execute(ALTER_TABLE_CHANGE_TYPE);
+                                    AppLogger.info("表结构升级成功：开标时间字段已升级");
+                                } catch (SQLException e) {
+                                    AppLogger.error("无法更改列类型: " + e.getMessage(), e);
+                                }
+                            }
+                        }
+                    }
+                } catch (SQLException e) {
+                    AppLogger.error("表结构升级过程中发生错误: " + e.getMessage(), e);
+                }
                 
                 // 检查表是否存在
                 DatabaseMetaData meta = conn.getMetaData();
@@ -92,7 +154,18 @@ public class DatabaseManager {
                     if (rs.next()) {
                         AppLogger.info("数据库初始化成功：projects表已创建或已存在（小写）");
                     } else {
-                        AppLogger.error("数据库初始化失败：未能创建projects表");
+                        // 如果表不存在，再次尝试创建
+                        AppLogger.warning("未检测到表，尝试再次创建表");
+                        stmt.execute("DROP TABLE IF EXISTS projects");
+                        stmt.execute(CREATE_PROJECTS_TABLE);
+                        
+                        // 再次检查表是否存在
+                        rs = meta.getTables(null, null, "PROJECTS", null);
+                        if (rs.next() || meta.getTables(null, null, "projects", null).next()) {
+                            AppLogger.info("表创建成功");
+                        } else {
+                            AppLogger.error("数据库初始化失败：未能创建projects表");
+                        }
                     }
                 }
             }

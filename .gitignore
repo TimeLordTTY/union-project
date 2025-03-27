@@ -78,7 +78,7 @@ temp/
 javafx-modules/
 
 # 打包后的文件
-项目日历/
+项目管理小助手/
 lib/
 jre/
 
@@ -134,5 +134,5 @@ replay_pid*
 *.ctxt
 
 # 其他特定项目文件
-项目日历/lib/javafx-modules/
-项目日历/MultiTools-*.jar 
+项目管理小助手/lib/javafx-modules/
+项目管理小助手/MultiTools-*.jar 

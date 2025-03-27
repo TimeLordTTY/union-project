@@ -135,13 +135,13 @@ public class MainController {
     }
     
     /**
-     * 刷新项目日历
+     * 刷新项目管理小助手
      */
     public void refreshProjectCalendar() {
         if (projectCalendarController != null) {
             projectCalendarController.refreshAllViews();
         } else {
-            AppLogger.warning("无法刷新项目日历，未找到控制器");
+            AppLogger.warning("无法刷新项目管理小助手，未找到控制器");
         }
     }
 } 

@@ -58,7 +58,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 
 /**
- * 项目日历主控制器
+ * 项目管理小助手主控制器
  */
 public class ProjectCalendarController {
     
@@ -102,7 +102,7 @@ public class ProjectCalendarController {
     @FXML
     private void initialize() {
         try {
-            AppLogger.info("初始化项目日历控制器");
+            AppLogger.info("初始化项目管理小助手控制器");
             
             // 检查必要组件是否正确注入
             if (calendarGrid == null) {
@@ -163,9 +163,9 @@ public class ProjectCalendarController {
             // 初始化底部滚动提醒
             initScrollingReminders();
             
-            AppLogger.info("项目日历控制器初始化完成");
+            AppLogger.info("项目管理小助手控制器初始化完成");
         } catch (Exception e) {
-            AppLogger.error("初始化项目日历控制器时发生异常: " + e.getMessage(), e);
+            AppLogger.error("初始化项目管理小助手控制器时发生异常: " + e.getMessage(), e);
         }
     }
     
@@ -1272,10 +1272,10 @@ public class ProjectCalendarController {
             Parent reminderPane = loader.load();
             
             ReminderPanelController controller = loader.getController();
-            controller.initReminderData();
+            controller.showReminders();
             
-            // 关联跳转月份的回调
-            controller.setOnDateSelectedCallback(this::navigateToMonth);
+            // 不再支持日期回调
+            // controller.setOnDateSelectedCallback(this::navigateToMonth);
             
             // 获取主界面的BorderPane
             BorderPane mainPane = (BorderPane) calendarGrid.getScene().getRoot();

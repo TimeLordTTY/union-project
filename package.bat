@@ -1,5 +1,5 @@
 @echo off
-title 项目日历打包和运行
+title 项目管理小助手打包和运行
 setlocal EnableDelayedExpansion
 
 echo ====================
@@ -37,7 +37,7 @@ echo Maven版本检查通过，继续执行...
 echo ====================
 echo 2. 创建应用目录结构
 echo ====================
-set APP_DIR=PersonalApps\项目日历
+set APP_DIR=PersonalApps\项目管理小助手
 set SERVICE_DATA_DIR=%APP_DIR%\service_data
 set LIB_DIR=%SERVICE_DATA_DIR%\lib
 set JRE_DIR=%SERVICE_DATA_DIR%\jre
@@ -47,12 +47,13 @@ set LOG_DIR=%SERVICE_DATA_DIR%\logs
 set CONF_DIR=%SERVICE_DATA_DIR%\conf
 set DATA_DIR=%APP_DIR%\data
 set DATA_BACKUP_DIR=data_backup_temp
+set APP_NAME=项目管理小助手
 
 echo 备份数据目录（如果存在）...
-if exist "PersonalApps\项目日历\data" (
+if exist "PersonalApps\项目管理小助手\data" (
     echo 正在备份数据目录...
     mkdir "%DATA_BACKUP_DIR%"
-    xcopy /E /I /Y "PersonalApps\项目日历\data" "%DATA_BACKUP_DIR%"
+    xcopy /E /I /Y "PersonalApps\项目管理小助手\data" "%DATA_BACKUP_DIR%"
     echo 数据目录已备份到临时目录
 )
 
@@ -93,7 +94,7 @@ echo 应用程序运行时会自动在这里创建日志文件 >> "%LOG_DIR%\REA
 echo 如果遇到问题，请查看此处的日志以获取详细信息 >> "%LOG_DIR%\README.txt"
 
 echo 创建数据目录的说明文件...
-echo 此目录存放应用程序数据文件，包括项目日历的H2数据库 > "%DATA_DIR%\README.txt"
+echo 此目录存放应用程序数据文件，包括项目管理小助手的H2数据库 > "%DATA_DIR%\README.txt"
 echo 请勿手动删除或修改此目录中的文件 >> "%DATA_DIR%\README.txt"
 echo 升级应用程序时，此目录中的数据将会自动保留 >> "%DATA_DIR%\README.txt"
 echo 如需手动升级，请确保先备份此目录内容 >> "%DATA_DIR%\README.txt"
@@ -303,7 +304,7 @@ if not exist "%LIB_DIR%\h2-2.2.224.jar" (
     echo 警告: 未找到H2数据库依赖，正在尝试重新复制...
     copy /Y "%PROJECT_ROOT%\target\dependency\h2-2.2.224.jar" "%LIB_DIR%\"
     if %ERRORLEVEL% NEQ 0 (
-        echo 错误: 未找到H2数据库依赖，项目日历功能可能无法正常工作！
+        echo 错误: 未找到H2数据库依赖，项目管理小助手功能可能无法正常工作！
     )
 )
 
@@ -320,10 +321,10 @@ echo 创建启动批处理文件...
 
 (
 echo @echo off
-echo title 项目日历
+echo title 项目管理小助手
 echo.
 echo cd /d %%~dp0
-echo echo 正在启动项目日历...
+echo echo 正在启动项目管理小助手...
 echo.
 echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo set JAR_PATH=multi-tools-1.0.jar
@@ -353,15 +354,15 @@ echo if %%ERRORLEVEL%% NEQ 0 (
 echo     echo 应用程序启动失败，错误代码: %%ERRORLEVEL%%
 echo     pause
 echo ^)
-) > "%APP_DIR%\启动项目日历.bat"
+) > "%APP_DIR%\启动项目管理小助手.bat"
 
 echo 创建调试版启动脚本...
 (
 echo @echo on
-echo title 项目日历（调试模式）
+echo title 项目管理小助手（调试模式）
 echo.
 echo cd /d %%~dp0
-echo echo 正在调试模式下启动项目日历...
+echo echo 正在调试模式下启动项目管理小助手...
 echo.
 echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo.
@@ -410,7 +411,7 @@ echo 遇到小故障时，点「调试小助手.bat」之后发送错误信息�
 echo.>> "%APP_DIR%\使用说明.txt"
 echo ## 💼 专属于宝宝的项目管理小助手>> "%APP_DIR%\使用说明.txt"
 echo.>> "%APP_DIR%\使用说明.txt"
-echo ### 📅 项目日历（含贴心彩蛋）>> "%APP_DIR%\使用说明.txt"
+echo ### 📅 项目管理小助手（含贴心彩蛋）>> "%APP_DIR%\使用说明.txt"
 echo - 支持项目管理与项目提醒>> "%APP_DIR%\使用说明.txt"
 echo - 自动计算报名截止日期和最早评审日期>> "%APP_DIR%\使用说明.txt"
 echo - 内置2024-2025年节假日（偷偷标注了我们的纪念日），>> "%APP_DIR%\使用说明.txt"
@@ -467,7 +468,7 @@ echo 检查H2数据库依赖...
 if exist "%LIB_DIR%\h2-*.jar" (
     echo H2数据库依赖正常
 ) else (
-    echo 警告: H2数据库依赖缺失，项目日历功能可能无法正常工作
+    echo 警告: H2数据库依赖缺失，项目管理小助手功能可能无法正常工作
 )
 
 echo ====================
@@ -477,16 +478,16 @@ echo 应用程序文件夹: %CD%\%APP_DIR%
 echo.
 echo 文件夹结构说明:
 echo - 根目录: 启动脚本、JAR文件、使用说明
-echo - data目录: 存放项目日历数据（升级时应保留）
+echo - data目录: 存放项目管理小助手数据（升级时应保留）
 echo - templates目录: 存放文档模板
 echo - service_data目录: 存放所有服务相关文件（lib、jre、conf、logs）
 echo.
 echo 使用方法:
 echo 1. 将整个"%APP_DIR%"文件夹复制给使用者
-echo 2. 双击"启动项目日历.bat"运行程序
+echo 2. 双击"启动项目管理小助手.bat"运行程序
 echo 3. 若有问题，运行"调试启动.bat"获取详细错误信息
 echo.
-echo 项目日历功能特别说明:
+echo 项目管理小助手功能特别说明:
 echo - 数据存储在data目录中，使用H2数据库自动保存
 echo - 支持2024和2025年法定节假日信息
 echo - 所有日期计算自动考虑工作日和节假日因素
@@ -494,12 +495,12 @@ echo.
 
 set /p ANSWER=是否立即运行应用程序? (Y/N): 
 if /i "%ANSWER%" == "Y" (
-    echo 正在启动项目日历...
+    echo 正在启动项目管理小助手...
     cd /d "%APP_DIR%"
-    call "启动项目日历.bat"
+    call "启动项目管理小助手.bat"
     cd /d "%PROJECT_ROOT%"
 ) else (
-    echo 您可以稍后运行"%APP_DIR%\启动项目日历.bat"启动应用
+    echo 您可以稍后运行"%APP_DIR%\启动项目管理小助手.bat"启动应用
 )
 
 echo.

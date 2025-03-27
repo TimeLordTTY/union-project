@@ -1,6 +1,7 @@
 package com.timelordtty.projectCalendar;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 import com.timelordtty.projectCalendar.model.Status;
@@ -16,7 +17,8 @@ public class Project {
     private int registrationPeriod; // 报名期限（工作日）
     private LocalDate registrationEndDate; // 报名截止日期
     private LocalDate earliestReviewDate; // 最早评审日期
-    private LocalDate expectedReviewDate; // 预计评审日期
+    private LocalDateTime expectedReviewTime; // 开标时间
+    private LocalDateTime expertReviewTime; // 专家评审时间
     private String remark; // 项目备注
 
     public Project() {
@@ -25,14 +27,15 @@ public class Project {
 
     public Project(String name, int reviewPeriod, LocalDate onlineDate, int registrationPeriod,
                   LocalDate registrationEndDate, LocalDate earliestReviewDate, 
-                  LocalDate expectedReviewDate, String remark) {
+                  LocalDateTime expectedReviewTime, LocalDateTime expertReviewTime, String remark) {
         this.name = name;
         this.reviewPeriod = reviewPeriod;
         this.onlineDate = onlineDate;
         this.registrationPeriod = registrationPeriod;
         this.registrationEndDate = registrationEndDate;
         this.earliestReviewDate = earliestReviewDate;
-        this.expectedReviewDate = expectedReviewDate;
+        this.expectedReviewTime = expectedReviewTime;
+        this.expertReviewTime = expertReviewTime;
         this.remark = remark;
     }
 
@@ -93,12 +96,68 @@ public class Project {
         this.earliestReviewDate = earliestReviewDate;
     }
 
+    public LocalDateTime getExpectedReviewTime() {
+        return expectedReviewTime;
+    }
+
+    public void setExpectedReviewTime(LocalDateTime expectedReviewTime) {
+        this.expectedReviewTime = expectedReviewTime;
+    }
+    
+    // 为了兼容现有代码，提供日期版本的getter和setter
     public LocalDate getExpectedReviewDate() {
-        return expectedReviewDate;
+        return expectedReviewTime != null ? expectedReviewTime.toLocalDate() : null;
     }
 
     public void setExpectedReviewDate(LocalDate expectedReviewDate) {
-        this.expectedReviewDate = expectedReviewDate;
+        if (expectedReviewDate != null) {
+            // 设置日期时，如果已有时间则保留，否则默认9:00
+            if (this.expectedReviewTime != null) {
+                this.expectedReviewTime = LocalDateTime.of(
+                    expectedReviewDate, 
+                    this.expectedReviewTime.toLocalTime()
+                );
+            } else {
+                this.expectedReviewTime = LocalDateTime.of(
+                    expectedReviewDate, 
+                    java.time.LocalTime.of(9, 0)
+                );
+            }
+        } else {
+            this.expectedReviewTime = null;
+        }
+    }
+
+    public LocalDateTime getExpertReviewTime() {
+        return expertReviewTime;
+    }
+
+    public void setExpertReviewTime(LocalDateTime expertReviewTime) {
+        this.expertReviewTime = expertReviewTime;
+    }
+    
+    // 提供日期版本的专家评审时间getter和setter
+    public LocalDate getExpertReviewDate() {
+        return expertReviewTime != null ? expertReviewTime.toLocalDate() : null;
+    }
+
+    public void setExpertReviewDate(LocalDate expertReviewDate) {
+        if (expertReviewDate != null) {
+            // 设置日期时，如果已有时间则保留，否则默认9:00
+            if (this.expertReviewTime != null) {
+                this.expertReviewTime = LocalDateTime.of(
+                    expertReviewDate, 
+                    this.expertReviewTime.toLocalTime()
+                );
+            } else {
+                this.expertReviewTime = LocalDateTime.of(
+                    expertReviewDate, 
+                    java.time.LocalTime.of(9, 0)
+                );
+            }
+        } else {
+            this.expertReviewTime = null;
+        }
     }
 
     public String getRemark() {
@@ -115,8 +174,9 @@ public class Project {
      */
     public String getStatusText() {
         LocalDate today = LocalDate.now();
+        LocalDate expectedReviewDate = getExpectedReviewDate();
         
-        // 如果预计评审日期已过，则已完成
+        // 如果开标时间已过，则已完成
         if (expectedReviewDate != null && expectedReviewDate.isBefore(today)) {
             return Status.COMPLETED.getText();
         }
@@ -133,14 +193,14 @@ public class Project {
             return Status.UPCOMING.getText();
         }
         
-        // 如果报名截止日期已过，预计评审日期未到，则进行中
+        // 如果报名截止日期已过，开标时间未到，则进行中
         if (registrationEndDate != null && registrationEndDate.isBefore(today)) {
             if (expectedReviewDate != null && expectedReviewDate.isAfter(today)) {
                 return Status.IN_PROGRESS.getText();
             }
         }
         
-        // 如果报名截止日期已过，但没有设置预计评审日期，则已过期
+        // 如果报名截止日期已过，但没有设置开标时间，则已过期
         if (registrationEndDate != null && registrationEndDate.isBefore(today) && expectedReviewDate == null) {
             return Status.EXPIRED.getText();
         }
@@ -167,7 +227,7 @@ public class Project {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Project project = (Project) o;
-        return id.equals(project.id);
+        return id != null && id.equals(project.id);
     }
 
     @Override

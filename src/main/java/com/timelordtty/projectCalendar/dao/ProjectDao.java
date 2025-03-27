@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +76,7 @@ public class ProjectDao {
     public boolean insertProject(Project project) {
         String sql = "INSERT INTO projects (name, review_period, online_date, " +
                     "registration_period, registration_end_date, earliest_review_date, " +
-                    "expected_review_date, remark) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                    "expected_review_time, expert_review_time, remark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -110,13 +109,13 @@ public class ProjectDao {
     public boolean updateProject(Project project) {
         String sql = "UPDATE projects SET name = ?, review_period = ?, online_date = ?, " +
                     "registration_period = ?, registration_end_date = ?, earliest_review_date = ?, " +
-                    "expected_review_date = ?, remark = ? WHERE id = ?";
+                    "expected_review_time = ?, expert_review_time = ?, remark = ? WHERE id = ?";
         
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             setPreparedStatementParameters(pstmt, project);
-            pstmt.setLong(9, project.getId());
+            pstmt.setLong(10, project.getId());
             
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
@@ -181,13 +180,19 @@ public class ProjectDao {
             pstmt.setNull(6, java.sql.Types.DATE);
         }
         
-        if (project.getExpectedReviewDate() != null) {
-            pstmt.setDate(7, Date.valueOf(project.getExpectedReviewDate()));
+        if (project.getExpectedReviewTime() != null) {
+            pstmt.setTimestamp(7, java.sql.Timestamp.valueOf(project.getExpectedReviewTime()));
         } else {
-            pstmt.setNull(7, java.sql.Types.DATE);
+            pstmt.setNull(7, java.sql.Types.TIMESTAMP);
         }
         
-        pstmt.setString(8, project.getRemark());
+        if (project.getExpertReviewTime() != null) {
+            pstmt.setTimestamp(8, java.sql.Timestamp.valueOf(project.getExpertReviewTime()));
+        } else {
+            pstmt.setNull(8, java.sql.Types.TIMESTAMP);
+        }
+        
+        pstmt.setString(9, project.getRemark());
     }
     
     /**
@@ -220,9 +225,36 @@ public class ProjectDao {
             project.setEarliestReviewDate(earliestReviewDate.toLocalDate());
         }
         
-        Date expectedReviewDate = rs.getDate("expected_review_date");
-        if (expectedReviewDate != null) {
-            project.setExpectedReviewDate(expectedReviewDate.toLocalDate());
+        try {
+            java.sql.Timestamp expectedReviewTime = rs.getTimestamp("expected_review_time");
+            if (expectedReviewTime != null) {
+                project.setExpectedReviewTime(expectedReviewTime.toLocalDateTime());
+            }
+        } catch (SQLException e) {
+            // 如果找不到expected_review_time列，尝试从旧的expected_review_date列读取
+            try {
+                Date expectedReviewDate = rs.getDate("expected_review_date");
+                if (expectedReviewDate != null) {
+                    // 如果只有日期，添加默认时间9:00
+                    java.time.LocalDateTime dateTime = java.time.LocalDateTime.of(
+                        expectedReviewDate.toLocalDate(), 
+                        java.time.LocalTime.of(9, 0)
+                    );
+                    project.setExpectedReviewTime(dateTime);
+                }
+            } catch (SQLException ex) {
+                AppLogger.error("读取开标时间时发生错误: " + ex.getMessage());
+            }
+        }
+        
+        try {
+            java.sql.Timestamp expertReviewTime = rs.getTimestamp("expert_review_time");
+            if (expertReviewTime != null) {
+                project.setExpertReviewTime(expertReviewTime.toLocalDateTime());
+            }
+        } catch (SQLException e) {
+            // 可能是旧版本的数据库，没有专家评审时间字段
+            AppLogger.info("数据库中可能不存在expert_review_time列: " + e.getMessage());
         }
         
         project.setRemark(rs.getString("remark"));

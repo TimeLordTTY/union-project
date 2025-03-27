@@ -396,4 +396,56 @@ public class ProjectService {
     public void refreshProjects() {
         loadProjects();
     }
+    
+    /**
+     * 获取指定日期范围内有关键日期的项目
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 项目列表
+     */
+    public List<Project> getProjectsWithDatesInRange(LocalDate startDate, LocalDate endDate) {
+        try {
+            List<Project> allProjects = getAllProjects();
+            List<Project> projectsInRange = new ArrayList<>();
+            
+            for (Project project : allProjects) {
+                // 检查项目的各个关键日期是否在指定范围内
+                boolean isInRange = false;
+                
+                // 检查报名截止日期
+                if (project.getRegistrationEndDate() != null) {
+                    if (!project.getRegistrationEndDate().isBefore(startDate) && 
+                        !project.getRegistrationEndDate().isAfter(endDate)) {
+                        isInRange = true;
+                    }
+                }
+                
+                // 检查开标时间
+                if (!isInRange && project.getExpectedReviewDate() != null) {
+                    if (!project.getExpectedReviewDate().isBefore(startDate) && 
+                        !project.getExpectedReviewDate().isAfter(endDate)) {
+                        isInRange = true;
+                    }
+                }
+                
+                // 检查专家评审时间
+                if (!isInRange && project.getExpertReviewDate() != null) {
+                    if (!project.getExpertReviewDate().isBefore(startDate) && 
+                        !project.getExpertReviewDate().isAfter(endDate)) {
+                        isInRange = true;
+                    }
+                }
+                
+                // 如果有任一关键日期在范围内，添加到结果列表
+                if (isInRange) {
+                    projectsInRange.add(project);
+                }
+            }
+            
+            return projectsInRange;
+        } catch (Exception e) {
+            AppLogger.error("获取日期范围内项目失败: " + e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
 } 
