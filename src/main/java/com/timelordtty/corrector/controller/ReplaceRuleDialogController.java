@@ -70,7 +70,22 @@ public class ReplaceRuleDialogController implements Initializable {
             }
         });
         
+        // 初始化一些默认规则（这些规则并不会自动生效，除非用户使用它们）
+        addDefaultRules();
+        
         AppLogger.info("替换规则对话框已初始化");
+    }
+    
+    /**
+     * 添加默认规则
+     */
+    private void addDefaultRules() {
+        // 添加一些默认的替换规则
+        ruleList.add(new ReplaceRule("我恨你", "我爱你"));
+        ruleList.add(new ReplaceRule("好讨厌你", "好喜欢你"));
+        ruleList.add(new ReplaceRule("烦死了", "真开心"));
+        
+        AppLogger.info("已添加默认替换规则");
     }
     
     /**

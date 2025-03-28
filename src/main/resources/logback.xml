@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- 定义日志文件的保存路径 -->
-    <property name="LOG_HOME" value="service_data/logs" />
+    <property name="LOG_HOME" value="PersonalApps/项目管理小助手/service_data/logs" />
     <property name="APP_NAME" value="multitools" />
     
     <!-- 控制台输出 -->

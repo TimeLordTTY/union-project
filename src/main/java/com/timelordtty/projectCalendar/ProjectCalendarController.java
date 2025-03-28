@@ -800,17 +800,64 @@ public class ProjectCalendarController {
                 Pane spacer = new Pane();
                 HBox.setHgrow(spacer, Priority.ALWAYS);
                 dateHeader.getChildren().addAll(spacer, heartLabel);
-            } else if (holidayManager.getHolidayName(date) != null && 
-                       holidayManager.getHolidayName(date).contains("七夕")) {
-                Label cakeLabel = new Label("🎂");
-                cakeLabel.setStyle("-fx-text-fill: #FF5722; -fx-font-size: 14px;");
-                Tooltip tooltip = new Tooltip("宝宝生日快乐哦🎂~");
-                tooltip.setStyle("-fx-font-size: 14px;");
-                Tooltip.install(cakeLabel, tooltip);
+            } else if (holidayManager.getHolidayName(date) != null) {
+                String holidayName = holidayManager.getHolidayName(date);
                 
-                Pane spacer = new Pane();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                dateHeader.getChildren().addAll(spacer, cakeLabel);
+                // 七夕节特殊处理，显示蛋糕在左侧
+                if (holidayName.contains("七夕")) {
+                    Label cakeLabel = new Label("🎂");
+                    cakeLabel.setStyle("-fx-text-fill: #FF5722; -fx-font-size: 14px;");
+                    Tooltip tooltip = new Tooltip("宝宝生日快乐哦🎂~");
+                    tooltip.setStyle("-fx-font-size: 14px;");
+                    Tooltip.install(cakeLabel, tooltip);
+                    
+                    // 将蛋糕图标添加到日期标签后面
+                    dateHeader.getChildren().add(1, cakeLabel);
+                }
+                // 元旦节特殊处理，添加烟花图标
+                else if (holidayName.contains("元旦")) {
+                    Label fireworkLabel = new Label("🎆");
+                    fireworkLabel.setStyle("-fx-font-size: 14px;");
+                    Tooltip tooltip = new Tooltip("新年快乐宝宝~");
+                    tooltip.setStyle("-fx-font-size: 14px;");
+                    Tooltip.install(fireworkLabel, tooltip);
+                    
+                    // 将图标添加到日期标签后面
+                    dateHeader.getChildren().add(1, fireworkLabel);
+                }
+                // 春节（大年初一）特殊处理，添加鞭炮图标
+                else if (holidayName.contains("春节") && date.getDayOfMonth() == 1) {
+                    Label firecracker = new Label("🧨");
+                    firecracker.setStyle("-fx-font-size: 14px;");
+                    Tooltip tooltip = new Tooltip("宝宝新年好呀！");
+                    tooltip.setStyle("-fx-font-size: 14px;");
+                    Tooltip.install(firecracker, tooltip);
+                    
+                    // 将图标添加到日期标签后面
+                    dateHeader.getChildren().add(1, firecracker);
+                }
+                // 情人节特殊处理，添加爱心图标
+                else if (holidayName.contains("情人节")) {
+                    Label heart = new Label("❤️");
+                    heart.setStyle("-fx-font-size: 14px;");
+                    Tooltip tooltip = new Tooltip("爱你，我最爱的宝宝");
+                    tooltip.setStyle("-fx-font-size: 14px;");
+                    Tooltip.install(heart, tooltip);
+                    
+                    // 将图标添加到日期标签后面
+                    dateHeader.getChildren().add(1, heart);
+                }
+                // 儿童节特殊处理，添加糖果图标
+                else if (holidayName.contains("儿童节")) {
+                    Label candy = new Label("🍬");
+                    candy.setStyle("-fx-font-size: 14px;");
+                    Tooltip tooltip = new Tooltip("永远是快乐的小宝宝哦~");
+                    tooltip.setStyle("-fx-font-size: 14px;");
+                    Tooltip.install(candy, tooltip);
+                    
+                    // 将图标添加到日期标签后面
+                    dateHeader.getChildren().add(1, candy);
+                }
             }
             
             // 添加日期标题到单元格
@@ -1707,7 +1754,14 @@ public class ProjectCalendarController {
             
             if (reminderProjects == null || reminderProjects.isEmpty()) {
                 scrollingReminderLabel.setText("暂无需要提醒的项目");
+                // 重置当前提醒索引
+                currentReminderIndex = 0;
                 return;
+            }
+            
+            // 检查当前提醒索引是否有效，避免索引越界
+            if (currentReminderIndex >= reminderProjects.size()) {
+                currentReminderIndex = 0;
             }
             
             // 获取当前要显示的项目
@@ -1779,9 +1833,14 @@ public class ProjectCalendarController {
             // 更新提醒文本
             scrollingReminderLabel.setText(sb.toString());
             
-            // 更新当前索引
+            // 更新当前索引，确保不会越界
             currentReminderIndex = (currentReminderIndex + 1) % reminderProjects.size();
         } catch (Exception e) {
+            // 如果发生异常，重置索引并显示默认消息
+            currentReminderIndex = 0;
+            if (scrollingReminderLabel != null) {
+                scrollingReminderLabel.setText("暂无需要提醒的项目");
+            }
             AppLogger.error("显示下一条提醒时发生异常: " + e.getMessage(), e);
         }
     }
