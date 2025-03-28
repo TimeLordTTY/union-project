@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import java.lang.String?>
 
-<DialogPane prefWidth="500" prefHeight="650" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<DialogPane prefWidth="500" prefHeight="700" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
     fx:controller="com.timelordtty.projectCalendar.ProjectAddDialogController"
     stylesheets="@../css/styles.css" styleClass="custom-dialog">
     <header>
@@ -74,8 +74,22 @@
             <TextArea fx:id="remarkArea" GridPane.columnIndex="1" GridPane.rowIndex="9" 
                 prefHeight="100.0" wrapText="true" />
                 
+            <!-- 复制提示语按钮区域 - 放在项目备注和提示信息之间 -->
+            <HBox GridPane.columnIndex="0" GridPane.rowIndex="10" GridPane.columnSpan="2"
+                  spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="copyBidTimeBtn" text="复制开标时间提示" onAction="#copyBidTimePrompt" 
+                        style="-fx-background-color: #E3F2FD; -fx-text-fill: #1976D2;" />
+                <Button fx:id="copyExpertTimeBtn" text="复制专家评审时间提示" onAction="#copyExpertTimePrompt"
+                        style="-fx-background-color: #E1BEE7; -fx-text-fill: #9C27B0;" />
+                <Button fx:id="copyExpertMeetingBtn" text="复制专家会议提示" onAction="#copyExpertMeetingPrompt"
+                        style="-fx-background-color: #FFF8E1; -fx-text-fill: #FF8F00;" />
+                <GridPane.margin>
+                    <Insets top="15.0" bottom="15.0" />
+                </GridPane.margin>
+            </HBox>
+                
             <!-- 提示信息 -->
-            <Label fx:id="validationLabel" text="" GridPane.columnIndex="0" GridPane.rowIndex="10" 
+            <Label fx:id="validationLabel" text="" GridPane.columnIndex="0" GridPane.rowIndex="11" 
                 GridPane.columnSpan="2" style="-fx-text-fill: red;" />
                 
             <columnConstraints>

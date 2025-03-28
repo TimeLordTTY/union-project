@@ -16,6 +16,7 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
@@ -23,6 +24,8 @@ import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
@@ -46,6 +49,11 @@ public class ProjectAddDialogController {
     @FXML private Label suggestedOnlineDateLabel;
     @FXML private Label validationLabel;
     @FXML private DialogPane dialogPane;
+    
+    // 复制按钮
+    @FXML private Button copyBidTimeBtn;
+    @FXML private Button copyExpertTimeBtn;
+    @FXML private Button copyExpertMeetingBtn;
     
     private ProjectService projectService;
     private Project editingProject;
@@ -700,5 +708,138 @@ public class ProjectAddDialogController {
         if (dialogPane != null) {
             setupButtonActions();
         }
+    }
+    
+    /**
+     * 复制开标时间提示语
+     */
+    @FXML
+    private void copyBidTimePrompt() {
+        try {
+            // 获取项目名称和开标时间
+            String projectName = projectNameField.getText().trim();
+            if (projectName.isEmpty()) {
+                showAlert("无法复制提示语", "请先输入项目名称", AlertType.WARNING);
+                return;
+            }
+            
+            LocalDate bidDate = expectedReviewDatePicker.getValue();
+            String bidTimeStr = expectedReviewTimeComboBox.getValue();
+            if (bidDate == null || bidTimeStr == null || bidTimeStr.isEmpty()) {
+                showAlert("无法复制提示语", "请先设置开标时间", AlertType.WARNING);
+                return;
+            }
+            
+            // 获取时分
+            String[] timeParts = bidTimeStr.split(":");
+            String timeStr = bidTimeStr;
+            
+            // 构建提示语
+            String promptText = projectName + "（" + timeStr + " 开）侯昱晓\n";
+            
+            // 复制到剪贴板
+            copyToClipboard(promptText);
+            AppLogger.info("已复制开标时间提示语到剪贴板");
+        } catch (Exception e) {
+            AppLogger.error("复制开标时间提示语时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 复制专家评审时间提示语
+     */
+    @FXML
+    private void copyExpertTimePrompt() {
+        try {
+            // 获取项目名称和专家评审时间
+            String projectName = projectNameField.getText().trim();
+            if (projectName.isEmpty()) {
+                showAlert("无法复制提示语", "请先输入项目名称", AlertType.WARNING);
+                return;
+            }
+            
+            LocalDate expertDate = expertReviewDatePicker.getValue();
+            String expertTimeStr = expertReviewTimeComboBox.getValue();
+            if (expertDate == null || expertTimeStr == null || expertTimeStr.isEmpty()) {
+                showAlert("无法复制提示语", "请先设置专家评审时间", AlertType.WARNING);
+                return;
+            }
+            
+            // 获取时分
+            String[] timeParts = expertTimeStr.split(":");
+            String timeStr = expertTimeStr;
+            
+            // 构建提示语
+            String promptText = projectName + "（" + timeStr + " 评）侯昱晓\n";
+            
+            // 复制到剪贴板
+            copyToClipboard(promptText);
+            AppLogger.info("已复制专家评审时间提示语到剪贴板");
+        } catch (Exception e) {
+            AppLogger.error("复制专家评审时间提示语时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 复制专家会议提示语
+     */
+    @FXML
+    private void copyExpertMeetingPrompt() {
+        try {
+            // 获取专家评审时间
+            LocalDate expertDate = expertReviewDatePicker.getValue();
+            String expertTimeStr = expertReviewTimeComboBox.getValue();
+            if (expertDate == null || expertTimeStr == null || expertTimeStr.isEmpty()) {
+                showAlert("无法复制提示语", "请先设置专家评审时间", AlertType.WARNING);
+                return;
+            }
+            
+            // 格式化日期时间
+            String formattedDate = expertDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String dateTimeStr = formattedDate + " " + expertTimeStr;
+            
+            // 构建提示语
+            String promptText = "请专家老师参加：" + dateTimeStr + "的会议，会议地址位于：上海市黄浦区中山南一路210号北大楼203室（申朋招标）"
+                             + "（无停车位，地铁8号线、4号线，西藏南路站3号出口左转100米左右，收到请回复） 项目负责人：侯昱晓";
+            
+            // 复制到剪贴板
+            copyToClipboard(promptText);
+            AppLogger.info("已复制专家会议提示语到剪贴板");
+        } catch (Exception e) {
+            AppLogger.error("复制专家会议提示语时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 复制文本到剪贴板
+     * @param text 要复制的文本
+     */
+    private void copyToClipboard(String text) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        ClipboardContent content = new ClipboardContent();
+        content.putString(text);
+        clipboard.setContent(content);
+        
+        // 显示成功提示
+        validationLabel.setTextFill(Color.GREEN);
+        validationLabel.setText("提示语已复制到剪贴板");
+        
+        // 2秒后清除提示
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+                Platform.runLater(() -> {
+                    if (validationLabel.getText().equals("提示语已复制到剪贴板")) {
+                        validationLabel.setText("");
+                    }
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
 } 

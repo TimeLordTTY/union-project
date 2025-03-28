@@ -37,7 +37,7 @@ echo Maven版本检查通过，继续执行...
 echo ====================
 echo 2. 创建应用目录结构
 echo ====================
-set APP_DIR=PersonalApps\项目管理小助手
+set APP_DIR=%~dp0PersonalApps\项目管理小助手
 set SERVICE_DATA_DIR=%APP_DIR%\service_data
 set LIB_DIR=%SERVICE_DATA_DIR%\lib
 set JRE_DIR=%SERVICE_DATA_DIR%\jre
@@ -46,25 +46,25 @@ set TEMPLATES_DIR=%APP_DIR%\templates
 set LOG_DIR=%SERVICE_DATA_DIR%\logs
 set CONF_DIR=%SERVICE_DATA_DIR%\conf
 set DATA_DIR=%APP_DIR%\data
-set DATA_BACKUP_DIR=data_backup_temp
+set DATA_BACKUP_DIR=%~dp0data_backup_temp
 set APP_NAME=项目管理小助手
 
 echo 备份数据目录（如果存在）...
-if exist "PersonalApps\项目管理小助手\data" (
+if exist "%~dp0PersonalApps\项目管理小助手\data" (
     echo 正在备份数据目录...
     mkdir "%DATA_BACKUP_DIR%"
-    xcopy /E /I /Y "PersonalApps\项目管理小助手\data" "%DATA_BACKUP_DIR%"
+    xcopy /E /I /Y "%~dp0PersonalApps\项目管理小助手\data" "%DATA_BACKUP_DIR%"
     echo 数据目录已备份到临时目录
 )
 
 REM 检查并清理整个PersonalApps目录
-if exist "PersonalApps" (
+if exist "%~dp0PersonalApps" (
     echo 清理整个PersonalApps目录...
-    rd /s /q "PersonalApps"
+    rd /s /q "%~dp0PersonalApps"
 )
 
 echo 创建目录结构...
-mkdir "PersonalApps"
+mkdir "%~dp0PersonalApps"
 mkdir "%APP_DIR%"
 mkdir "%SERVICE_DATA_DIR%"
 mkdir "%LIB_DIR%"
@@ -212,7 +212,7 @@ echo 使用的类路径: !CLASSPATH!
 REM 创建Word模板
 echo 创建Word文档模板...
 cd /d "%PROJECT_ROOT%"
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.DocxTemplateGenerator "%PROJECT_ROOT%\%TEMPLATES_DIR%\word\订单模板.docx"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.DocxTemplateGenerator "%TEMPLATES_DIR%\word\订单模板.docx"
 if %ERRORLEVEL% NEQ 0 (
     echo 警告: Word模板创建失败，将使用备用模板
     echo 创建简单的Word模板...
@@ -221,7 +221,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM 创建Excel模板
 echo 创建Excel模板...
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.ExcelTemplateGenerator "%PROJECT_ROOT%\%TEMPLATES_DIR%\excel\订单模板.xlsx"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.ExcelTemplateGenerator "%TEMPLATES_DIR%\excel\订单模板.xlsx"
 if %ERRORLEVEL% NEQ 0 (
     echo 警告: Excel模板创建失败，将创建空的Excel文件
     copy NUL "%TEMPLATES_DIR%\excel\简单订单模板.xlsx"
@@ -229,7 +229,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM 创建JSON示例数据
 echo 创建JSON示例数据...
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.JsonPlaceholderProcessor "%PROJECT_ROOT%\%TEMPLATES_DIR%\json\订单数据.json"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.JsonPlaceholderProcessor "%TEMPLATES_DIR%\json\订单数据.json"
 if %ERRORLEVEL% NEQ 0 (
     echo 警告: JSON示例数据创建失败，创建简单的JSON数据...
     echo { > "%TEMPLATES_DIR%\json\简单订单数据.json"
@@ -342,19 +342,19 @@ echo     exit /b 1
 echo ^)
 echo.
 echo echo 检查JavaFX模块...
-echo if not exist "service_data\lib\javafx-modules\javafx-controls*.jar" (
+echo if not exist "service_data\lib\javafx-controls*.jar" (
 echo     echo 错误: 找不到JavaFX模块，程序可能无法正常运行
 echo     pause
 echo ^)
 echo.
 echo echo 启动应用程序...
-echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 --class-path="%%JAR_PATH%%;service_data\lib\*;service_data\lib\javafx-modules\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=service_data/conf/logback.xml -Duser.timezone=Asia/Shanghai -jar "%%JAR_PATH%%"
+echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 --class-path="%%JAR_PATH%%;service_data\lib\*;service_data\lib\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=service_data/conf/logback.xml -Duser.timezone=Asia/Shanghai -jar "%%JAR_PATH%%"
 echo.
 echo if %%ERRORLEVEL%% NEQ 0 (
 echo     echo 应用程序启动失败，错误代码: %%ERRORLEVEL%%
 echo     pause
 echo ^)
-) > "%APP_DIR%\启动项目管理小助手.bat"
+) > "%APP_DIR%\启动小助手.bat"
 
 echo 创建调试版启动脚本...
 (
@@ -387,61 +387,50 @@ echo.
 echo echo 检查依赖库...
 echo dir service_data\lib\*.jar
 echo echo 检查JavaFX模块...
-echo dir service_data\lib\javafx-modules\*.jar
+echo dir service_data\lib\*.jar
 echo echo 检查H2数据库依赖...
 echo dir service_data\lib\h2-*.jar
 echo.
 echo echo 以调试模式启动应用程序...
-echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 -Djava.util.logging.config.file=service_data/conf/logback.xml -Dlog.level=DEBUG -Duser.timezone=Asia/Shanghai --class-path="multi-tools-1.0.jar;service_data\lib\*;service_data\lib\javafx-modules\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar "multi-tools-1.0.jar"
+echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 -Djava.util.logging.config.file=service_data/conf/logback.xml -Dlog.level=DEBUG -Duser.timezone=Asia/Shanghai --class-path="multi-tools-1.0.jar;service_data\lib\*;service_data\lib\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar "multi-tools-1.0.jar"
 echo.
-echo echo 如果应用程序没有启动，请截图上面的错误信息并发送给开发人员
+echo echo 如果宝宝的小助手没有成功运行起来，就截一下上面的图，发给宝宝的专属工程师哦~
 echo pause
-) > "%APP_DIR%\调试启动.bat"
+) > "%APP_DIR%\调试小助手.bat"
 
 echo ====================
 echo 11. 创建自述文件
 echo ====================
-echo # ❤ 给宝宝的专属项目管理小助手使用指南 ❤> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ## ✨ 启动宝宝的项目管理小助手>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo 双击「启动助手.bat」开启小助手~>> "%APP_DIR%\使用说明.txt"
-echo 遇到小故障时，点「调试小助手.bat」之后发送错误信息给你的男朋友就好了哦~>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ## 💼 专属于宝宝的项目管理小助手>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ### 📅 项目管理小助手（含贴心彩蛋）>> "%APP_DIR%\使用说明.txt"
-echo - 支持项目管理与项目提醒>> "%APP_DIR%\使用说明.txt"
-echo - 自动计算报名截止日期和最早评审日期>> "%APP_DIR%\使用说明.txt"
-echo - 内置2024-2025年节假日（偷偷标注了我们的纪念日），>> "%APP_DIR%\使用说明.txt"
-echo - 数据自动保存到「宝宝的专属空间（本地硬盘上😀）」，安全又安心>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ### 🔢 金额转换器>> "%APP_DIR%\使用说明.txt"
-echo - 支持数字↔中文大写（有特别彩蛋哦）>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ### 📄 文档生成器>> "%APP_DIR%\使用说明.txt"
-echo - 一键（三键😂）生成标准文档>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ### ✍ 文本校对员>> "%APP_DIR%\使用说明.txt"
-echo - 使用DS自动修正错别字（偷偷内置了一些不会生效的替换规则哦😘）>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ## 🌸 给宝宝的温柔叮嘱>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo - 程序已打包完整环境，不用费心配置（宝宝只管用，技术问题交给我💖）>> "%APP_DIR%\使用说明.txt"
-echo - service_data 是程序的心脏，请别随意修改哦（修改也不是不行，毕竟我这里都有备份😉）>> "%APP_DIR%\使用说明.txt"
-echo - data 文件夹装着宝宝的工作成果>> "%APP_DIR%\使用说明.txt"
-echo - 日志在 service_data\logs 里，藏着小助手的工作内容，如果出问题了就把这个发给最爱你的男朋友就好了哦>> "%APP_DIR%\使用说明.txt"
-echo - 从这个版本开始，项目管理小助手会包含很多彩蛋，宝宝可以慢慢探索哦>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo ## 🚀 升级指南>> "%APP_DIR%\使用说明.txt"
-echo.>> "%APP_DIR%\使用说明.txt"
-echo 你可爱的男朋友进行了升级，但是数据要怎么办呢？跟着我进行下面的操作哦：>> "%APP_DIR%\使用说明.txt"
-echo 1. 右键给"data"文件夹一个复制粘贴的备份>> "%APP_DIR%\使用说明.txt"
-echo 2. 卸载旧版本>> "%APP_DIR%\使用说明.txt"
-echo 3. 安装新版本（当然啦，宝宝如果开心，可以直接覆盖全部文件，不需要删除内容哦）>> "%APP_DIR%\使用说明.txt"
-echo 4. 将备份好的"data"文件夹覆盖到新版本的相同位置就好啦>> "%APP_DIR%\使用说明.txt"
-echo 5. 启动时会看到：「欢迎回来，最棒的宝宝」>> "%APP_DIR%\使用说明.txt"
+
+echo ================ ❤ ================== >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ========== 给最可爱宝宝的专属指引 ========== >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+
+echo 🎀🌸🎀🌸🎀 暖暖的启动指引 🎀🌸🎀🌸🎀 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 双击「启动小助手.bat」开启小助手~ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 遇到小调皮时，点「调试小助手.bat」后把日志发给宝宝的专属工程师就好啦 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+
+echo 🌸❀•°*” 专属小助手功能 ”*°•❀🌸 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo →💌 智能项目管理（藏着我们的小秘密日期） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo →💰 魔法金额转换（有特别小彩蛋💖） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo →📜 一键（三键）生成超专业文档（模板可以再找某位开发人员帮你写哦😘） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo →✎ 贴心跳字校正与文本替换（偷偷内置了一些不会生效的替换规则哦😘） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+
+echo 💝✨💝✨💝 给宝宝的爱心小贴士 💝✨💝✨💝 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ❤ 程序已打包完整环境，不用费心配置（宝宝只管用，技术问题交给我💖）>> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ❤ service_data 是程序的核心，宝宝可以不用去管它哦~（修改也不是不行，毕竟我这里都有备份😉）>> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ❤ data 文件夹装着宝宝的重要成果 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ❤ 日志在 service_data\logs 里，藏着小助手的工作内容，有问题就把它发给24小时在线的专属客服吧 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ❤ 从这个版本开始，项目管理小助手会包含很多彩蛋，宝宝可以慢慢探索哦 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+
+echo 🌈☁️🌈☁️🌈 升级小锦囊 ☁️🌈☁️🌈☁️ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo → 右键对"data"文件夹进行一下复制备份 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo → 直接用新版本的压缩包全部内容覆盖全部文件，不需要删除内容哦 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo → 将备份好的"data"文件夹覆盖到新版本的相同位置就好啦 ~ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo → 启动时将看到：「欢迎回来，最棒的宝宝！」>> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 
 echo ====================
 echo 12. 测试应用程序启动
@@ -474,7 +463,7 @@ if exist "%LIB_DIR%\h2-*.jar" (
 echo ====================
 echo 打包完成!
 echo ====================
-echo 应用程序文件夹: %CD%\%APP_DIR%
+echo 应用程序文件夹: %APP_DIR%
 echo.
 echo 文件夹结构说明:
 echo - 根目录: 启动脚本、JAR文件、使用说明
@@ -484,8 +473,8 @@ echo - service_data目录: 存放所有服务相关文件（lib、jre、conf、l
 echo.
 echo 使用方法:
 echo 1. 将整个"%APP_DIR%"文件夹复制给使用者
-echo 2. 双击"启动项目管理小助手.bat"运行程序
-echo 3. 若有问题，运行"调试启动.bat"获取详细错误信息
+echo 2. 双击"启动小助手.bat"运行程序
+echo 3. 若有问题，运行"调试小助手.bat"获取详细错误信息
 echo.
 echo 项目管理小助手功能特别说明:
 echo - 数据存储在data目录中，使用H2数据库自动保存
@@ -497,10 +486,10 @@ set /p ANSWER=是否立即运行应用程序? (Y/N):
 if /i "%ANSWER%" == "Y" (
     echo 正在启动项目管理小助手...
     cd /d "%APP_DIR%"
-    call "启动项目管理小助手.bat"
+    call "启动小助手.bat"
     cd /d "%PROJECT_ROOT%"
 ) else (
-    echo 您可以稍后运行"%APP_DIR%\启动项目管理小助手.bat"启动应用
+    echo 您可以稍后运行"%APP_DIR%\启动小助手.bat"启动应用
 )
 
 echo.

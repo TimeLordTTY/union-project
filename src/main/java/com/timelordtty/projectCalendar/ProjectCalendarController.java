@@ -303,7 +303,11 @@ public class ProjectCalendarController {
             loader.setLocation(getClass().getResource("/fxml/ProjectDetailDialog.fxml"));
             DialogPane dialogPane = loader.load();
             
-            // 为详情对话框设置数据
+            // 获取控制器并设置项目
+            ProjectDetailDialogController controller = loader.getController();
+            controller.setProject(project);
+            
+            // 设置标签文本
             Label projectNameLabel = (Label) dialogPane.lookup("#projectNameLabel");
             Label onlineDateLabel = (Label) dialogPane.lookup("#onlineDateLabel");
             Label registrationPeriodLabel = (Label) dialogPane.lookup("#registrationPeriodLabel");
