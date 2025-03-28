@@ -48,6 +48,15 @@ public class AmountConverterController implements Initializable {
                 return;
             }
             
+            // 特殊处理520和5201314
+            if (numericAmount.equals("520")) {
+                chineseAmountField.setText("我爱你，宝宝💖");
+                return;
+            } else if (numericAmount.equals("5201314")) {
+                chineseAmountField.setText("我爱你一生一世，宝宝💖");
+                return;
+            }
+            
             java.math.BigDecimal amount = new java.math.BigDecimal(numericAmount);
             String chineseAmount = AmountConverter.convertToChineseAmount(amount);
             chineseAmountField.setText(chineseAmount);
@@ -70,6 +79,15 @@ public class AmountConverterController implements Initializable {
                 return;
             }
             
+            // 特殊处理"我爱你"和"我爱你一生一世"
+            if (chineseAmount.equals("我爱你")) {
+                numericResultField.setText("520");
+                return;
+            } else if (chineseAmount.equals("我爱你一生一世")) {
+                numericResultField.setText("5201314");
+                return;
+            }
+            
             java.math.BigDecimal numericAmount = AmountConverter.convertToNumber(chineseAmount);
             numericResultField.setText(numericAmount.toPlainString());
         } catch (Exception e) {
@@ -84,9 +102,20 @@ public class AmountConverterController implements Initializable {
     private void copyChineseAmount() {
         String content = chineseAmountField.getText();
         if (content != null && !content.isEmpty()) {
-            ClipboardContent clipboardContent = new ClipboardContent();
-            clipboardContent.putString(content);
-            clipboard.setContent(clipboardContent);
+            // 如果是特殊词语，则复制正常的金额转换结果
+            if (content.equals("我爱你，宝宝💖")) {
+                ClipboardContent clipboardContent = new ClipboardContent();
+                clipboardContent.putString(AmountConverter.convertToChineseAmount(new java.math.BigDecimal("520")));
+                clipboard.setContent(clipboardContent);
+            } else if (content.equals("我爱你一生一世，宝宝💖")) {
+                ClipboardContent clipboardContent = new ClipboardContent();
+                clipboardContent.putString(AmountConverter.convertToChineseAmount(new java.math.BigDecimal("5201314")));
+                clipboard.setContent(clipboardContent);
+            } else {
+                ClipboardContent clipboardContent = new ClipboardContent();
+                clipboardContent.putString(content);
+                clipboard.setContent(clipboardContent);
+            }
             showAlert("已复制到剪贴板", Alert.AlertType.INFORMATION);
         }
     }

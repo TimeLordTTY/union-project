@@ -36,7 +36,6 @@ public class MainApp extends Application {
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
             
             // 配置主舞台
-            primaryStage.setTitle("项目管理小助手");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);

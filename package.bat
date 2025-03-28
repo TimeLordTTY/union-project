@@ -181,10 +181,11 @@ echo ====================
 echo 复制配置文件...
 
 REM 检查配置文件是否重复，如果logback.xml已经包含所有功能，使用它代替logging.properties
-set USE_LOGBACK=1
-echo 检查是否需要合并日志配置文件...
+REM 删除logging.properties的复制
+REM 现在只使用logback.xml作为日志配置文件
+REM copy /Y "src\main\resources\logging.properties" "%CONF_DIR%\"
 
-REM 复制日志配置文件，只复制logback.xml
+REM 仅复制logback.xml作为唯一的日志配置文件
 copy /Y "src\main\resources\logback.xml" "%CONF_DIR%\"
 
 REM 复制API配置文件到conf目录（合并config到conf）

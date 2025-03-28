@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.projectCalendar.service.ProjectService;
+import com.timelordtty.projectCalendar.ui.ProjectDialogHelper;
 import com.timelordtty.projectCalendar.utils.DateCalculator;
 import com.timelordtty.projectCalendar.utils.HolidayManager;
 
@@ -50,12 +51,14 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 /**
@@ -165,6 +168,9 @@ public class ProjectCalendarController {
             
             // 初始化底部滚动提醒
             initScrollingReminders();
+            
+            // 更新底部状态栏信息
+            updateStatusBar();
             
             AppLogger.info("项目管理小助手控制器初始化完成");
         } catch (Exception e) {
@@ -465,22 +471,29 @@ public class ProjectCalendarController {
      * @param project 要删除的项目
      */
     private void deleteProject(Project project) {
-        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("确认删除");
-        confirmDialog.setHeaderText("宝宝不再需要'" + project.getName() + "'这个项目了吗？");
-        confirmDialog.setContentText("删除以后就真的没有了哦~");
-        
-        Optional<ButtonType> result = confirmDialog.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            boolean deleteResult = projectService.deleteProject(project);
-            if (deleteResult) {
-                statusLabel.setText("项目 '" + project.getName() + "' 已删除");
-                updateCalendarView(); // 更新日历视图
-                refreshReminders(); // 刷新提醒
-            } else {
-                statusLabel.setText("删除项目失败");
-            }
+        if (project == null) {
+            return;
         }
+        
+        ProjectDialogHelper dialogHelper = new ProjectDialogHelper(projectService, getWindow());
+        dialogHelper.setOnProjectChangedCallback(changedProject -> {
+            statusLabel.setText("项目 '" + project.getName() + "' 已删除");
+            updateCalendarView(); // 更新日历视图
+            refreshReminders(); // 刷新提醒
+        });
+        
+        boolean deleteResult = dialogHelper.showDeleteProjectConfirmation(project);
+        if (!deleteResult) {
+            statusLabel.setText("已取消删除项目");
+        }
+    }
+    
+    /**
+     * 获取当前窗口
+     * @return 窗口对象
+     */
+    private Window getWindow() {
+        return projectTableView.getScene().getWindow();
     }
     
     /**
@@ -769,6 +782,38 @@ public class ProjectCalendarController {
                 }
             }
             
+            // 为特殊日期添加爱心图标和提示
+            if (holidayManager.isSpecialDate(date)) {
+                Label heartLabel = new Label("💝");
+                heartLabel.setStyle("-fx-text-fill: #E91E63; -fx-font-size: 14px;");
+                
+                String tooltipText = "";
+                if (date.equals(LocalDate.of(2025, 1, 18))) {
+                    tooltipText = "💝和宝宝的第一次约会💝";
+                } else if (date.equals(LocalDate.of(2025, 2, 16))) {
+                    tooltipText = "💝和宝宝的第二次约会💝";
+                }
+                
+                Tooltip tooltip = new Tooltip(tooltipText);
+                tooltip.setStyle("-fx-font-size: 14px;");
+                Tooltip.install(heartLabel, tooltip);
+                
+                Pane spacer = new Pane();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                dateHeader.getChildren().addAll(spacer, heartLabel);
+            } else if (holidayManager.getHolidayName(date) != null && 
+                       holidayManager.getHolidayName(date).contains("七夕")) {
+                Label cakeLabel = new Label("🎂");
+                cakeLabel.setStyle("-fx-text-fill: #FF5722; -fx-font-size: 14px;");
+                Tooltip tooltip = new Tooltip("宝宝生日快乐哦🎂~");
+                tooltip.setStyle("-fx-font-size: 14px;");
+                Tooltip.install(cakeLabel, tooltip);
+                
+                Pane spacer = new Pane();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                dateHeader.getChildren().addAll(spacer, cakeLabel);
+            }
+            
             // 添加日期标题到单元格
             dateCell.getChildren().add(dateHeader);
             
@@ -852,26 +897,22 @@ public class ProjectCalendarController {
                             List<String> singleType = new ArrayList<>();
                             singleType.add(dateType);
                             HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, singleType);
-                            
-                            // 添加点击和双击事件
-                            setupProjectMarkerEvents(projectMarkerBox, project);
-                            
-                            // 添加到项目容器
                             projectContainer.getChildren().add(projectMarkerBox);
+                            
+                            // 设置点击事件
+                            setupProjectMarkerEvents(projectMarkerBox, project);
                         }
                     } else {
-                        // 创建项目标记
+                        // 只有一个日期类型，直接创建项目标记
                         HBox projectMarkerBox = createProjectMarkerWithDateTypes(project, date, dateTypes);
-                        
-                        // 添加点击和双击事件
-                        setupProjectMarkerEvents(projectMarkerBox, project);
-                        
-                        // 添加到项目容器
                         projectContainer.getChildren().add(projectMarkerBox);
+                        
+                        // 设置点击事件
+                        setupProjectMarkerEvents(projectMarkerBox, project);
                     }
                 }
                 
-                // 如果单元格中的项目很多，设置更紧凑的布局
+                // 如果项目太多导致布局拥挤，调整间距和内边距以改善显示效果
                 if (projectContainer.getChildren().size() > 3) {
                     projectContainer.setSpacing(1);
                     for (javafx.scene.Node node : projectContainer.getChildren()) {
@@ -892,6 +933,28 @@ public class ProjectCalendarController {
             
             // 添加项目容器到单元格
             dateCell.getChildren().add(scrollPane);
+            
+            // 如果当前日期是节假日且属于当前月份，添加特效
+            if (isHoliday && isCurrentMonth) {
+                // 创建一个StackPane作为特效容器
+                StackPane effectPane = new StackPane();
+                
+                // 将日期单元格添加到特效容器
+                effectPane.getChildren().add(dateCell);
+                
+                // 添加节日特效
+                addHolidayEffect(date, effectPane);
+                
+                // 创建一个新的VBox容器作为返回结果
+                VBox resultContainer = new VBox();
+                resultContainer.getChildren().add(effectPane);
+                
+                // 确保特效容器填满整个空间
+                VBox.setVgrow(effectPane, Priority.ALWAYS);
+                
+                // 返回包含特效的容器
+                return resultContainer;
+            }
             
             return dateCell;
         } catch (Exception e) {
@@ -1588,6 +1651,41 @@ public class ProjectCalendarController {
         
         // 开始滚动显示
         startReminderScroll();
+        
+        // 设置每小时工作提醒
+        javafx.animation.Timeline hourlyReminder = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                javafx.util.Duration.minutes(1), // 每小时触发一次
+                event -> showHourlyWorkReminder()
+            )
+        );
+        hourlyReminder.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        hourlyReminder.play();
+        
+        // 应用启动后1分钟显示第一次提醒(让用户先熟悉界面)
+        javafx.animation.PauseTransition initialDelay = new javafx.animation.PauseTransition(javafx.util.Duration.minutes(1));
+        initialDelay.setOnFinished(event -> showHourlyWorkReminder());
+        initialDelay.play();
+    }
+    
+    /**
+     * 显示每小时工作提醒
+     */
+    private void showHourlyWorkReminder() {
+        // 保存当前显示的提醒内容
+        String currentReminder = scrollingReminderLabel.getText();
+        // 显示工作提醒
+        scrollingReminderLabel.setText("宝宝已经工作一个小时啦，要站起来活动活动喝点水哦💖💖💖~");
+        // 暂停当前的滚动提醒
+        pauseReminderScroll();
+        
+        // 5秒后恢复原来的提醒
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
+        pause.setOnFinished(event -> {
+            scrollingReminderLabel.setText(currentReminder);
+            resumeReminderScroll();
+        });
+        pause.play();
     }
     
     /**
@@ -2014,5 +2112,400 @@ public class ProjectCalendarController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    
+    /**
+     * 更新底部状态栏
+     */
+    private void updateStatusBar() {
+        // 创建一个新的标签显示节日祝福
+        Label holidayGreetingLabel = new Label();
+        holidayGreetingLabel.setStyle("-fx-text-fill: #FF5722; -fx-font-weight: bold;");
+        
+        // 获取今天的日期
+        LocalDate today = LocalDate.now();
+        
+        // 根据不同日期设置不同祝福语
+        String greetingText = "";
+        boolean isSpecialDay = false;
+        
+        if (holidayManager.isHoliday(today)) {
+            isSpecialDay = true;
+            String holidayName = holidayManager.getHolidayName(today);
+            
+            if (holidayName.contains("元旦")) {
+                greetingText = "宝宝新年好呀🎇🎇";
+            } else if (holidayName.contains("春节")) {
+                greetingText = "宝宝新年大吉🎇🎇";
+            } else if (holidayName.contains("情人节")) {
+                greetingText = "又过了一年情人节哦宝宝，爱你💝";
+            } else if (holidayName.contains("妇女节")) {
+                greetingText = "宝宝辛苦啦，节日快乐哦~";
+            } else if (holidayName.contains("儿童节")) {
+                greetingText = "宝宝节日快乐哦，永远都要是快乐的小宝宝哦~🍭🍭🍬";
+            } else if (holidayName.contains("七夕")) {
+                greetingText = "感谢七夕，让我今生能够遇到宝宝，生日快乐哦~🎂🎂";
+            }
+        } else if (holidayManager.isSpecialDate(today)) {
+            isSpecialDay = true;
+            if (today.equals(LocalDate.of(today.getYear(), 1, 18))) {
+                greetingText = "又到了最快乐的这一天，让我遇到了宝宝，爱你~~";
+            }
+        }
+        
+        // 如果不是特殊日期，显示普通的祝福语
+        if (!isSpecialDay) {
+            greetingText = "宝宝辛苦啦🫡~";
+        }
+        
+        holidayGreetingLabel.setText(greetingText);
+        
+        // 找到底部状态栏，添加祝福标签
+        HBox statusBar = (HBox) statusLabel.getParent();
+        statusBar.getChildren().clear(); // 清除原有内容
+        
+        // 添加祝福标签和弹性区域
+        statusBar.getChildren().add(holidayGreetingLabel);
+        
+        // 添加弹性区域
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        statusBar.getChildren().add(spacer);
+        
+        // 重新添加状态标签
+        statusBar.getChildren().add(statusLabel);
+    }
+
+    /**
+     * 添加节日特效到日历网格
+     * @param date 日期
+     * @param dateCell 日期单元格
+     */
+    private void addHolidayEffect(LocalDate date, StackPane dateCell) {
+        // 检查是否是节日
+        if (holidayManager.isHoliday(date)) {
+            String holidayName = holidayManager.getHolidayName(date);
+            
+            // 根据节日类型添加不同的特效
+            if (holidayName.contains("元旦")) {
+                addFireworksEffect(dateCell);
+            } else if (holidayName.contains("春节")) {
+                addFirecrackerEffect(dateCell);
+            } else if (holidayName.contains("情人节")) {
+                addRoseEffect(dateCell);
+            } else if (holidayName.contains("儿童节")) {
+                addCandyEffect(dateCell);
+            } else if (holidayName.contains("七夕")) {
+                addBirthdayCakeEffect(dateCell);
+            }
+        }
+    }
+
+    /**
+     * 添加烟花特效
+     * @param dateCell 日期单元格
+     */
+    private void addFireworksEffect(StackPane dateCell) {
+        // 创建烟花特效
+        Pane effectPane = new Pane();
+        effectPane.setPrefSize(dateCell.getWidth(), dateCell.getHeight());
+        effectPane.setPickOnBounds(false); // 允许点击穿透
+        
+        // 创建一个定时器，随机绘制烟花
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                Duration.seconds(0.5), 
+                event -> {
+                    // 随机生成烟花位置
+                    double x = Math.random() * dateCell.getWidth();
+                    double y = Math.random() * dateCell.getHeight();
+                    
+                    // 创建烟花形状
+                    Circle firework = new Circle(x, y, 2);
+                    firework.setFill(Color.rgb(
+                        (int)(Math.random() * 255), 
+                        (int)(Math.random() * 255), 
+                        (int)(Math.random() * 255), 
+                        0.7)); // 半透明色彩
+                    
+                    effectPane.getChildren().add(firework);
+                    
+                    // 创建烟花爆炸动画
+                    javafx.animation.ScaleTransition scale = new javafx.animation.ScaleTransition(Duration.seconds(0.5), firework);
+                    scale.setFromX(0.5);
+                    scale.setFromY(0.5);
+                    scale.setToX(5);
+                    scale.setToY(5);
+                    
+                    javafx.animation.FadeTransition fade = new javafx.animation.FadeTransition(Duration.seconds(0.5), firework);
+                    fade.setFromValue(0.7);
+                    fade.setToValue(0);
+                    
+                    // 播放动画，结束后删除烟花
+                    javafx.animation.ParallelTransition parallel = new javafx.animation.ParallelTransition(scale, fade);
+                    parallel.setOnFinished(e -> effectPane.getChildren().remove(firework));
+                    parallel.play();
+                }
+            )
+        );
+        
+        timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timeline.play();
+        
+        // 将特效面板添加到日期单元格
+        dateCell.getChildren().add(0, effectPane); // 添加到底层
+        
+        // 存储时间线，以便在需要时停止
+        dateCell.setUserData(timeline);
+    }
+
+    /**
+     * 添加鞭炮特效
+     * @param dateCell 日期单元格
+     */
+    private void addFirecrackerEffect(StackPane dateCell) {
+        // 创建鞭炮特效
+        Pane effectPane = new Pane();
+        effectPane.setPrefSize(dateCell.getWidth(), dateCell.getHeight());
+        effectPane.setPickOnBounds(false); // 允许点击穿透
+        
+        // 创建一个定时器，随机绘制鞭炮
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                Duration.seconds(0.3), 
+                event -> {
+                    // 随机生成鞭炮位置
+                    double x = Math.random() * dateCell.getWidth();
+                    double y = dateCell.getHeight() - 5;
+                    
+                    // 创建鞭炮形状
+                    Circle firecracker = new Circle(x, y, 2);
+                    firecracker.setFill(Color.RED);
+                    
+                    effectPane.getChildren().add(firecracker);
+                    
+                    // 创建鞭炮动画
+                    javafx.animation.TranslateTransition move = new javafx.animation.TranslateTransition(Duration.seconds(0.3), firecracker);
+                    move.setByY(-20 - Math.random() * 10); // 向上移动
+                    
+                    javafx.animation.FadeTransition fade = new javafx.animation.FadeTransition(Duration.seconds(0.3), firecracker);
+                    fade.setFromValue(1.0);
+                    fade.setToValue(0);
+                    
+                    // 播放动画，结束后删除鞭炮
+                    javafx.animation.ParallelTransition parallel = new javafx.animation.ParallelTransition(move, fade);
+                    parallel.setOnFinished(e -> {
+                        effectPane.getChildren().remove(firecracker);
+                        
+                        // 创建爆炸效果
+                        Circle explosion = new Circle(x, y - 20, 1);
+                        explosion.setFill(Color.ORANGE);
+                        effectPane.getChildren().add(explosion);
+                        
+                        // 爆炸动画
+                        javafx.animation.ScaleTransition explode = new javafx.animation.ScaleTransition(Duration.seconds(0.2), explosion);
+                        explode.setToX(3);
+                        explode.setToY(3);
+                        
+                        javafx.animation.FadeTransition explodeFade = new javafx.animation.FadeTransition(Duration.seconds(0.2), explosion);
+                        explodeFade.setFromValue(1.0);
+                        explodeFade.setToValue(0);
+                        
+                        javafx.animation.ParallelTransition explosionAnim = new javafx.animation.ParallelTransition(explode, explodeFade);
+                        explosionAnim.setOnFinished(evt -> effectPane.getChildren().remove(explosion));
+                        explosionAnim.play();
+                    });
+                    parallel.play();
+                }
+            )
+        );
+        
+        timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timeline.play();
+        
+        // 将特效面板添加到日期单元格
+        dateCell.getChildren().add(0, effectPane); // 添加到底层
+        
+        // 存储时间线，以便在需要时停止
+        dateCell.setUserData(timeline);
+    }
+
+    /**
+     * 添加玫瑰特效
+     * @param dateCell 日期单元格
+     */
+    private void addRoseEffect(StackPane dateCell) {
+        // 创建玫瑰特效
+        Pane effectPane = new Pane();
+        effectPane.setPrefSize(dateCell.getWidth(), dateCell.getHeight());
+        effectPane.setPickOnBounds(false); // 允许点击穿透
+        
+        // 创建一个定时器，随机飘落玫瑰花瓣
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                Duration.seconds(0.5), 
+                event -> {
+                    // 随机生成花瓣位置
+                    double x = Math.random() * dateCell.getWidth();
+                    double y = -5;
+                    
+                    // 创建花瓣形状
+                    Circle petal = new Circle(x, y, 3);
+                    petal.setFill(Color.rgb(255, 20, 147, 0.7)); // 粉红色
+                    
+                    effectPane.getChildren().add(petal);
+                    
+                    // 创建花瓣飘落动画
+                    javafx.animation.TranslateTransition move = new javafx.animation.TranslateTransition(Duration.seconds(2), petal);
+                    move.setByY(dateCell.getHeight() + 10);
+                    move.setByX((Math.random() - 0.5) * 20); // 左右飘动
+                    
+                    javafx.animation.RotateTransition rotate = new javafx.animation.RotateTransition(Duration.seconds(2), petal);
+                    rotate.setByAngle(360);
+                    
+                    // 播放动画，结束后删除花瓣
+                    javafx.animation.ParallelTransition parallel = new javafx.animation.ParallelTransition(move, rotate);
+                    parallel.setOnFinished(e -> effectPane.getChildren().remove(petal));
+                    parallel.play();
+                }
+            )
+        );
+        
+        timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timeline.play();
+        
+        // 将特效面板添加到日期单元格
+        dateCell.getChildren().add(0, effectPane); // 添加到底层
+        
+        // 存储时间线，以便在需要时停止
+        dateCell.setUserData(timeline);
+    }
+
+    /**
+     * 添加糖果特效
+     * @param dateCell 日期单元格
+     */
+    private void addCandyEffect(StackPane dateCell) {
+        // 创建糖果特效
+        Pane effectPane = new Pane();
+        effectPane.setPrefSize(dateCell.getWidth(), dateCell.getHeight());
+        effectPane.setPickOnBounds(false); // 允许点击穿透
+        
+        // 创建一个定时器，随机出现糖果
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                Duration.seconds(1), 
+                event -> {
+                    // 随机生成糖果位置
+                    double x = Math.random() * dateCell.getWidth();
+                    double y = Math.random() * dateCell.getHeight();
+                    
+                    // 创建糖果形状
+                    Rectangle candy = new Rectangle(x, y, 6, 6);
+                    // 随机糖果颜色
+                    Color candyColor = Color.rgb(
+                        (int)(Math.random() * 155) + 100, 
+                        (int)(Math.random() * 155) + 100, 
+                        (int)(Math.random() * 155) + 100, 
+                        0.7);
+                    candy.setFill(candyColor);
+                    candy.setArcWidth(6);
+                    candy.setArcHeight(6);
+                    
+                    effectPane.getChildren().add(candy);
+                    
+                    // 创建糖果闪烁动画
+                    javafx.animation.FadeTransition fade1 = new javafx.animation.FadeTransition(Duration.seconds(0.5), candy);
+                    fade1.setFromValue(0.7);
+                    fade1.setToValue(1.0);
+                    
+                    javafx.animation.FadeTransition fade2 = new javafx.animation.FadeTransition(Duration.seconds(0.5), candy);
+                    fade2.setFromValue(1.0);
+                    fade2.setToValue(0.7);
+                    
+                    javafx.animation.SequentialTransition sequence = new javafx.animation.SequentialTransition(fade1, fade2);
+                    sequence.setCycleCount(3);
+                    sequence.setOnFinished(e -> {
+                        javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(Duration.seconds(0.3), candy);
+                        fadeOut.setFromValue(0.7);
+                        fadeOut.setToValue(0);
+                        fadeOut.setOnFinished(evt -> effectPane.getChildren().remove(candy));
+                        fadeOut.play();
+                    });
+                    sequence.play();
+                }
+            )
+        );
+        
+        timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timeline.play();
+        
+        // 将特效面板添加到日期单元格
+        dateCell.getChildren().add(0, effectPane); // 添加到底层
+        
+        // 存储时间线，以便在需要时停止
+        dateCell.setUserData(timeline);
+    }
+
+    /**
+     * 添加生日蛋糕特效
+     * @param dateCell 日期单元格
+     */
+    private void addBirthdayCakeEffect(StackPane dateCell) {
+        // 创建生日蛋糕特效
+        Pane effectPane = new Pane();
+        effectPane.setPrefSize(dateCell.getWidth(), dateCell.getHeight());
+        effectPane.setPickOnBounds(false); // 允许点击穿透
+        
+        // 在单元格中间添加蛋糕图标
+        double centerX = dateCell.getWidth() / 2;
+        double centerY = dateCell.getHeight() / 2;
+        
+        // 创建蛋糕底座
+        Rectangle cake = new Rectangle(centerX - 10, centerY + 5, 20, 10);
+        cake.setFill(Color.rgb(255, 182, 193, 0.5)); // 淡粉色
+        cake.setArcWidth(5);
+        cake.setArcHeight(5);
+        
+        // 创建蜡烛
+        Rectangle candle = new Rectangle(centerX - 1, centerY - 5, 2, 10);
+        candle.setFill(Color.WHITE);
+        
+        effectPane.getChildren().addAll(cake, candle);
+        
+        // 创建烛光动画
+        javafx.animation.Timeline timeline = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(
+                Duration.seconds(0.3), 
+                event -> {
+                    // 创建烛光
+                    Circle flame = new Circle(centerX, centerY - 5, 2);
+                    flame.setFill(Color.ORANGE);
+                    
+                    effectPane.getChildren().add(flame);
+                    
+                    // 创建烛光闪烁动画
+                    javafx.animation.ScaleTransition scale = new javafx.animation.ScaleTransition(Duration.seconds(0.3), flame);
+                    scale.setFromX(0.8);
+                    scale.setFromY(0.8);
+                    scale.setToX(1.2);
+                    scale.setToY(1.2);
+                    scale.setAutoReverse(true);
+                    scale.setCycleCount(2);
+                    
+                    scale.setOnFinished(e -> effectPane.getChildren().remove(flame));
+                    scale.play();
+                }
+            )
+        );
+        
+        timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timeline.play();
+        
+        // 将特效面板添加到日期单元格
+        dateCell.getChildren().add(0, effectPane); // 添加到底层
+        
+        // 存储时间线，以便在需要时停止
+        dateCell.setUserData(timeline);
     }
 }

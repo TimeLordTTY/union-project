@@ -30,6 +30,9 @@ public class HolidayManager {
     
     // 节假日数据缓存
     private Map<String, String> holidayMap = new HashMap<>();
+    // 特殊日期缓存（不作为节假日但需要特殊处理的日期）
+    private Map<String, String> specialDateMap = new HashMap<>();
+    
     private ObjectMapper objectMapper = new ObjectMapper();
     
     /**
@@ -70,13 +73,13 @@ public class HolidayManager {
      * 加载硬编码的节假日数据（作为基础数据，确保离线时也能工作）
      */
     private void loadHardcodedHolidays() {
-        // 2024年节假日
+        // 当前年份节假日
         addHoliday("2024-01-01", "元旦");
         addHoliday("2024-02-10", "春节");
         addHoliday("2024-02-11", "春节");
         addHoliday("2024-02-12", "春节");
         addHoliday("2024-02-13", "春节");
-        addHoliday("2024-02-14", "春节");
+        addHoliday("2024-02-14", "春节|情人节");
         addHoliday("2024-02-15", "春节");
         addHoliday("2024-02-16", "春节");
         addHoliday("2024-02-17", "春节");
@@ -88,9 +91,11 @@ public class HolidayManager {
         addHoliday("2024-05-03", "劳动节");
         addHoliday("2024-05-04", "劳动节");
         addHoliday("2024-05-05", "劳动节");
+        addHoliday("2024-06-01", "儿童节");
         addHoliday("2024-06-08", "端午节");
         addHoliday("2024-06-09", "端午节");
         addHoliday("2024-06-10", "端午节");
+        addHoliday("2024-08-10", "七夕节");
         addHoliday("2024-09-15", "中秋节");
         addHoliday("2024-09-16", "中秋节");
         addHoliday("2024-09-17", "中秋节");
@@ -104,6 +109,8 @@ public class HolidayManager {
         
         // 2025年节假日
         addHoliday("2025-01-01", "元旦");
+        // 不再将特殊纪念日加为节假日，改为特殊日期
+        addSpecialDate("2025-01-18", "first-date");
         addHoliday("2025-01-29", "春节");
         addHoliday("2025-01-30", "春节");
         addHoliday("2025-01-31", "春节");
@@ -111,6 +118,10 @@ public class HolidayManager {
         addHoliday("2025-02-02", "春节");
         addHoliday("2025-02-03", "春节");
         addHoliday("2025-02-04", "春节");
+        addHoliday("2025-02-14", "情人节");
+        // 不再将特殊纪念日加为节假日，改为特殊日期
+        addSpecialDate("2025-02-16", "second-date");
+        addHoliday("2025-03-08", "妇女节");
         addHoliday("2025-04-04", "清明节");
         addHoliday("2025-04-05", "清明节");
         addHoliday("2025-04-06", "清明节");
@@ -119,19 +130,18 @@ public class HolidayManager {
         addHoliday("2025-05-03", "劳动节");
         addHoliday("2025-05-04", "劳动节");
         addHoliday("2025-05-05", "劳动节");
+        addHoliday("2025-06-01", "儿童节");
         addHoliday("2025-06-28", "端午节");
         addHoliday("2025-06-29", "端午节");
         addHoliday("2025-06-30", "端午节");
+        addHoliday("2025-08-28", "七夕节");
         addHoliday("2025-10-01", "国庆节");
         addHoliday("2025-10-02", "国庆节");
         addHoliday("2025-10-03", "国庆节");
-        addHoliday("2025-10-04", "国庆节");
-        addHoliday("2025-10-05", "国庆节");
-        addHoliday("2025-10-06", "国庆节");
+        addHoliday("2025-10-04", "国庆节|中秋节");
+        addHoliday("2025-10-05", "国庆节|中秋节");
+        addHoliday("2025-10-06", "国庆节|中秋节");
         addHoliday("2025-10-07", "国庆节");
-        addHoliday("2025-10-04", "中秋节");
-        addHoliday("2025-10-05", "中秋节");
-        addHoliday("2025-10-06", "中秋节");
     }
     
     /**
@@ -139,6 +149,13 @@ public class HolidayManager {
      */
     private void addHoliday(String date, String name) {
         holidayMap.put(date, name);
+    }
+    
+    /**
+     * 添加一个特殊日期（不是节假日但需要特殊处理）
+     */
+    private void addSpecialDate(String date, String type) {
+        specialDateMap.put(date, type);
     }
     
     /**
@@ -262,5 +279,21 @@ public class HolidayManager {
     public String getHolidayName(LocalDate date) {
         String dateStr = date.format(DATE_FORMATTER);
         return holidayMap.getOrDefault(dateStr, "");
+    }
+    
+    /**
+     * 检查日期是否是特殊日期
+     */
+    public boolean isSpecialDate(LocalDate date) {
+        String dateStr = date.format(DATE_FORMATTER);
+        return specialDateMap.containsKey(dateStr);
+    }
+    
+    /**
+     * 获取特殊日期类型
+     */
+    public String getSpecialDateType(LocalDate date) {
+        String dateStr = date.format(DATE_FORMATTER);
+        return specialDateMap.getOrDefault(dateStr, "");
     }
 } 

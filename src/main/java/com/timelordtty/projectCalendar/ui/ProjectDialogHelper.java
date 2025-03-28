@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.timelordtty.AppLogger;
 import com.timelordtty.projectCalendar.Project;
 import com.timelordtty.projectCalendar.ProjectAddDialogController;
+import com.timelordtty.projectCalendar.ProjectDeleteDialogController;
 import com.timelordtty.projectCalendar.service.ProjectService;
 
 import javafx.fxml.FXMLLoader;
@@ -15,6 +16,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -160,15 +163,23 @@ public class ProjectDialogHelper {
             
             AppLogger.info("显示删除项目确认对话框: " + project.getName());
             
-            // 创建确认对话框
-            Alert alert = new Alert(AlertType.CONFIRMATION);
-            alert.setTitle("确认删除");
-            alert.setHeaderText("删除项目");
-            alert.setContentText("确定要删除项目 \"" + project.getName() + "\" 吗？此操作不可撤销。");
-            alert.initOwner(ownerWindow);
-
+            // 加载自定义删除确认对话框
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(getClass().getResource("/fxml/ProjectDeleteDialog.fxml"));
+            DialogPane dialogPane = loader.load();
+            
+            // 获取控制器并设置项目
+            ProjectDeleteDialogController controller = loader.getController();
+            controller.setProject(project);
+            
+            // 创建对话框
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setDialogPane(dialogPane);
+            dialog.setTitle("删除项目");
+            dialog.initOwner(ownerWindow);
+            
             // 显示对话框并等待用户响应
-            Optional<ButtonType> result = alert.showAndWait();
+            Optional<ButtonType> result = dialog.showAndWait();
             
             // 如果用户点击了确认
             if (result.isPresent() && result.get() == ButtonType.OK) {

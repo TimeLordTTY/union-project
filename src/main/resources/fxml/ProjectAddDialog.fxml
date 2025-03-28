@@ -90,7 +90,7 @@
                 
             <!-- 提示信息 -->
             <Label fx:id="validationLabel" text="" GridPane.columnIndex="0" GridPane.rowIndex="11" 
-                GridPane.columnSpan="2" style="-fx-text-fill: red;" />
+                GridPane.columnSpan="2" style="-fx-text-fill: red;" maxHeight="20" />
                 
             <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" minWidth="120" />

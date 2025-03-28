@@ -13,7 +13,7 @@
             <!-- 左侧项目列表 -->
             <VBox spacing="5" minWidth="250">
                 <HBox alignment="CENTER_LEFT" spacing="5">
-                    <Label text="宝宝的所有项目成果" style="-fx-font-weight: bold;">
+                    <Label text="项目列表" style="-fx-font-weight: bold;">
                         <font>
                             <Font name="System Bold" size="14.0" />
                         </font>
@@ -23,6 +23,18 @@
                             text="+" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="添加一个新项目" />
+                        </tooltip>
+                    </Button>
+                    <Button fx:id="editProjectButton" mnemonicParsing="false" onAction="#handleEditProject" 
+                            text="✎" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-weight: bold;">
+                        <tooltip>
+                            <Tooltip text="编辑所选的项目" />
+                        </tooltip>
+                    </Button>
+                    <Button fx:id="deleteProjectButton" mnemonicParsing="false" onAction="#handleDeleteProject" 
+                            text="✕" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;">
+                        <tooltip>
+                            <Tooltip text="删除所选的项目" />
                         </tooltip>
                     </Button>
                     <padding>
@@ -41,23 +53,6 @@
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                     </columnResizePolicy>
                 </TableView>
-                <HBox alignment="CENTER_RIGHT" spacing="5">
-                    <Button fx:id="editProjectButton" mnemonicParsing="false" onAction="#handleEditProject" 
-                            text="✎" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-weight: bold;">
-                        <tooltip>
-                            <Tooltip text="编辑所选的项目" />
-                        </tooltip>
-                    </Button>
-                    <Button fx:id="deleteProjectButton" mnemonicParsing="false" onAction="#handleDeleteProject" 
-                            text="✕" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;">
-                        <tooltip>
-                            <Tooltip text="删除所选的项目" />
-                        </tooltip>
-                    </Button>
-                    <padding>
-                        <Insets top="5.0" right="5.0" />
-                    </padding>
-                </HBox>
                 <padding>
                     <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                 </padding>
