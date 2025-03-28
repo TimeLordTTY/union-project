@@ -21,14 +21,14 @@ import java.util.logging.Logger;
  * 
  * 注意：此类已废弃，实际使用SLF4J与Logback进行日志记录。
  * 保留此类是为了向后兼容，方法会被正确路由到Logback。
- * 新的日志路径为：PersonalApps/项目管理小助手/service_data/logs
+ * 新的日志路径为：service_data/logs
  */
 public class AppLogger {
     
     private static final Logger LOGGER = Logger.getLogger("com.timelordtty");
     // 已不再使用此路径，实际日志路径由logback.xml中的配置决定
-    // 路径已更新为：PersonalApps/项目管理小助手/service_data/logs
-    private static final String LOG_FOLDER = "logs";
+    // 路径已更新为：service_data/logs
+    private static final String LOG_FOLDER = "service_data/logs";
     private static FileHandler fileHandler;
     private static boolean initialized = false;
     private static final AtomicLong TRACK_SEQ = new AtomicLong(0);
@@ -60,7 +60,7 @@ public class AppLogger {
         }
         
         try {
-            // 创建日志目录
+            // 创建日志目录 - 注意使用正确的路径
             Path logDir = Paths.get(LOG_FOLDER);
             if (!Files.exists(logDir)) {
                 Files.createDirectories(logDir);
@@ -93,7 +93,7 @@ public class AppLogger {
             // 添加自定义处理器
             LOGGER.addHandler(consoleHandler);
             
-            // 当前日期作为日志文件名
+            // 当前日期作为日志文件名（使用统一的日志路径）
             String logFileName = LOG_FOLDER + File.separator + 
                                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".log";
             

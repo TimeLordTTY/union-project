@@ -18,6 +18,8 @@ public class ProjectDeleteDialogController {
     @FXML private Label onlineDateLabel;
     @FXML private Label registrationEndDateLabel;
     @FXML private Label expectedReviewDateLabel;
+    @FXML private Label expertReviewDateLabel;
+    @FXML private Label remarkLabel;
     
     private Project project;
     
@@ -60,6 +62,20 @@ public class ProjectDeleteDialogController {
                 expectedReviewDateLabel.setText(formatDate(project.getExpectedReviewDate()));
             } else {
                 expectedReviewDateLabel.setText("未设置");
+            }
+            
+            // 设置专家评审时间
+            if (project.getExpertReviewTime() != null) {
+                expertReviewDateLabel.setText(formatDateTime(project.getExpertReviewTime()));
+            } else {
+                expertReviewDateLabel.setText("未设置");
+            }
+            
+            // 设置备注
+            if (project.getRemark() != null && !project.getRemark().trim().isEmpty()) {
+                remarkLabel.setText(project.getRemark());
+            } else {
+                remarkLabel.setText("无");
             }
         }
     }

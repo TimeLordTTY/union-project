@@ -13,9 +13,7 @@
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
-    
-    <Label text="文本替换规则管理" style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: -theme-text;" styleClass="dialog-header" />
-    
+
     <!-- 替换规则表格 -->
     <TableView fx:id="ruleTableView" VBox.vgrow="ALWAYS" styleClass="pink-table-view">
         <columns>

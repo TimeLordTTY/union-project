@@ -121,8 +121,36 @@ public class TextCorrectorController implements Initializable {
             positionColumn.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getPosition()));
         }
         
+        // 初始化默认替换规则
+        initDefaultReplaceRules();
+        
         // 设置文件拖放功能
         setupFileDragAndDrop();
+    }
+    
+    /**
+     * 初始化默认替换规则 - 这些只会在界面中展示，不会自动生效
+     */
+    private void initDefaultReplaceRules() {
+        if (replaceRules == null) {
+            replaceRules = new ArrayList<>();
+        }
+        
+        // 确保默认规则存在（即使之前已经有了规则列表）
+        boolean hasRule1 = false, hasRule2 = false, hasRule3 = false;
+        
+        for (ReplaceRule rule : replaceRules) {
+            if (rule.getOriginalText().equals("我恨你")) hasRule1 = true;
+            if (rule.getOriginalText().equals("好讨厌你")) hasRule2 = true;
+            if (rule.getOriginalText().equals("烦死了")) hasRule3 = true;
+        }
+        
+        // 添加默认规则（如果不存在）
+        if (!hasRule1) replaceRules.add(new ReplaceRule("我恨你", "我爱你"));
+        if (!hasRule2) replaceRules.add(new ReplaceRule("好讨厌你", "好喜欢你"));
+        if (!hasRule3) replaceRules.add(new ReplaceRule("烦死了", "真开心"));
+        
+        AppLogger.info("初始化了 " + replaceRules.size() + " 条替换规则（包含默认规则）");
     }
     
     /**

@@ -114,10 +114,12 @@ public class HolidayManager {
         addHoliday("2025-01-29", "春节");
         addHoliday("2025-01-30", "春节");
         addHoliday("2025-01-31", "春节");
+        // 改成通用的春节，而不用大年初一，避免显示问题
         addHoliday("2025-02-01", "春节");
         addHoliday("2025-02-02", "春节");
         addHoliday("2025-02-03", "春节");
         addHoliday("2025-02-04", "春节");
+        // 避免情人节右侧显示方块问题
         addHoliday("2025-02-14", "情人节");
         // 不再将特殊纪念日加为节假日，改为特殊日期
         addSpecialDate("2025-02-16", "second-date");

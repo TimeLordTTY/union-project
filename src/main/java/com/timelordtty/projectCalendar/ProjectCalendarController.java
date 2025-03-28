@@ -826,8 +826,9 @@ public class ProjectCalendarController {
                     dateHeader.getChildren().add(1, fireworkLabel);
                 }
                 // 春节（大年初一）特殊处理，添加鞭炮图标
-                else if (holidayName.contains("春节") && date.getDayOfMonth() == 1) {
-                    Label firecracker = new Label("🧨");
+                else if (holidayName.contains("春节") && date.getDayOfMonth() == 1 && date.getMonthValue() == 2) {
+                    // 使用不同的Unicode字符，避免显示方块
+                    Label firecracker = new Label("\uD83C\uDF86"); // Unicode for 🎆 (烟花)
                     firecracker.setStyle("-fx-font-size: 14px;");
                     Tooltip tooltip = new Tooltip("宝宝新年好呀！");
                     tooltip.setStyle("-fx-font-size: 14px;");
@@ -838,8 +839,9 @@ public class ProjectCalendarController {
                 }
                 // 情人节特殊处理，添加爱心图标
                 else if (holidayName.contains("情人节")) {
-                    Label heart = new Label("❤️");
-                    heart.setStyle("-fx-font-size: 14px;");
+                    // 使用不同的Unicode心形，避免显示方块
+                    Label heart = new Label("\u2764");  // Unicode for ❤ (红心)
+                    heart.setStyle("-fx-font-size: 16px; -fx-text-fill: #FF0000;");
                     Tooltip tooltip = new Tooltip("爱你，我最爱的宝宝");
                     tooltip.setStyle("-fx-font-size: 14px;");
                     Tooltip.install(heart, tooltip);
@@ -1762,6 +1764,13 @@ public class ProjectCalendarController {
             // 检查当前提醒索引是否有效，避免索引越界
             if (currentReminderIndex >= reminderProjects.size()) {
                 currentReminderIndex = 0;
+            }
+            
+            // 防止列表为空时的索引越界（例如刚刚删除了最后一个项目）
+            if (reminderProjects.isEmpty()) {
+                scrollingReminderLabel.setText("暂无需要提醒的项目");
+                currentReminderIndex = 0;
+                return;
             }
             
             // 获取当前要显示的项目

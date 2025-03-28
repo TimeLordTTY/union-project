@@ -50,6 +50,9 @@ public class ReplaceRuleDialogController implements Initializable {
     
     private ObservableList<ReplaceRule> ruleList = FXCollections.observableArrayList();
     
+    // 记录默认规则，确保始终可见
+    private List<ReplaceRule> defaultRules = new ArrayList<>();
+    
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // 初始化表格列
@@ -70,22 +73,35 @@ public class ReplaceRuleDialogController implements Initializable {
             }
         });
         
-        // 初始化一些默认规则（这些规则并不会自动生效，除非用户使用它们）
+        // 初始化一些默认规则（展示但不自动生效）
         addDefaultRules();
         
-        AppLogger.info("替换规则对话框已初始化");
+        AppLogger.info("替换规则对话框已初始化，添加了默认规则（仅展示，不自动生效）");
     }
     
     /**
      * 添加默认规则
+     * 这些规则仅展示在列表中，不会自动应用于文本替换
+     * 初始化文本矫正器时会再次添加这些规则，用户可以删除但下次打开仍会显示
      */
     private void addDefaultRules() {
-        // 添加一些默认的替换规则
-        ruleList.add(new ReplaceRule("我恨你", "我爱你"));
-        ruleList.add(new ReplaceRule("好讨厌你", "好喜欢你"));
-        ruleList.add(new ReplaceRule("烦死了", "真开心"));
+        // 添加一些默认的替换规则（仅展示，不自动生效）
+        defaultRules.clear();
         
-        AppLogger.info("已添加默认替换规则");
+        ReplaceRule rule1 = new ReplaceRule("我恨你", "我爱你");
+        ReplaceRule rule2 = new ReplaceRule("好讨厌你", "好喜欢你");
+        ReplaceRule rule3 = new ReplaceRule("烦死了", "真开心");
+        
+        defaultRules.add(rule1);
+        defaultRules.add(rule2);
+        defaultRules.add(rule3);
+        
+        // 确保默认规则已添加到显示列表中
+        if (!ruleList.contains(rule1)) ruleList.add(rule1);
+        if (!ruleList.contains(rule2)) ruleList.add(rule2);
+        if (!ruleList.contains(rule3)) ruleList.add(rule3);
+        
+        AppLogger.info("已添加默认替换规则（仅展示，不自动生效）");
     }
     
     /**
@@ -234,7 +250,9 @@ public class ReplaceRuleDialogController implements Initializable {
             if (response == javafx.scene.control.ButtonType.OK) {
                 // 清空规则列表
                 ruleList.clear();
-                AppLogger.info("清空所有替换规则");
+                // 重新添加默认规则以确保始终可见
+                addDefaultRules();
+                AppLogger.info("清空所有自定义替换规则，保留默认规则");
             }
         });
     }
@@ -380,7 +398,27 @@ public class ReplaceRuleDialogController implements Initializable {
         if (rules != null) {
             ruleList.clear();
             ruleList.addAll(rules);
-            AppLogger.info("加载 " + rules.size() + " 条替换规则");
+            
+            // 确保默认规则始终存在
+            for (ReplaceRule defaultRule : defaultRules) {
+                if (!containsRule(ruleList, defaultRule)) {
+                    ruleList.add(defaultRule);
+                }
+            }
+            
+            AppLogger.info("加载 " + ruleList.size() + " 条替换规则（包含默认规则）");
         }
+    }
+    
+    /**
+     * 检查规则列表是否包含指定规则
+     */
+    private boolean containsRule(List<ReplaceRule> rules, ReplaceRule rule) {
+        for (ReplaceRule existingRule : rules) {
+            if (existingRule.getOriginalText().equals(rule.getOriginalText())) {
+                return true;
+            }
+        }
+        return false;
     }
 } 

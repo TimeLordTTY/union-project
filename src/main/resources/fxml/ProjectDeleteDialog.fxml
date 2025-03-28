@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 
-<DialogPane prefWidth="400" prefHeight="250" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<DialogPane prefWidth="400" prefHeight="320" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
     fx:controller="com.timelordtty.projectCalendar.ProjectDeleteDialogController"
     stylesheets="@../css/styles.css" styleClass="custom-dialog">
     <header>
@@ -33,6 +33,15 @@
                 <Label text="开标时间:" GridPane.columnIndex="0" GridPane.rowIndex="3" 
                        style="-fx-font-weight: bold;" />
                 <Label fx:id="expectedReviewDateLabel" text="开标时间" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                
+                <Label text="专家评审:" GridPane.columnIndex="0" GridPane.rowIndex="4" 
+                       style="-fx-font-weight: bold;" />
+                <Label fx:id="expertReviewDateLabel" text="专家评审时间" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                
+                <Label text="备注:" GridPane.columnIndex="0" GridPane.rowIndex="5" 
+                       style="-fx-font-weight: bold;" />
+                <Label fx:id="remarkLabel" text="备注信息" GridPane.columnIndex="1" GridPane.rowIndex="5" 
+                      wrapText="true" maxWidth="250" />
                 
                 <columnConstraints>
                     <ColumnConstraints hgrow="NEVER" minWidth="100" />

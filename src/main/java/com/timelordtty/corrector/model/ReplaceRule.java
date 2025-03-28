@@ -1,5 +1,7 @@
 package com.timelordtty.corrector.model;
 
+import java.util.Objects;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
@@ -60,5 +62,25 @@ public class ReplaceRule {
      */
     public StringProperty replacementTextProperty() {
         return replacementText;
+    }
+    
+    /**
+     * 比较两个规则是否相同
+     * 只要原文本相同即认为是相同的规则
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ReplaceRule that = (ReplaceRule) o;
+        return Objects.equals(getOriginalText(), that.getOriginalText());
+    }
+    
+    /**
+     * 生成哈希码
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(getOriginalText());
     }
 } 
