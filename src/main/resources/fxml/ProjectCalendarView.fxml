@@ -13,7 +13,7 @@
         <SplitPane dividerPositions="0.3" prefHeight="160.0" prefWidth="200.0" BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS">
             <!-- 左侧项目列表 -->
             <VBox spacing="5" minWidth="250">
-                <HBox alignment="CENTER_LEFT" spacing="5" style="-fx-background-color: -theme-light; -fx-padding: 8;">
+                <HBox alignment="CENTER_LEFT" spacing="5" style="-fx-background-color: -theme-primary; -fx-padding: 8;">
                     <Label text="项目列表" style="-fx-font-weight: bold; -fx-text-fill: -theme-text;">
                         <font>
                             <Font name="System Bold" size="14.0" />
@@ -21,19 +21,19 @@
                     </Label>
                     <Region HBox.hgrow="ALWAYS" />
                     <Button fx:id="addProjectButton" mnemonicParsing="false" onAction="#handleAddProject" 
-                            text="+" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="+" styleClass="add-button" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="添加一个新项目" />
                         </tooltip>
                     </Button>
                     <Button fx:id="editProjectButton" mnemonicParsing="false" onAction="#handleEditProject" 
-                            text="✎" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="✎" styleClass="edit-button" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="编辑所选的项目" />
                         </tooltip>
                     </Button>
                     <Button fx:id="deleteProjectButton" mnemonicParsing="false" onAction="#handleDeleteProject" 
-                            text="✕" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="✕" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;">
                         <tooltip>
                             <Tooltip text="删除所选的项目" />
                         </tooltip>
@@ -42,7 +42,7 @@
                         <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
                     </padding>
                 </HBox>
-                <TableView fx:id="projectTableView" VBox.vgrow="ALWAYS" styleClass="pink-table-view">
+                <TableView fx:id="projectTableView" VBox.vgrow="ALWAYS" styleClass="pink-table-view" style="-fx-background-color: -theme-light;">
                     <columns>
                         <TableColumn fx:id="nameColumn" prefWidth="120.0" text="项目名称" />
                         <TableColumn fx:id="onlineDateColumn" prefWidth="70.0" text="上网日期" />
@@ -61,15 +61,15 @@
             
             <!-- 右侧日历视图 -->
             <VBox fx:id="calendarContainer" spacing="5" minWidth="450">
-                <HBox spacing="10" alignment="CENTER" VBox.vgrow="NEVER">
-                    <Button fx:id="prevMonthButton" text="&lt;" onAction="#handlePrevMonth" />
+                <HBox spacing="10" alignment="CENTER" VBox.vgrow="NEVER" style="-fx-background-color: -theme-primary;">
+                    <Button fx:id="prevMonthButton" text="&lt;" onAction="#handlePrevMonth" styleClass="month-nav-button" />
                     <Label fx:id="monthYearLabel" text="2023年12月" style="-fx-font-size: 14pt;" />
-                    <Button fx:id="nextMonthButton" text="&gt;" onAction="#handleNextMonth" />
+                    <Button fx:id="nextMonthButton" text="&gt;" onAction="#handleNextMonth" styleClass="month-nav-button" />
                 </HBox>
                 
                 <!-- 日历视图容器 -->
                 <ScrollPane fx:id="calendarScrollPane" fitToWidth="true" VBox.vgrow="ALWAYS" pannable="true"
-                            style="-fx-background-color: white; -fx-border-color: -theme-light; -fx-border-width: 1;">
+                            style="-fx-background-color: -theme-light; -fx-border-color: -theme-light; -fx-border-width: 1;">
                     <GridPane fx:id="calendarGrid" alignment="CENTER" hgap="2.0" vgap="2.0" styleClass="calendar-grid">
                         <!-- 由控制器动态填充日历内容 -->
                     </GridPane>
@@ -89,7 +89,7 @@
                  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                 <!-- 宝宝将要处理的项目事项滚动区域 -->
                 <HBox fx:id="reminderScrollArea" alignment="CENTER_LEFT" spacing="10" 
-                      style="-fx-background-color: #FFF5F8; -fx-padding: 8; -fx-border-color: -theme-light; -fx-border-width: 0 0 1 0;" 
+                      style="-fx-background-color: -theme-light; -fx-padding: 8; -fx-border-color: -theme-light; -fx-border-width: 0 0 1 0;" 
                       minHeight="30" maxHeight="30" VBox.vgrow="NEVER">
                     <Label text="宝宝将要处理的项目事项:" style="-fx-font-weight: bold; -fx-text-fill: -theme-text;" />
                     <Label fx:id="scrollingReminderLabel" text="接下来没有需要处理的项目哦，宝宝可以放松放松~" />
@@ -99,7 +99,7 @@
                 </HBox>
                 
                 <!-- 状态信息区域 -->
-                <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-background-color: -theme-light; -fx-padding: 5;" 
+                <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-background-color: -theme-primary; -fx-padding: 5;" 
                       minHeight="20" maxHeight="20" VBox.vgrow="NEVER">
                     <Label fx:id="statusLabel" text="就绪" style="-fx-text-fill: -theme-text;" />
                     <padding>

@@ -5,17 +5,16 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<DialogPane prefWidth="500" prefHeight="600" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
-           fx:controller="com.timelordtty.projectCalendar.ProjectDetailDialogController">
+<DialogPane prefWidth="500" prefHeight="700" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+           fx:controller="com.timelordtty.projectCalendar.ProjectDetailDialogController"
+           stylesheets="@../css/styles.css" styleClass="custom-dialog">
     <header>
-        <Label fx:id="projectNameLabel" text="项目名称" style="-fx-font-weight: bold;">
-            <font>
-                <Font name="System Bold" size="16.0" />
-            </font>
-        </Label>
+        <HBox styleClass="dialog-header" alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: #FFCDD2; -fx-padding: 10;">
+            <Label text="项目详情" style="-fx-text-fill: #D81B60; -fx-font-weight: bold; -fx-font-size: 16px;" />
+        </HBox>
     </header>
     <content>
-        <GridPane hgap="10" vgap="12" style="-fx-background-color: white; -fx-background-radius: 5;">
+        <GridPane hgap="10" vgap="12" style="-fx-background-color: #FFF5F8; -fx-padding: 15;">
             <padding>
                 <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
             </padding>

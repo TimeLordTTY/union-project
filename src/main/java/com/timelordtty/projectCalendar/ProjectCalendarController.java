@@ -1655,7 +1655,7 @@ public class ProjectCalendarController {
         // 设置每小时工作提醒
         javafx.animation.Timeline hourlyReminder = new javafx.animation.Timeline(
             new javafx.animation.KeyFrame(
-                javafx.util.Duration.minutes(1), // 每小时触发一次
+                javafx.util.Duration.hours(1), // 每小时触发一次
                 event -> showHourlyWorkReminder()
             )
         );
@@ -1663,7 +1663,7 @@ public class ProjectCalendarController {
         hourlyReminder.play();
         
         // 应用启动后1分钟显示第一次提醒(让用户先熟悉界面)
-        javafx.animation.PauseTransition initialDelay = new javafx.animation.PauseTransition(javafx.util.Duration.minutes(1));
+        javafx.animation.PauseTransition initialDelay = new javafx.animation.PauseTransition(javafx.util.Duration.hours(1));
         initialDelay.setOnFinished(event -> showHourlyWorkReminder());
         initialDelay.play();
     }
@@ -2206,7 +2206,7 @@ public class ProjectCalendarController {
         
         // 如果不是特殊日期，显示普通的祝福语
         if (!isSpecialDay) {
-            greetingText = "宝宝辛苦啦🫡~";
+            greetingText = "宝宝辛苦啦😘~";
         }
         
         holidayGreetingLabel.setText(greetingText);

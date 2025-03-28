@@ -9,12 +9,12 @@
     fx:controller="com.timelordtty.projectCalendar.ProjectAddDialogController"
     stylesheets="@../css/styles.css" styleClass="custom-dialog">
     <header>
-        <HBox styleClass="dialog-header" alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: #8D6E63; -fx-padding: 10;">
-            <Label text="项目信息" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;" />
+        <HBox styleClass="dialog-header" alignment="CENTER_LEFT" spacing="10" style="-fx-background-color: #FFCDD2; -fx-padding: 10;">
+            <Label text="项目信息" style="-fx-text-fill: #D81B60; -fx-font-weight: bold; -fx-font-size: 16px;" />
         </HBox>
     </header>
     <content>
-        <GridPane hgap="10" vgap="10" style="-fx-background-color: white; -fx-padding: 15;">
+        <GridPane hgap="10" vgap="10" style="-fx-background-color: #FFF5F8; -fx-padding: 15;">
             <!-- 项目名称 -->
             <Label text="项目名称:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
             <TextField fx:id="projectNameField" GridPane.columnIndex="1" GridPane.rowIndex="0" prefWidth="300" />

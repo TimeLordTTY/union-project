@@ -47,8 +47,10 @@ public class MainController {
                 toolsContainer.setVisible(false);
             }
             
-            // 设置白色主题为默认
-            applyTheme("white");
+            // 高亮粉色主题按钮
+            if (pinkThemeButton != null) {
+                pinkThemeButton.setStyle(pinkThemeButton.getStyle().replace("-fx-border-color: transparent;", "-fx-border-color: #424242; -fx-border-width: 2px;"));
+            }
             
             AppLogger.info("MainController初始化完成");
         } catch (Exception e) {
@@ -68,64 +70,22 @@ public class MainController {
         if (blueThemeButton != null) blueThemeButton.setStyle("-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #BBDEFB; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;");
         if (cyanThemeButton != null) cyanThemeButton.setStyle("-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #B2EBF2; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;");
         
-        // 更新CSS变量
-        String rootStyle = "";
+        // 高亮当前活动主题按钮
         Button activeButton = null;
-        
         switch (themeName) {
             case "white":
-                rootStyle = "-theme-primary: -white-primary; " +
-                           "-theme-light: -white-light; " +
-                           "-theme-dark: -white-dark; " +
-                           "-theme-accent: -white-accent; " +
-                           "-theme-text: -white-text; " +
-                           "-theme-border: -white-border; " +
-                           "-theme-shadow: -white-shadow; " +
-                           "-theme-background: -white-background;";
                 activeButton = whiteThemeButton;
                 break;
             case "pink":
-                rootStyle = "-theme-primary: -pink-primary; " +
-                           "-theme-light: -pink-light; " +
-                           "-theme-dark: -pink-dark; " +
-                           "-theme-accent: -pink-accent; " +
-                           "-theme-text: -pink-text; " +
-                           "-theme-border: -pink-border; " +
-                           "-theme-shadow: -pink-shadow; " +
-                           "-theme-background: -pink-background;";
                 activeButton = pinkThemeButton;
                 break;
             case "yellow":
-                rootStyle = "-theme-primary: -yellow-primary; " +
-                           "-theme-light: -yellow-light; " +
-                           "-theme-dark: -yellow-dark; " +
-                           "-theme-accent: -yellow-accent; " +
-                           "-theme-text: -yellow-text; " +
-                           "-theme-border: -yellow-border; " +
-                           "-theme-shadow: -yellow-shadow; " +
-                           "-theme-background: -yellow-background;";
                 activeButton = yellowThemeButton;
                 break;
             case "blue":
-                rootStyle = "-theme-primary: -blue-primary; " +
-                           "-theme-light: -blue-light; " +
-                           "-theme-dark: -blue-dark; " +
-                           "-theme-accent: -blue-accent; " +
-                           "-theme-text: -blue-text; " +
-                           "-theme-border: -blue-border; " +
-                           "-theme-shadow: -blue-shadow; " +
-                           "-theme-background: -blue-background;";
                 activeButton = blueThemeButton;
                 break;
             case "cyan":
-                rootStyle = "-theme-primary: -cyan-primary; " +
-                           "-theme-light: -cyan-light; " +
-                           "-theme-dark: -cyan-dark; " +
-                           "-theme-accent: -cyan-accent; " +
-                           "-theme-text: -cyan-text; " +
-                           "-theme-border: -cyan-border; " +
-                           "-theme-shadow: -cyan-shadow; " +
-                           "-theme-background: -cyan-background;";
                 activeButton = cyanThemeButton;
                 break;
         }
@@ -143,29 +103,80 @@ public class MainController {
             if (root.getScene() != null) {
                 Scene scene = root.getScene();
                 
-                // 先应用到样式到根节点
-                root.setStyle(rootStyle);
+                // 设置CSS变量
+                switch (themeName) {
+                    case "white":
+                        root.setStyle("-theme-primary: -white-primary; -theme-light: -white-light; -theme-dark: -white-dark; -theme-accent: -white-accent; -theme-text: -white-text; -theme-border: -white-border; -theme-shadow: -white-shadow; -theme-background: -white-background;");
+                        break;
+                    case "pink":
+                        root.setStyle("-theme-primary: -pink-primary; -theme-light: -pink-light; -theme-dark: -pink-dark; -theme-accent: -pink-accent; -theme-text: -pink-text; -theme-border: -pink-border; -theme-shadow: -pink-shadow; -theme-background: -pink-background;");
+                        break;
+                    case "yellow":
+                        root.setStyle("-theme-primary: -yellow-primary; -theme-light: -yellow-light; -theme-dark: -yellow-dark; -theme-accent: -yellow-accent; -theme-text: -yellow-text; -theme-border: -yellow-border; -theme-shadow: -yellow-shadow; -theme-background: -yellow-background;");
+                        break;
+                    case "blue":
+                        root.setStyle("-theme-primary: -blue-primary; -theme-light: -blue-light; -theme-dark: -blue-dark; -theme-accent: -blue-accent; -theme-text: -blue-text; -theme-border: -blue-border; -theme-shadow: -blue-shadow; -theme-background: -blue-background;");
+                        break;
+                    case "cyan":
+                        root.setStyle("-theme-primary: -cyan-primary; -theme-light: -cyan-light; -theme-dark: -cyan-dark; -theme-accent: -cyan-accent; -theme-text: -cyan-text; -theme-border: -cyan-border; -theme-shadow: -cyan-shadow; -theme-background: -cyan-background;");
+                        break;
+                }
+                
+                // 移除所有主题样式类
+                root.getStyleClass().removeAll(
+                    "white-theme", "pink-theme", "yellow-theme", "blue-theme", "cyan-theme");
+                
+                // 添加新的主题样式类
+                root.getStyleClass().add(themeName + "-theme");
                 
                 try {
                     // 重新加载样式表
                     String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
-                    scene.getStylesheets().clear();
-                    scene.getStylesheets().add(cssPath);
+                    if (!scene.getStylesheets().contains(cssPath)) {
+                        scene.getStylesheets().add(cssPath);
+                    } else {
+                        // 移除并重新添加样式表，强制刷新
+                        scene.getStylesheets().remove(cssPath);
+                        scene.getStylesheets().add(cssPath);
+                    }
                     
                     // 尝试强制UI更新
                     root.applyCss();
                     root.layout();
                     
-                    // 对每个直接子节点也应用相同的样式
-                    applyStyleToChildren(root, rootStyle);
+                    // 递归应用主题样式到子节点
+                    applyThemeToChildren(root, themeName);
                     
                     AppLogger.info("成功应用样式表: " + cssPath);
                 } catch (Exception e) {
                     AppLogger.error("应用样式表时出错: " + e.getMessage(), e);
                 }
             } else {
-                // 否则先应用到根节点
-                root.setStyle(rootStyle);
+                // 设置CSS变量
+                switch (themeName) {
+                    case "white":
+                        root.setStyle("-theme-primary: -white-primary; -theme-light: -white-light; -theme-dark: -white-dark; -theme-accent: -white-accent; -theme-text: -white-text; -theme-border: -white-border; -theme-shadow: -white-shadow; -theme-background: -white-background;");
+                        break;
+                    case "pink":
+                        root.setStyle("-theme-primary: -pink-primary; -theme-light: -pink-light; -theme-dark: -pink-dark; -theme-accent: -pink-accent; -theme-text: -pink-text; -theme-border: -pink-border; -theme-shadow: -pink-shadow; -theme-background: -pink-background;");
+                        break;
+                    case "yellow":
+                        root.setStyle("-theme-primary: -yellow-primary; -theme-light: -yellow-light; -theme-dark: -yellow-dark; -theme-accent: -yellow-accent; -theme-text: -yellow-text; -theme-border: -yellow-border; -theme-shadow: -yellow-shadow; -theme-background: -yellow-background;");
+                        break;
+                    case "blue":
+                        root.setStyle("-theme-primary: -blue-primary; -theme-light: -blue-light; -theme-dark: -blue-dark; -theme-accent: -blue-accent; -theme-text: -blue-text; -theme-border: -blue-border; -theme-shadow: -blue-shadow; -theme-background: -blue-background;");
+                        break;
+                    case "cyan":
+                        root.setStyle("-theme-primary: -cyan-primary; -theme-light: -cyan-light; -theme-dark: -cyan-dark; -theme-accent: -cyan-accent; -theme-text: -cyan-text; -theme-border: -cyan-border; -theme-shadow: -cyan-shadow; -theme-background: -cyan-background;");
+                        break;
+                }
+                
+                // 移除所有主题样式类
+                root.getStyleClass().removeAll(
+                    "white-theme", "pink-theme", "yellow-theme", "blue-theme", "cyan-theme");
+                
+                // 添加新的主题样式类
+                root.getStyleClass().add(themeName + "-theme");
             }
         }
         
@@ -181,61 +192,79 @@ public class MainController {
     }
     
     /**
-     * 递归地将样式应用到所有子节点
+     * 递归地将主题应用到所有子节点
      * @param parent 父节点
-     * @param style 要应用的样式
+     * @param themeName 主题名称
      */
-    private void applyStyleToChildren(javafx.scene.Parent parent, String style) {
+    private void applyThemeToChildren(javafx.scene.Parent parent, String themeName) {
         for (javafx.scene.Node node : parent.getChildrenUnmodifiable()) {
-            if (node instanceof javafx.scene.layout.Region) {
-                ((javafx.scene.layout.Region) node).setStyle(style);
-                node.applyCss();
-            }
-            
-            if (node instanceof javafx.scene.Parent) {
-                applyStyleToChildren((javafx.scene.Parent) node, style);
+            try {
+                // 如果节点是BorderPane、VBox、HBox等容器组件
+                if (node instanceof javafx.scene.layout.Region) {
+                    javafx.scene.layout.Region region = (javafx.scene.layout.Region) node;
+                    
+                    // 设置CSS变量
+                    String existingStyle = region.getStyle();
+                    
+                    // 移除所有主题样式类
+                    node.getStyleClass().removeAll(
+                        "white-theme", "pink-theme", "yellow-theme", "blue-theme", "cyan-theme");
+                    
+                    // 添加新的主题样式类
+                    node.getStyleClass().add(themeName + "-theme");
+                    
+                    // 强制更新CSS样式
+                    region.applyCss();
+                }
+                
+                // 递归处理子节点
+                if (node instanceof javafx.scene.Parent) {
+                    applyThemeToChildren((javafx.scene.Parent) node, themeName);
+                }
+            } catch (Exception e) {
+                AppLogger.error("应用主题到子节点时出错: " + e.getMessage(), e);
             }
         }
     }
     
     /**
-     * 处理白色主题按钮点击
+     * 处理白色主题按钮点击 - 已禁用
      */
     @FXML
     private void handleWhiteThemeClick() {
-        applyTheme("white");
+        // 已禁用主题切换
     }
     
     /**
-     * 处理粉色主题按钮点击
+     * 处理粉色主题按钮点击 - 已禁用
      */
     @FXML
     private void handlePinkThemeClick() {
-        applyTheme("pink");
+        // 已禁用主题切换
     }
     
     /**
-     * 处理黄色主题按钮点击
+     * 处理黄色主题按钮点击 - 已禁用
      */
     @FXML
     private void handleYellowThemeClick() {
-        applyTheme("yellow");
+        // 已禁用主题切换
     }
     
     /**
-     * 处理蓝色主题按钮点击
+     * 处理蓝色主题按钮点击 - 已禁用
      */
     @FXML
     private void handleBlueThemeClick() {
-        applyTheme("blue");
+        // 已禁用主题切换
     }
     
     /**
-     * 处理青色主题按钮点击
+     * 处理青色主题按钮点击 - 已禁用
      */
     @FXML
     private void handleCyanThemeClick() {
-        applyTheme("cyan");
+        // 已禁用主题切换
     }
     
     /**

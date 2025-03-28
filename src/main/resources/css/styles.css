@@ -6,65 +6,15 @@
 
 /* 多主题颜色定义 */
 * {
-    /* 白色主题 - 保留当前显示的样式 */
-    -white-primary: #F5F5F5;
-    -white-light: #FFEBEE;
-    -white-dark: #E0E0E0;
-    -white-accent: #9E9E9E;
-    -white-text: #424242;
-    -white-border: #F48FB1;
-    -white-shadow: rgba(158, 158, 158, 0.3);
-    -white-background: rgba(245, 245, 245, 0.2);
-    
-    /* 粉色主题 - 修改为更淡的色调 */
-    -pink-primary: #FFCDD2;
-    -pink-light: #FFEBEE;
-    -pink-dark: #F8BBD0;
-    -pink-accent: #F06292;
-    -pink-text: #D81B60;
-    -pink-border: #F48FB1;
-    -pink-shadow: rgba(244, 143, 177, 0.3);
-    -pink-background: rgba(255, 205, 210, 0.2);
-    
-    /* 淡黄色主题 */
-    -yellow-primary: #FFF9C4;
-    -yellow-light: #FFFDE7;
-    -yellow-dark: #FFF59D;
-    -yellow-accent: #FBC02D;
-    -yellow-text: #F57F17;
-    -yellow-border: #FFD54F;
-    -yellow-shadow: rgba(251, 192, 45, 0.3);
-    -yellow-background: rgba(255, 249, 196, 0.2);
-    
-    /* 淡蓝色主题 */
-    -blue-primary: #BBDEFB;
-    -blue-light: #E3F2FD;
-    -blue-dark: #90CAF9;
-    -blue-accent: #2196F3;
-    -blue-text: #1565C0;
-    -blue-border: #64B5F6;
-    -blue-shadow: rgba(33, 150, 243, 0.3);
-    -blue-background: rgba(187, 222, 251, 0.2);
-    
-    /* 淡青色主题 */
-    -cyan-primary: #B2EBF2;
-    -cyan-light: #E0F7FA;
-    -cyan-dark: #80DEEA;
-    -cyan-accent: #00BCD4;
-    -cyan-text: #00838F;
-    -cyan-border: #4DD0E1;
-    -cyan-shadow: rgba(0, 188, 212, 0.3);
-    -cyan-background: rgba(178, 235, 242, 0.2);
-    
-    /* 当前活动主题 - 默认使用白色主题 */
-    -theme-primary: -white-primary;
-    -theme-light: -white-light;
-    -theme-dark: -white-dark;
-    -theme-accent: -white-accent;
-    -theme-text: -white-text;
-    -theme-border: -white-border;
-    -theme-shadow: -white-shadow;
-    -theme-background: -white-background;
+    /* 粉色主题基本颜色 */
+    -theme-primary: #FFCDD2;
+    -theme-light: #FFEBEE;
+    -theme-dark: #F8BBD0;
+    -theme-accent: #F06292;
+    -theme-text: #D81B60;
+    -theme-border: #F48FB1;
+    -theme-shadow: rgba(244, 143, 177, 0.3);
+    -theme-background: rgba(255, 205, 210, 0.2);
 }
 
 /* 文本截断样式 */
@@ -79,7 +29,7 @@
     -fx-grid-lines-visible: true;
     -fx-border-color: -theme-border;
     -fx-border-width: 1px;
-    -fx-background-color: white;
+    -fx-background-color: -theme-light;
 }
 
 .calendar-day-header {
@@ -97,7 +47,7 @@
 }
 
 .project-date-cell {
-    -fx-background-color: white;
+    -fx-background-color: -theme-light;
     -fx-border-color: -theme-light;
     -fx-border-width: 0.5px;
     -fx-padding: 5px;
@@ -105,11 +55,11 @@
 
 /* 非当月日期单元格样式 */
 .prev-month-date-cell {
-    -fx-background-color: #F8F8F8;
+    -fx-background-color: #FFF0F5;
 }
 
 .next-month-date-cell {
-    -fx-background-color: #FAFAFA;
+    -fx-background-color: #FFF3F8;
 }
 
 /* 非工作日单元格样式 */
@@ -120,7 +70,7 @@
 .date-number {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: #424242;
+    -fx-text-fill: #D81B60;
 }
 
 /* 节假日标签样式 */
@@ -142,41 +92,25 @@
     -fx-cursor: hand;
 }
 
-/* 日期类型标签样式 */
-.date-type-label {
-    -fx-font-size: 10px;
-    -fx-max-width: 55px;
-    -fx-text-overrun: ellipsis;
-    -fx-padding: 0 2 0 2;
-}
-
-/* 项目行样式 */
-.project-marker-row {
-    -fx-spacing: 2;
-    -fx-alignment: center-left;
-    -fx-padding: 1 2 1 2;
-    -fx-cursor: hand;
-}
-
 /* 表格样式 */
 .table-view {
     -fx-base: white;
-    -fx-control-inner-background: white;
-    -fx-background-color: white;
+    -fx-control-inner-background: #FFF5F8;
+    -fx-background-color: #FFF5F8;
     -fx-table-cell-border-color: transparent;
     -fx-table-header-border-color: transparent;
     -fx-padding: 5;
 }
 
 .table-view .column-header-background {
-    -fx-background-color: -theme-light;
+    -fx-background-color: -theme-primary;
 }
 
 .table-view .column-header, .table-view .filler {
     -fx-size: 35;
     -fx-border-width: 0 0 1 0;
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent derive(-fx-base, 80%) transparent;
+    -fx-border-color: transparent transparent #F8BBD0 transparent;
     -fx-border-insets: 0 10 1 0;
 }
 
@@ -189,88 +123,186 @@
 }
 
 .table-row-cell:hover {
-    -fx-background-color: #FFF5F8;
+    -fx-background-color: #FFF0F5;
 }
 
 .table-row-cell:selected {
-    -fx-background-color: -theme-light;
+    -fx-background-color: #FFD8E1;
 }
 
 .table-row-cell:selected .text {
     -fx-fill: -theme-text;
 }
 
-/* 提示框样式 */
-.tooltip {
-    -fx-background-color: rgba(255, 255, 255, 0.9);
-    -fx-text-fill: -theme-text;
-    -fx-font-size: 13px;
-    -fx-padding: 8 12 8 12;
-    -fx-background-radius: 8;
-    -fx-border-color: -theme-border;
-    -fx-border-width: 1px;
-    -fx-border-radius: 8;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 5, 0, 0, 3);
+/* 粉色表格视图 */
+.pink-table-view {
+    -fx-base: white;
+    -fx-control-inner-background: #FFF5F8;
+    -fx-background-color: #FFF5F8;
+    -fx-table-cell-border-color: transparent;
+    -fx-table-header-border-color: transparent;
+    -fx-padding: 5;
 }
 
-/* 按钮样式 */
-.button {
-    -fx-background-radius: 5px;
-    -fx-padding: 8px 16px;
-    -fx-cursor: hand;
-    -fx-min-width: 80px;
-}
-
-.action-button {
+.pink-table-view .column-header-background {
     -fx-background-color: -theme-primary;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 3, 0, 0, 1);
-    -fx-border-color: #424242;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
 }
 
-.action-button:hover {
-    -fx-background-color: -theme-dark;
+.pink-table-view .column-header, .pink-table-view .filler {
+    -fx-size: 35;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -theme-border transparent;
+    -fx-border-insets: 0 10 1 0;
 }
 
-.action-button-alt {
-    -fx-background-color: #F0F0F0;
+.pink-table-view .column-header .label {
+    -fx-font-size: 12pt;
+    -fx-font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+    -fx-text-fill: -theme-text;
+    -fx-alignment: center-left;
+    -fx-opacity: 1;
+}
+
+.pink-table-view .table-row-cell:hover {
+    -fx-background-color: #FFF0F5;
+}
+
+.pink-table-view .table-row-cell:selected {
+    -fx-background-color: #FFD8E1;
+}
+
+.pink-table-view .table-row-cell:selected .text {
+    -fx-fill: -theme-text;
+}
+
+/* 对话框样式 */
+.custom-dialog {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 10, 0, 0, 0);
+}
+
+.custom-dialog .dialog-pane {
+    -fx-background-color: #FFF5F8;
+}
+
+.custom-dialog .dialog-pane .header-panel {
+    -fx-background-color: -theme-primary;
+}
+
+.custom-dialog .dialog-pane .header-panel .label {
     -fx-text-fill: -theme-text;
     -fx-font-weight: bold;
+}
+
+/* 自定义弹出窗口 */
+.custom-popup {
+    -fx-background-color: #FFF5F8;
+    -fx-background-radius: 10;
+    -fx-border-color: -theme-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 10, 0, 0, 3);
+}
+
+/* 悬浮提示框样式 */
+.popup-validation {
+    -fx-background-color: -theme-background;
+    -fx-background-radius: 10;
+    -fx-border-color: -theme-border;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 8, 0, 0, 2);
+    -fx-padding: 10;
+}
+
+.popup-validation-text {
+    -fx-fill: -theme-text;
+    -fx-font-size: 14px;
+    -fx-font-weight: normal;
+}
+
+/* 今日日期单元格样式 */
+.today-date-cell {
+    -fx-background-color: #FFE0F0;
+    -fx-border-color: -theme-primary;
+    -fx-border-width: 2px;
+}
+
+/* 日期选择器样式 */
+.date-picker {
+    -fx-background-color: white;
     -fx-border-color: -theme-light;
     -fx-border-width: 1px;
+    -fx-border-radius: 3px;
 }
 
-.action-button-alt:hover {
-    -fx-background-color: #E0E0E0;
+.date-picker .arrow-button {
+    -fx-background-color: -theme-light;
+    -fx-border-color: transparent;
 }
 
-.action-button-primary {
-    -fx-background-color: -theme-accent;
+.date-picker .arrow-button .arrow {
+    -fx-background-color: -theme-text;
+}
+
+.date-picker .cell {
+    -fx-background-color: white;
+    -fx-text-fill: -theme-text;
+}
+
+.date-picker .cell:hover {
+    -fx-background-color: -theme-light;
+}
+
+.date-picker .cell:focused {
+    -fx-background-color: -theme-light;
+}
+
+.date-picker .selected {
+    -fx-background-color: -theme-primary;
     -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 3, 0, 0, 1);
-    -fx-border-color: #424242;
+}
+
+.date-picker .today {
+    -fx-background-color: #FFF0F5;
+    -fx-border-color: -theme-primary;
     -fx-border-width: 1px;
-    -fx-border-radius: 4px;
 }
 
-.action-button-primary:hover {
-    -fx-background-color: derive(-theme-accent, -10%);
+/* 自定义选择框样式 */
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: -theme-light;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
 }
 
-.cancel-button {
-    -fx-background-color: #F44336;
+.combo-box .arrow-button {
+    -fx-background-color: -theme-light;
+}
+
+.combo-box .arrow {
+    -fx-background-color: -theme-text;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: -theme-text;
+}
+
+.combo-box .list-view {
+    -fx-background-color: white;
+    -fx-border-color: -theme-light;
+}
+
+.combo-box .list-view .list-cell:hover {
+    -fx-background-color: -theme-light;
+}
+
+.combo-box .list-view .list-cell:selected {
+    -fx-background-color: -theme-primary;
     -fx-text-fill: white;
-    -fx-border-color: #424242;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-}
-
-.cancel-button:hover {
-    -fx-background-color: #D32F2F;
 }
 
 /* 日期类型颜色 */
@@ -335,131 +367,98 @@
     -fx-fill: -theme-text;
 }
 
-/* 自定义弹出窗口 */
-.custom-popup {
-    -fx-background-color: white;
-    -fx-background-radius: 10;
-    -fx-border-color: -theme-border;
-    -fx-border-width: 1;
-    -fx-border-radius: 10;
-    -fx-padding: 15;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 10, 0, 0, 3);
-}
-
-.popup-title {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-fill: -theme-text;
-}
-
-.popup-message {
-    -fx-font-size: 14px;
-    -fx-fill: #333333;
-}
-
-.popup-button {
-    -fx-background-color: -theme-primary;
-    -fx-text-fill: white;
-    -fx-background-radius: 5;
-    -fx-padding: 8 16;
+/* 主题切换按钮样式 */
+.theme-button {
+    -fx-min-width: 25px;
+    -fx-max-width: 25px;
+    -fx-min-height: 25px;
+    -fx-max-height: 25px;
+    -fx-background-radius: 50%;
+    -fx-border-radius: 50%;
+    -fx-border-width: 1px;
+    -fx-border-color: #E0E0E0;
     -fx-cursor: hand;
 }
 
-.popup-button:hover {
-    -fx-background-color: -theme-dark;
+.white-theme-button {
+    -fx-background-color: -white-light;
 }
 
-.error-icon {
-    -fx-fill: #D32F2F;
+.pink-theme-button {
+    -fx-background-color: -pink-primary;
 }
 
-.warning-icon {
-    -fx-fill: #FFC107;
+.yellow-theme-button {
+    -fx-background-color: -yellow-primary;
 }
 
-.info-icon {
-    -fx-fill: #2196F3;
+.blue-theme-button {
+    -fx-background-color: -blue-primary;
 }
 
-/* 粉色表格视图 */
-.pink-table-view {
-    -fx-base: white;
-    -fx-control-inner-background: white;
-    -fx-background-color: white;
-    -fx-table-cell-border-color: transparent;
-    -fx-table-header-border-color: transparent;
-    -fx-padding: 5;
+.cyan-theme-button {
+    -fx-background-color: -cyan-primary;
 }
 
-.pink-table-view .column-header-background {
-    -fx-background-color: -theme-light;
+.active-theme {
+    -fx-border-color: #424242;
+    -fx-border-width: 2px;
 }
 
-.pink-table-view .column-header, .pink-table-view .filler {
-    -fx-size: 35;
-    -fx-border-width: 0 0 1 0;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent transparent -theme-border transparent;
-    -fx-border-insets: 0 10 1 0;
+/* 保持按钮样式不受主题影响 */
+/* 绿色添加按钮 */
+.add-button {
+    -fx-background-color: #4CAF50 !important;
+    -fx-text-fill: white !important;
+    -fx-font-weight: bold !important;
 }
 
-.pink-table-view .column-header .label {
-    -fx-font-size: 12pt;
-    -fx-font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
-    -fx-text-fill: -theme-text;
-    -fx-alignment: center-left;
-    -fx-opacity: 1;
+/* 黄色编辑按钮 */
+.edit-button {
+    -fx-background-color: #FFC107 !important;
+    -fx-text-fill: white !important;
+    -fx-font-weight: bold !important;
 }
 
-.pink-table-view .table-row-cell:hover {
-    -fx-background-color: #FFF5F8;
+/* 红色删除按钮 */
+.delete-button {
+    -fx-background-color: #F44336 !important;
+    -fx-text-fill: white !important;
+    -fx-font-weight: bold !important;
 }
 
-.pink-table-view .table-row-cell:selected {
-    -fx-background-color: -theme-light;
+/* 月份导航按钮 */
+.month-nav-button {
+    -fx-background-color: white !important;
+    -fx-text-fill: #424242 !important;
+    -fx-border-color: #E0E0E0 !important;
+    -fx-border-width: 1px !important;
 }
 
-.pink-table-view .table-row-cell:selected .text {
-    -fx-fill: -theme-text;
+/* 工具栏按钮 */
+.tool-button {
+    -fx-background-color: white !important;
+    -fx-text-fill: #424242 !important;
+    -fx-cursor: hand !important;
+    -fx-background-radius: 15 !important;
+    -fx-padding: 5 12 !important;
+    -fx-font-size: 12 !important;
 }
 
-.project-name {
+/* 日期类型标签样式 */
+.date-type-label {
     -fx-font-size: 10px;
-    -fx-text-overflow: ellipsis;
-    -fx-max-width: 70px;
+    -fx-max-width: 55px;
+    -fx-text-overrun: ellipsis;
+    -fx-padding: 0 2 0 2;
 }
 
-.project-type {
-    -fx-font-size: 9px;
-    -fx-font-weight: bold;
-    -fx-text-overflow: ellipsis;
-    -fx-max-width: 40px;
-}
-
-.dialog-header {
-    -fx-background-color: -theme-primary;
-    -fx-padding: 10px;
-}
-
-.dialog-pane > .button-bar > .container {
-    -fx-padding: 10px;
-}
-
-/* 悬浮提示框样式 */
-.popup-validation {
-    -fx-background-color: -theme-background;
-    -fx-background-radius: 10;
-    -fx-border-color: -theme-border;
-    -fx-border-width: 1.5;
-    -fx-border-radius: 10;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 8, 0, 0, 2);
-    -fx-padding: 10;
-}
-
-.popup-validation-text {
-    -fx-fill: -theme-text;
-    -fx-font-size: 14px;
-    -fx-font-weight: normal;
+/* 项目行样式 */
+.project-marker-row {
+    -fx-spacing: 2;
+    -fx-alignment: center-left;
+    -fx-padding: 1 2 1 2;
+    -fx-cursor: hand;
 }
 
 /* 注册截止日期标记样式 */
@@ -489,54 +488,6 @@
 .project-marker-expected {
     -fx-background-color: -theme-light;
     -fx-text-fill: -theme-text;
-}
-
-/* 今日日期单元格样式 */
-.today-date-cell {
-    -fx-background-color: #FFF0F5;
-    -fx-border-color: -theme-primary;
-    -fx-border-width: 2px;
-}
-
-/* 日期选择器样式 */
-.date-picker {
-    -fx-background-color: white;
-    -fx-border-color: -theme-light;
-    -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-}
-
-.date-picker .arrow-button {
-    -fx-background-color: -theme-light;
-    -fx-border-color: transparent;
-}
-
-.date-picker .arrow-button .arrow {
-    -fx-background-color: -theme-text;
-}
-
-.date-picker .cell {
-    -fx-background-color: white;
-    -fx-text-fill: #333333;
-}
-
-.date-picker .cell:hover {
-    -fx-background-color: -theme-light;
-}
-
-.date-picker .cell:focused {
-    -fx-background-color: -theme-light;
-}
-
-.date-picker .selected {
-    -fx-background-color: -theme-primary;
-    -fx-text-fill: white;
-}
-
-.date-picker .today {
-    -fx-background-color: #FFF0F5;
-    -fx-border-color: -theme-primary;
-    -fx-border-width: 1px;
 }
 
 /* 滚动条样式 */
@@ -613,74 +564,49 @@
     -fx-max-height: 0;
 }
 
-/* 自定义选择框样式 */
-.combo-box {
-    -fx-background-color: white;
-    -fx-border-color: -theme-light;
-    -fx-border-width: 1px;
-    -fx-border-radius: 3px;
+.project-name {
+    -fx-font-size: 10px;
+    -fx-text-overflow: ellipsis;
+    -fx-max-width: 70px;
 }
 
-.combo-box .arrow-button {
-    -fx-background-color: -theme-light;
+.project-type {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-overflow: ellipsis;
+    -fx-max-width: 40px;
 }
 
-.combo-box .arrow {
-    -fx-background-color: -theme-text;
-}
-
-.combo-box .list-cell {
-    -fx-text-fill: #333333;
-}
-
-.combo-box .list-view {
-    -fx-background-color: white;
-    -fx-border-color: -theme-light;
-}
-
-.combo-box .list-view .list-cell:hover {
-    -fx-background-color: -theme-light;
-}
-
-.combo-box .list-view .list-cell:selected {
+.dialog-header {
     -fx-background-color: -theme-primary;
-    -fx-text-fill: white;
+    -fx-padding: 10px;
 }
 
-/* 主题切换按钮样式 */
-.theme-button {
-    -fx-min-width: 25px;
-    -fx-max-width: 25px;
-    -fx-min-height: 25px;
-    -fx-max-height: 25px;
-    -fx-background-radius: 50%;
-    -fx-border-radius: 50%;
+.dialog-pane > .button-bar > .container {
+    -fx-padding: 10px;
+}
+
+/* 提示框样式 */
+.tooltip {
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-text-fill: -theme-text;
+    -fx-font-size: 13px;
+    -fx-padding: 8 12 8 12;
+    -fx-background-radius: 8;
+    -fx-border-color: -theme-border;
     -fx-border-width: 1px;
-    -fx-border-color: #E0E0E0;
-    -fx-cursor: hand;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 5, 0, 0, 3);
 }
 
-.white-theme-button {
-    -fx-background-color: -white-light;
+.error-icon {
+    -fx-fill: #D32F2F;
 }
 
-.pink-theme-button {
-    -fx-background-color: -pink-primary;
+.warning-icon {
+    -fx-fill: #FFC107;
 }
 
-.yellow-theme-button {
-    -fx-background-color: -yellow-primary;
-}
-
-.blue-theme-button {
-    -fx-background-color: -blue-primary;
-}
-
-.cyan-theme-button {
-    -fx-background-color: -cyan-primary;
-}
-
-.active-theme {
-    -fx-border-color: #424242;
-    -fx-border-width: 2px;
+.info-icon {
+    -fx-fill: #2196F3;
 } 
