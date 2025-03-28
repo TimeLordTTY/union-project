@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -21,6 +22,8 @@ import javafx.stage.Stage;
  */
 public class MainApp extends Application {
 
+    private MainController mainController;
+
     @Override
     public void start(Stage primaryStage) {
         try {
@@ -31,6 +34,9 @@ public class MainApp extends Application {
             loader.setLocation(getClass().getResource("/fxml/MainView.fxml"));
             Parent root = loader.load();
             
+            // 获取主控制器引用
+            mainController = loader.getController();
+            
             // 创建场景
             Scene scene = new Scene(root, 1200, 800);
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
@@ -39,6 +45,10 @@ public class MainApp extends Application {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);
+            primaryStage.setTitle("项目管理小助手");
+            
+            // 设置主控制器的主舞台引用
+            mainController.setMainStage(primaryStage);
             
             // 设置应用图标（若有）
             try {
@@ -88,6 +98,36 @@ public class MainApp extends Application {
             
             // 显示主窗口
             primaryStage.show();
+            
+            // 在应用程序完全启动后显示欢迎气泡
+            // 使用一个更长的延迟，确保UI完全初始化
+            Thread delayedWelcomeThread = new Thread(() -> {
+                try {
+                    // 等待2秒，确保UI完全加载
+                    Thread.sleep(2000);
+                    
+                    // 在JavaFX线程中运行
+                    Platform.runLater(() -> {
+                        if (mainController != null) {
+                            // 显示欢迎气泡
+                            mainController.showWelcomeBubble();
+                            
+                            // 启动工作时长提醒定时器
+                            mainController.startWorkTimeReminder();
+                            
+                            AppLogger.info("已启动欢迎气泡和工作时间提醒");
+                        } else {
+                            AppLogger.warning("无法获取主控制器，无法显示欢迎气泡");
+                        }
+                    });
+                } catch (Exception e) {
+                    AppLogger.error("显示欢迎气泡时发生异常: " + e.getMessage(), e);
+                }
+            });
+            
+            // 设置为守护线程，不阻止JVM退出
+            delayedWelcomeThread.setDaemon(true);
+            delayedWelcomeThread.start();
             
             AppLogger.info("应用程序启动完成");
         } catch (Exception e) {

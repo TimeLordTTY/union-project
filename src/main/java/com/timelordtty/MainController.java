@@ -1,11 +1,15 @@
 package com.timelordtty;
 
 import java.io.IOException;
+import java.util.Timer;
 
 import com.timelordtty.projectCalendar.ProjectCalendarController;
+import com.timelordtty.ui.SimpleTooltip;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
 import javafx.animation.ParallelTransition;
+import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,6 +20,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 /**
@@ -49,6 +54,25 @@ public class MainController {
     // 当前加载的工具
     private String currentTool = null;
     
+    // 工作时间提醒定时器
+    private Timer workTimeReminderTimer;
+    private final long ONE_HOUR_IN_MS = 60 * 60 * 1000; // 一小时的毫秒数
+    
+    // 测试用短时间
+    // private final long ONE_HOUR_IN_MS = 10 * 1000; // 10秒用于测试
+    
+    // 主舞台引用
+    private Stage mainStage;
+    
+    /**
+     * 设置主舞台引用
+     * @param stage 主舞台
+     */
+    public void setMainStage(Stage stage) {
+        this.mainStage = stage;
+        AppLogger.info("设置了主舞台引用");
+    }
+    
     /**
      * 初始化控制器
      */
@@ -71,6 +95,196 @@ public class MainController {
             AppLogger.info("MainController初始化完成");
         } catch (Exception e) {
             AppLogger.error("初始化MainController时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 启动工作时间提醒计时器
+     * 每隔一小时发送一次喝水休息的提醒
+     */
+    public void startWorkTimeReminder() {
+        try {
+            AppLogger.info("启动工作时间提醒计时器");
+            
+            // 创建定时器线程
+            Thread reminderThread = new Thread(() -> {
+                try {
+                    // 开始计时循环
+                    while (true) {
+                        // 等待一小时
+                        Thread.sleep(60 * 60 * 1000); // 60分钟 * 60秒 * 1000毫秒
+                        
+                        // 在JavaFX应用线程中显示提醒
+                        javafx.application.Platform.runLater(() -> {
+                            showWorkTimeReminder();
+                        });
+                    }
+                } catch (InterruptedException e) {
+                    AppLogger.warning("工作时间提醒线程被中断: " + e.getMessage());
+                }
+            });
+            
+            // 设置为守护线程，不阻止JVM退出
+            reminderThread.setDaemon(true);
+            reminderThread.start();
+            
+            AppLogger.info("工作时间提醒计时器已启动");
+        } catch (Exception e) {
+            AppLogger.error("启动工作时间提醒计时器时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 显示工作时间提醒气泡
+     */
+    private void showWorkTimeReminder() {
+        try {
+            AppLogger.info("显示工作时间提醒气泡");
+            
+            // 创建带提醒消息的气泡
+            SimpleTooltip tooltip = new SimpleTooltip("宝宝已经工作一个小时啦，要站起来活动活动喝点水哦💖💖💖~");
+            
+            // 应用当前主题
+            applyCurrentThemeToTooltip(tooltip);
+            
+            // 优先使用主舞台引用
+            if (mainStage != null) {
+                tooltip.showInStage(mainStage);
+                AppLogger.info("成功使用主舞台引用显示工作时间提醒气泡");
+                return;
+            }
+            
+            // 如果没有主舞台引用，尝试从root获取
+            if (root != null && root.getScene() != null && root.getScene().getWindow() != null) {
+                Stage stage = (Stage) root.getScene().getWindow();
+                tooltip.showInStage(stage);
+                AppLogger.info("成功显示工作时间提醒气泡");
+            } else {
+                AppLogger.warning("无法获取舞台，无法显示工作时间提醒");
+            }
+        } catch (Exception e) {
+            AppLogger.error("显示工作时间提醒时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 显示欢迎气泡
+     * 由MainApp在启动完成后调用
+     */
+    public void showWelcomeBubble() {
+        try {
+            AppLogger.info("准备显示欢迎气泡");
+            
+            // 创建气泡
+            SimpleTooltip tooltip = new SimpleTooltip("欢迎回来，最棒的宝宝~~");
+            
+            // 应用当前主题
+            applyCurrentThemeToTooltip(tooltip);
+            
+            // 首先尝试使用保存的主舞台引用
+            if (mainStage != null) {
+                tooltip.showInStage(mainStage);
+                AppLogger.info("成功使用主舞台引用显示欢迎气泡");
+                return;
+            }
+            
+            // 如果没有主舞台引用，尝试从root获取
+            if (root != null && root.getScene() != null && root.getScene().getWindow() != null) {
+                Stage stage = (Stage) root.getScene().getWindow();
+                tooltip.showInStage(stage);
+                AppLogger.info("成功显示欢迎气泡");
+            } else {
+                AppLogger.warning("root或scene或window为null，延迟显示欢迎气泡");
+                
+                // 使用延迟检查方法
+                delayedShowBubble(20, 200); // 增加尝试次数和延迟
+            }
+        } catch (Exception e) {
+            AppLogger.error("显示欢迎气泡时发生异常: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 延迟显示欢迎气泡的方法
+     * @param maxAttempts 最大尝试次数
+     * @param delayMs 每次尝试间隔（毫秒）
+     */
+    private void delayedShowBubble(int maxAttempts, int delayMs) {
+        AppLogger.info("开始延迟尝试显示欢迎气泡，最多尝试" + maxAttempts + "次");
+        
+        final int[] attempts = {0};
+        
+        Timeline timeline = new Timeline(
+            new KeyFrame(Duration.millis(delayMs), event -> {
+                attempts[0]++;
+                AppLogger.info("尝试显示欢迎气泡：第" + attempts[0] + "次");
+                
+                // 首先尝试使用主舞台引用
+                if (mainStage != null) {
+                    SimpleTooltip tooltip = new SimpleTooltip("欢迎回来，最棒的宝宝~~");
+                    applyCurrentThemeToTooltip(tooltip);
+                    tooltip.showInStage(mainStage);
+                    AppLogger.info("延迟后使用主舞台引用成功显示欢迎气泡");
+                    return;
+                }
+                
+                if (root != null && root.getScene() != null && root.getScene().getWindow() != null) {
+                    Stage stage = (Stage) root.getScene().getWindow();
+                    SimpleTooltip tooltip = new SimpleTooltip("欢迎回来，最棒的宝宝~~");
+                    applyCurrentThemeToTooltip(tooltip);
+                    tooltip.showInStage(stage);
+                    AppLogger.info("延迟后成功显示欢迎气泡");
+                    return;
+                }
+                
+                if (attempts[0] >= maxAttempts) {
+                    AppLogger.warning("尝试" + maxAttempts + "次后仍无法显示欢迎气泡");
+                }
+            })
+        );
+        
+        timeline.setCycleCount(maxAttempts);
+        timeline.play();
+    }
+    
+    /**
+     * 应用当前主题到气泡
+     * @param tooltip 气泡对象
+     */
+    private void applyCurrentThemeToTooltip(SimpleTooltip tooltip) {
+        // 获取根节点的样式类列表，确定当前使用的主题
+        String currentTheme = "pink"; // 默认为粉色主题
+        
+        if (root != null) {
+            if (root.getStyleClass().contains("white-theme")) {
+                currentTheme = "white";
+            } else if (root.getStyleClass().contains("yellow-theme")) {
+                currentTheme = "yellow";
+            } else if (root.getStyleClass().contains("blue-theme")) {
+                currentTheme = "blue";
+            } else if (root.getStyleClass().contains("cyan-theme")) {
+                currentTheme = "cyan";
+            }
+        }
+        
+        // 应用主题
+        tooltip.applyTheme(currentTheme + "-theme");
+        AppLogger.info("应用" + currentTheme + "主题到气泡");
+    }
+    
+    /**
+     * 创建并显示气泡在场景上
+     * @param tooltip 气泡对象
+     * @param scene 当前场景
+     * @param stage 当前舞台
+     */
+    private void createAndShowBubble(SimpleTooltip tooltip, Scene scene, Stage stage) {
+        try {
+            // 直接在舞台上显示气泡，无需修改场景
+            tooltip.showInStage(stage);
+            AppLogger.info("气泡显示成功");
+        } catch (Exception e) {
+            AppLogger.error("创建并显示气泡时发生异常: " + e.getMessage(), e);
         }
     }
     

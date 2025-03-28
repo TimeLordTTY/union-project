@@ -1678,41 +1678,7 @@ public class ProjectCalendarController {
         
         // 开始滚动显示
         startReminderScroll();
-        
-        // 设置每小时工作提醒
-        javafx.animation.Timeline hourlyReminder = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(
-                javafx.util.Duration.hours(1), // 每小时触发一次
-                event -> showHourlyWorkReminder()
-            )
-        );
-        hourlyReminder.setCycleCount(javafx.animation.Animation.INDEFINITE);
-        hourlyReminder.play();
-        
-        // 应用启动后1分钟显示第一次提醒(让用户先熟悉界面)
-        javafx.animation.PauseTransition initialDelay = new javafx.animation.PauseTransition(javafx.util.Duration.hours(1));
-        initialDelay.setOnFinished(event -> showHourlyWorkReminder());
-        initialDelay.play();
-    }
-    
-    /**
-     * 显示每小时工作提醒
-     */
-    private void showHourlyWorkReminder() {
-        // 保存当前显示的提醒内容
-        String currentReminder = scrollingReminderLabel.getText();
-        // 显示工作提醒
-        scrollingReminderLabel.setText("宝宝已经工作一个小时啦，要站起来活动活动喝点水哦💖💖💖~");
-        // 暂停当前的滚动提醒
-        pauseReminderScroll();
-        
-        // 5秒后恢复原来的提醒
-        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5));
-        pause.setOnFinished(event -> {
-            scrollingReminderLabel.setText(currentReminder);
-            resumeReminderScroll();
-        });
-        pause.play();
+
     }
     
     /**

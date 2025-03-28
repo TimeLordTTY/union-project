@@ -661,4 +661,123 @@
 
 .qixi-holiday-cell {
     -fx-background-color: #FFF0FF;
-} 
+}
+
+/* 爱心气泡提示框样式 */
+.heart-bubble {
+    -fx-background-color: rgba(255, 192, 203, 0.9);
+    -fx-background-radius: 15px;
+    -fx-padding: 15px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 3);
+    -fx-border-radius: 15px;
+    -fx-border-color: #FF80AB;
+    -fx-border-width: 2px;
+    -fx-alignment: center;
+}
+
+.heart-bubble-text {
+    -fx-fill: #C2185B;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-font-family: "Microsoft YaHei", "微软雅黑", "宋体";
+    -fx-text-alignment: center;
+}
+
+.heart-shape {
+    -fx-shape: "M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z";
+    -fx-background-color: #FF80AB;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-width: 30px;
+    -fx-max-height: 30px;
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+}
+
+/* 简单气泡提示框样式 */
+.simple-tooltip {
+    -fx-background-color: -theme-light;
+    -fx-background-radius: 8px;
+    -fx-padding: 12px;
+    -fx-effect: dropshadow(gaussian, -theme-shadow, 8, 0, 0, 3);
+    -fx-border-radius: 8px;
+    -fx-border-color: -theme-border;
+    -fx-border-width: 1px;
+    -fx-alignment: center;
+    -fx-transition: all 0.3s ease-in-out;
+}
+
+.tooltip-text {
+    -fx-text-fill: -theme-text;
+    -fx-font-size: 14px;
+    -fx-font-weight: normal;
+    -fx-font-family: "Microsoft YaHei", "微软雅黑", "宋体";
+    -fx-text-alignment: center;
+}
+
+/* 粉色主题气泡 */
+.pink-theme .simple-tooltip,
+.simple-tooltip.pink-theme {
+    -fx-background-color: #FFEBEE;
+    -fx-border-color: #F48FB1;
+    -fx-effect: dropshadow(gaussian, rgba(244, 143, 177, 0.3), 8, 0, 0, 3);
+}
+
+.pink-theme .tooltip-text,
+.simple-tooltip.pink-theme .tooltip-text {
+    -fx-text-fill: #D81B60;
+}
+
+/* 白色主题气泡 */
+.white-theme .simple-tooltip,
+.simple-tooltip.white-theme {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E0E0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 8, 0, 0, 3);
+}
+
+.white-theme .tooltip-text,
+.simple-tooltip.white-theme .tooltip-text {
+    -fx-text-fill: #424242;
+}
+
+/* 黄色主题气泡 */
+.yellow-theme .simple-tooltip,
+.simple-tooltip.yellow-theme {
+    -fx-background-color: #FFFDE7;
+    -fx-border-color: #FFD54F;
+    -fx-effect: dropshadow(gaussian, rgba(255, 213, 79, 0.3), 8, 0, 0, 3);
+}
+
+.yellow-theme .tooltip-text,
+.simple-tooltip.yellow-theme .tooltip-text {
+    -fx-text-fill: #F9A825;
+}
+
+/* 蓝色主题气泡 */
+.blue-theme .simple-tooltip,
+.simple-tooltip.blue-theme {
+    -fx-background-color: #E3F2FD;
+    -fx-border-color: #64B5F6;
+    -fx-effect: dropshadow(gaussian, rgba(100, 181, 246, 0.3), 8, 0, 0, 3);
+}
+
+.blue-theme .tooltip-text,
+.simple-tooltip.blue-theme .tooltip-text {
+    -fx-text-fill: #1976D2;
+}
+
+/* 青色主题气泡 */
+.cyan-theme .simple-tooltip,
+.simple-tooltip.cyan-theme {
+    -fx-background-color: #E0F7FA;
+    -fx-border-color: #4DD0E1;
+    -fx-effect: dropshadow(gaussian, rgba(77, 208, 225, 0.3), 8, 0, 0, 3);
+}
+
+.cyan-theme .tooltip-text,
+.simple-tooltip.cyan-theme .tooltip-text {
+    -fx-text-fill: #0097A7;
+}
