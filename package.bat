@@ -88,17 +88,6 @@ if exist "%DATA_BACKUP_DIR%" (
     echo 数据目录已还原
 )
 
-echo 创建日志目录的说明文件...
-echo 此目录存放应用程序日志文件 > "%LOG_DIR%\README.txt"
-echo 应用程序运行时会自动在这里创建日志文件 >> "%LOG_DIR%\README.txt"
-echo 如果遇到问题，请查看此处的日志以获取详细信息 >> "%LOG_DIR%\README.txt"
-
-echo 创建数据目录的说明文件...
-echo 此目录存放应用程序数据文件，包括项目管理小助手的H2数据库 > "%DATA_DIR%\README.txt"
-echo 请勿手动删除或修改此目录中的文件 >> "%DATA_DIR%\README.txt"
-echo 升级应用程序时，此目录中的数据将会自动保留 >> "%DATA_DIR%\README.txt"
-echo 如需手动升级，请确保先备份此目录内容 >> "%DATA_DIR%\README.txt"
-
 echo ====================
 echo 3. 编译项目
 echo ====================
