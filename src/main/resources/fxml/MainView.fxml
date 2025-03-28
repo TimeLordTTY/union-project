@@ -19,11 +19,16 @@ fx:controller="com.timelordtty.MainController"
 stylesheets="@../css/styles.css">
 <top>
         <HBox spacing="10" alignment="CENTER" style="-fx-background-color: -theme-primary; -fx-padding: 10;">
+            <!-- 将空白区域放在开始，用于中心对齐标题 -->
+            <Region HBox.hgrow="ALWAYS" />
+            
             <!-- 标题居中显示 -->
             <Label text="项目管理小助手" style="-fx-text-fill: -theme-text; -fx-font-weight: bold; -fx-font-size: 18px;" />
             
-            <Region minWidth="20" />
+            <!-- 右侧空白区域，与左侧空白平衡，实现真正居中 -->
+            <Region HBox.hgrow="ALWAYS" />
             
+            <!-- 小插件容器移到最右侧 -->
             <HBox fx:id="toolbarButtonContainer" spacing="8" alignment="CENTER_RIGHT">
                 <Button fx:id="amountToolButton" text="金额数字小插件" onAction="#handleAmountToolClick"
                         styleClass="tool-button" style="-fx-background-color: white; -fx-text-fill: -theme-text; -fx-cursor: hand; -fx-background-radius: 15; -fx-padding: 5 12; -fx-font-size: 12;" />

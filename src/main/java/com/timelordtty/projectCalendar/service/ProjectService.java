@@ -262,30 +262,33 @@ public class ProjectService {
                                                        !project.getExpertReviewTime().toLocalDate().isAfter(endDate);
                     
                     // 检查项目的开标时间是否在范围内
-                    boolean isExpectedReviewDateInRange = project.getExpectedReviewTime() != null && 
-                                                        !project.getExpectedReviewTime().toLocalDate().isBefore(startDate) && 
-                                                        !project.getExpectedReviewTime().toLocalDate().isAfter(endDate);
+                    boolean isExpectedReviewDateInRange = project.getExpectedReviewDate() != null && 
+                                                         !project.getExpectedReviewDate().isBefore(startDate) && 
+                                                         !project.getExpectedReviewDate().isAfter(endDate);
                     
+                    // 只返回这三种日期类型在范围内的项目
                     return isRegistrationEndDateInRange || isExpertReviewDateInRange || isExpectedReviewDateInRange;
                 })
                 .sorted(Comparator.comparing(p -> {
                     // 首先按照最近的关键日期排序（报名截止日期、专家评审时间、开标时间）
                     LocalDate date1 = p.getRegistrationEndDate();
                     LocalDate date2 = p.getExpertReviewTime() != null ? p.getExpertReviewTime().toLocalDate() : null;
-                    LocalDate date3 = p.getExpectedReviewTime() != null ? p.getExpectedReviewTime().toLocalDate() : null;
+                    LocalDate date3 = p.getExpectedReviewDate();
                     
                     LocalDate earliestDate = null;
                     
-                    // 找出最早的有效日期
-                    if (date1 != null) {
+                    // 找出最早的有效日期（仅考虑这三种日期类型）
+                    if (date1 != null && !date1.isBefore(startDate) && !date1.isAfter(endDate)) {
                         earliestDate = date1;
                     }
                     
-                    if (date2 != null && (earliestDate == null || date2.isBefore(earliestDate))) {
+                    if (date2 != null && !date2.isBefore(startDate) && !date2.isAfter(endDate) && 
+                        (earliestDate == null || date2.isBefore(earliestDate))) {
                         earliestDate = date2;
                     }
                     
-                    if (date3 != null && (earliestDate == null || date3.isBefore(earliestDate))) {
+                    if (date3 != null && !date3.isBefore(startDate) && !date3.isAfter(endDate) && 
+                        (earliestDate == null || date3.isBefore(earliestDate))) {
                         earliestDate = date3;
                     }
                     
