@@ -148,24 +148,26 @@ public class ProjectAddDialogController {
         validationPopup = new Popup();
         validationPopup.setAutoHide(true);
         
-        // 创建粉嫩的背景
-        Rectangle background = new Rectangle(300, 40);
-        background.setFill(Color.rgb(255, 182, 193, 0.9)); // 淡粉色带透明度
-        background.setArcWidth(15);
-        background.setArcHeight(15);
-        background.setStroke(Color.rgb(219, 112, 147)); // 深粉色边框
-        background.setStrokeWidth(1.5);
+        // 创建警告图标
+        javafx.scene.shape.SVGPath warningIcon = new javafx.scene.shape.SVGPath();
+        warningIcon.setContent("M12,1L21,20H3L12,1M12,5L7.5,16H16.5L12,5M11,10V12H13V10H11M11,14V16H13V14H11Z");
+        warningIcon.getStyleClass().add("warning-icon");
+        warningIcon.setScaleX(0.8);
+        warningIcon.setScaleY(0.8);
         
         // 创建文本
         popupText = new Text();
-        popupText.setFill(Color.rgb(139, 0, 139)); // 紫色文字
-        popupText.setFont(Font.font("System", 14));
-        popupText.setTextAlignment(TextAlignment.CENTER);
+        popupText.getStyleClass().add("popup-validation-text");
         
-        // 创建容器
+        // 创建水平布局容器，图标在左，文本在右
+        javafx.scene.layout.HBox contentBox = new javafx.scene.layout.HBox(10);
+        contentBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        contentBox.getChildren().addAll(warningIcon, popupText);
+        
+        // 创建容器并应用样式
         StackPane container = new StackPane();
-        container.getChildren().addAll(background, popupText);
-        container.setPadding(new Insets(8));
+        container.getStyleClass().add("popup-validation");
+        container.getChildren().add(contentBox);
         
         validationPopup.getContent().add(container);
     }
@@ -619,50 +621,50 @@ public class ProjectAddDialogController {
             // 验证项目名称
             String name = projectNameField.getText().trim();
             if (name.isEmpty()) {
-                showAlert("错误", "请输入项目名称", Alert.AlertType.ERROR);
+                showAlert("错误", "请输入项目名称", AlertType.ERROR);
                 return false;
             }
             
             // 验证报名期限
             String regPeriodText = registrationPeriodField.getText().trim();
             if (regPeriodText.isEmpty()) {
-                showAlert("错误", "请输入报名期限", Alert.AlertType.ERROR);
+                showAlert("错误", "请输入报名期限", AlertType.ERROR);
                 return false;
             }
             
             try {
                 int regPeriod = Integer.parseInt(regPeriodText);
                 if (regPeriod < 0) {
-                    showAlert("错误", "报名期限必须大于等于0", Alert.AlertType.ERROR);
+                    showAlert("错误", "报名期限必须大于等于0", AlertType.ERROR);
                     return false;
                 }
             } catch (NumberFormatException e) {
-                showAlert("错误", "报名期限必须是数字", Alert.AlertType.ERROR);
+                showAlert("错误", "报名期限必须是数字", AlertType.ERROR);
                 return false;
             }
             
             // 验证评审周期
             String reviewPeriodText = reviewPeriodField.getText().trim();
             if (reviewPeriodText.isEmpty()) {
-                showAlert("错误", "请输入评审周期", Alert.AlertType.ERROR);
+                showAlert("错误", "请输入评审周期", AlertType.ERROR);
                 return false;
             }
             
             try {
                 int reviewPeriod = Integer.parseInt(reviewPeriodText);
                 if (reviewPeriod < 0) {
-                    showAlert("错误", "评审周期必须大于等于0", Alert.AlertType.ERROR);
+                    showAlert("错误", "评审周期必须大于等于0", AlertType.ERROR);
                     return false;
                 }
             } catch (NumberFormatException e) {
-                showAlert("错误", "评审周期必须是数字", Alert.AlertType.ERROR);
+                showAlert("错误", "评审周期必须是数字", AlertType.ERROR);
                 return false;
             }
             
             return true;
         } catch (Exception e) {
             AppLogger.error("验证输入时发生异常: " + e.getMessage(), e);
-            showAlert("错误", "验证输入时发生异常: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("错误", "验证输入时发生异常: " + e.getMessage(), AlertType.ERROR);
             return false;
         }
     }
@@ -674,11 +676,85 @@ public class ProjectAddDialogController {
      * @param alertType 警告类型
      */
     private void showAlert(String title, String message, Alert.AlertType alertType) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+        // 创建一个悬浮提示框，样式与校验提示一致，但显示时间更长
+        Popup alertPopup = new Popup();
+        alertPopup.setAutoHide(true);
+        
+        // 创建图标
+        javafx.scene.shape.SVGPath icon = new javafx.scene.shape.SVGPath();
+        if (alertType == AlertType.ERROR) {
+            // 错误图标
+            icon.setContent("M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z");
+            icon.setStyle("-fx-fill: #D32F2F;"); // 红色
+        } else if (alertType == AlertType.WARNING) {
+            // 警告图标
+            icon.setContent("M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16");
+            icon.setStyle("-fx-fill: #FFA000;"); // 黄色
+        } else {
+            // 信息图标
+            icon.setContent("M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,13H13V17H11V13Z");
+            icon.setStyle("-fx-fill: #1976D2;"); // 蓝色
+        }
+        icon.setScaleX(1.2);
+        icon.setScaleY(1.2);
+        
+        // 标题和消息文本
+        Text titleText = new Text(title);
+        titleText.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-fill: -pink-text;");
+        
+        Text messageText = new Text(message);
+        messageText.setStyle("-fx-fill: #424242; -fx-font-size: 14px;");
+        messageText.setWrappingWidth(250);
+        
+        // 创建确定按钮
+        Button okButton = new Button("确定");
+        okButton.getStyleClass().addAll("button", "action-button");
+        okButton.setOnAction(e -> alertPopup.hide());
+        okButton.setPrefWidth(80);
+        
+        // 垂直布局
+        javafx.scene.layout.VBox contentBox = new javafx.scene.layout.VBox(10);
+        contentBox.setAlignment(javafx.geometry.Pos.CENTER);
+        
+        // 标题行使用水平布局
+        javafx.scene.layout.HBox titleBox = new javafx.scene.layout.HBox(10);
+        titleBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        titleBox.getChildren().addAll(icon, titleText);
+        
+        // 将所有元素添加到垂直布局
+        contentBox.getChildren().addAll(titleBox, messageText, okButton);
+        contentBox.setPadding(new Insets(15));
+        
+        // 创建容器并应用样式
+        StackPane container = new StackPane();
+        container.setStyle("-fx-background-color: white; -fx-background-radius: 10; " + 
+                         "-fx-border-color: -pink-border; -fx-border-width: 1.5; -fx-border-radius: 10; " +
+                         "-fx-effect: dropshadow(three-pass-box, -pink-shadow, 10, 0, 0, 4);");
+        container.getChildren().add(contentBox);
+        
+        alertPopup.getContent().add(container);
+        
+        // 显示在窗口中央
+        if (dialogPane != null && dialogPane.getScene() != null && dialogPane.getScene().getWindow() != null) {
+            javafx.stage.Window window = dialogPane.getScene().getWindow();
+            alertPopup.show(window, 
+                        window.getX() + window.getWidth() / 2 - 150, 
+                        window.getY() + window.getHeight() / 2 - 100);
+            
+            // 5秒后自动隐藏
+            new Thread(() -> {
+                try {
+                    Thread.sleep(5000);
+                    Platform.runLater(() -> {
+                        if (alertPopup.isShowing()) {
+                            alertPopup.hide();
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+        }
     }
     
     /**

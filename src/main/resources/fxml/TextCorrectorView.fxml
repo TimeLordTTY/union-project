@@ -8,36 +8,39 @@
 <VBox spacing="15" xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.timelordtty.corrector.controller.TextCorrectorController"
-      prefHeight="400.0" prefWidth="600.0">
+      prefHeight="400.0" prefWidth="600.0"
+      stylesheets="@../css/styles.css">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     
     <VBox spacing="10" VBox.vgrow="ALWAYS">
         <HBox spacing="10" alignment="CENTER_LEFT">
-            <Button text="纠错" fx:id="correctButton" onAction="#correctText" HBox.hgrow="NEVER"/>
-            <Button text="清空" onAction="#clearText" HBox.hgrow="NEVER"/>
-            <Button text="上传" onAction="#uploadFile" HBox.hgrow="NEVER"/>
+            <Button text="纠错" fx:id="correctButton" onAction="#correctText" styleClass="action-button" HBox.hgrow="NEVER"/>
+            <Button text="清空" onAction="#clearText" styleClass="action-button" HBox.hgrow="NEVER"/>
+            <Button text="上传" onAction="#uploadFile" styleClass="action-button" HBox.hgrow="NEVER"/>
             <Region HBox.hgrow="ALWAYS" />
-            <Button text="规则" fx:id="replaceRuleButton" onAction="#openReplaceRuleDialog" style="-fx-base: #8BC34A;" HBox.hgrow="NEVER"/>
-            <Button text="执行" fx:id="executeReplaceButton" onAction="#executeReplace" style="-fx-base: #8BC34A;" HBox.hgrow="NEVER"/>
+            <Button text="规则" fx:id="replaceRuleButton" onAction="#openReplaceRuleDialog" styleClass="action-button-alt" HBox.hgrow="NEVER"/>
+            <Button text="执行" fx:id="executeReplaceButton" onAction="#executeReplace" styleClass="action-button-alt" HBox.hgrow="NEVER"/>
         </HBox>
         
-        <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本...&#10;或者点击&quot;上传文件&quot;按钮上传Word/TXT文件...&#10;也可以直接拖放文件到此处..." wrapText="true" VBox.vgrow="ALWAYS"/>
+        <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本...&#10;或者点击&quot;上传文件&quot;按钮上传Word/TXT文件...&#10;也可以直接拖放文件到此处..." wrapText="true" VBox.vgrow="ALWAYS"
+                 style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
         
         <TextFlow fx:id="correctedTextFlow" VBox.vgrow="NEVER" maxHeight="40" minHeight="30"
-                 style="-fx-background-color: #f7f7ff; -fx-padding: 8 10; -fx-border-color: #d0d0e8; -fx-border-radius: 3; -fx-font-size: 13px;" />
+                 style="-fx-background-color: #FFF5F8; -fx-padding: 8 10; -fx-border-color: -pink-light; -fx-border-radius: 3; -fx-font-size: 13px;" />
         
         <HBox spacing="10" alignment="CENTER_LEFT">
-            <Label text="处理结果:"/>
-            <Button text="复制结果" onAction="#copyResult" HBox.hgrow="NEVER"/>
-            <ProgressIndicator fx:id="progressIndicator" visible="false" />
+            <Label text="处理结果:" style="-fx-text-fill: -pink-text;"/>
+            <Button text="复制结果" onAction="#copyResult" styleClass="action-button" HBox.hgrow="NEVER"/>
+            <ProgressIndicator fx:id="progressIndicator" visible="false" style="-fx-progress-color: -pink-primary;" />
         </HBox>
         
-        <TextArea fx:id="resultTextArea" promptText="处理后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"/>
+        <TextArea fx:id="resultTextArea" promptText="处理后的文本将显示在这里..." wrapText="true" editable="false" VBox.vgrow="ALWAYS"
+                 style="-fx-background-color: #FFF5F8; -fx-border-color: -pink-light; -fx-border-radius: 3;"/>
         
         <!-- 隐藏的TableView，用于显示错误和替换项 -->
-        <TableView fx:id="correctionTableView" VBox.vgrow="NEVER" visible="false" managed="false">
+        <TableView fx:id="correctionTableView" VBox.vgrow="NEVER" visible="false" managed="false" styleClass="pink-table-view">
             <columns>
                 <TableColumn fx:id="originalColumn" text="原文" prefWidth="200"/>
                 <TableColumn fx:id="correctedColumn" text="修改后" prefWidth="200"/>

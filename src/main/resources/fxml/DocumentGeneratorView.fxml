@@ -12,45 +12,56 @@
 
 <VBox spacing="15" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
       fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
-      prefHeight="400.0" prefWidth="500.0">
+      prefHeight="400.0" prefWidth="500.0"
+      stylesheets="@../css/styles.css">
    <padding>
       <Insets top="20" right="20" bottom="20" left="20"/>
    </padding>
    
    <VBox spacing="15" VBox.vgrow="ALWAYS">
       <HBox spacing="10" alignment="CENTER_LEFT">
-         <Label text="文档类型：" />
-         <ComboBox fx:id="documentTypeComboBox" prefHeight="25.0" prefWidth="150.0" />
+         <Label text="文档类型：" style="-fx-text-fill: -pink-text;"/>
+         <ComboBox fx:id="documentTypeComboBox" prefHeight="25.0" prefWidth="150.0" 
+                  style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
       </HBox>
       
       <HBox spacing="10" alignment="CENTER_LEFT">
-         <Label text="模板文件：" />
-         <TextField fx:id="templateFilePathTextField" promptText="选择模板文件" HBox.hgrow="ALWAYS" />
-         <Button fx:id="chooseTemplateFileButton" mnemonicParsing="false" onAction="#chooseTemplateFile" text="浏览..." prefWidth="80.0" />
+         <Label text="模板文件：" style="-fx-text-fill: -pink-text;"/>
+         <TextField fx:id="templateFilePathTextField" promptText="选择模板文件" HBox.hgrow="ALWAYS" 
+                   style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+         <Button fx:id="chooseTemplateFileButton" mnemonicParsing="false" onAction="#chooseTemplateFile" 
+                 text="浏览..." prefWidth="80.0" styleClass="action-button"/>
       </HBox>
       
       <HBox spacing="10" alignment="CENTER_LEFT">
-         <Label text="数据文件：" />
-         <TextField fx:id="dataFilePathTextField" promptText="选择JSON数据文件" HBox.hgrow="ALWAYS" />
-         <Button fx:id="chooseDataFileButton" mnemonicParsing="false" onAction="#chooseDataFile" text="浏览..." prefWidth="80.0" />
+         <Label text="数据文件：" style="-fx-text-fill: -pink-text;"/>
+         <TextField fx:id="dataFilePathTextField" promptText="选择JSON数据文件" HBox.hgrow="ALWAYS" 
+                   style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+         <Button fx:id="chooseDataFileButton" mnemonicParsing="false" onAction="#chooseDataFile" 
+                text="浏览..." prefWidth="80.0" styleClass="action-button"/>
       </HBox>
       
       <HBox spacing="10" alignment="CENTER_LEFT">
-         <Label text="输出目录：" />
-         <TextField fx:id="outputDirectoryTextField" promptText="选择输出目录" HBox.hgrow="ALWAYS" />
-         <Button fx:id="chooseOutputDirectoryButton" mnemonicParsing="false" onAction="#chooseOutputDirectory" text="浏览..." prefWidth="80.0" />
+         <Label text="输出目录：" style="-fx-text-fill: -pink-text;"/>
+         <TextField fx:id="outputDirectoryTextField" promptText="选择输出目录" HBox.hgrow="ALWAYS" 
+                   style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+         <Button fx:id="chooseOutputDirectoryButton" mnemonicParsing="false" onAction="#chooseOutputDirectory" 
+                text="浏览..." prefWidth="80.0" styleClass="action-button"/>
       </HBox>
       
       <VBox spacing="5" VBox.vgrow="ALWAYS">
          <padding>
             <Insets top="10" />
          </padding>
-         <Label text="状态：" />
-         <Label fx:id="statusLabel" text="就绪" style="-fx-background-color: #f5f5f5; -fx-padding: 5 10; -fx-background-radius: 3;" wrapText="true" />
+         <Label text="状态：" style="-fx-text-fill: -pink-text;"/>
+         <Label fx:id="statusLabel" text="就绪" 
+                style="-fx-background-color: #FFF5F8; -fx-padding: 5 10; -fx-background-radius: 3; -fx-border-color: -pink-light; -fx-border-radius: 3;" 
+                wrapText="true" />
       </VBox>
       
       <HBox alignment="CENTER_RIGHT">
-         <Button fx:id="generateButton" mnemonicParsing="false" onAction="#generateDocument" prefHeight="30.0" prefWidth="120.0" text="生成文档" style="-fx-base: #4CAF50;" />
+         <Button fx:id="generateButton" mnemonicParsing="false" onAction="#generateDocument" 
+                prefHeight="30.0" prefWidth="120.0" text="生成文档" styleClass="action-button-primary"/>
       </HBox>
    </VBox>
 </VBox> 

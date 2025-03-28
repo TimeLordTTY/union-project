@@ -2075,28 +2075,79 @@ public class ProjectCalendarController {
     
     /**
      * 刷新所有视图
-     * 供MainController调用，刷新项目表、日历视图和提醒区域
      */
     public void refreshAllViews() {
         try {
-            AppLogger.info("开始刷新所有视图");
+            AppLogger.info("正在刷新所有视图...");
             
-            // 刷新项目列表
-            projectService.refreshProjects();
+            // 刷新项目数据
+            if (projectService != null) {
+                projectService.refreshProjects();
+                AppLogger.info("项目数据已刷新");
+            }
             
             // 刷新项目表格
-            projectTableView.setItems(projectService.getProjects());
-            projectTableView.refresh();
+            if (projectTableView != null) {
+                if (projectService != null) {
+                    projectTableView.setItems(projectService.getProjects());
+                }
+                projectTableView.refresh();
+                AppLogger.info("项目表格已刷新");
+            }
             
-            // 刷新日历视图
+            // 重新加载日历视图
             updateCalendarView();
+            AppLogger.info("日历视图已刷新");
             
             // 刷新提醒区域
             refreshReminders();
+            AppLogger.info("提醒区域已刷新");
             
-            AppLogger.info("所有视图刷新完成");
+            // 应用样式到按钮和标签
+            applyThemeToButtons();
+            
+            // 强制刷新UI
+            if (calendarContainer != null) {
+                calendarContainer.applyCss();
+                calendarContainer.layout();
+            }
         } catch (Exception e) {
-            AppLogger.error("刷新所有视图时发生异常: " + e.getMessage(), e);
+            AppLogger.error("刷新视图时发生错误: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * 应用当前主题到按钮和标签
+     */
+    private void applyThemeToButtons() {
+        // 更新主要操作按钮样式
+        if (addProjectButton != null) {
+            addProjectButton.applyCss();
+        }
+        if (editProjectButton != null) {
+            editProjectButton.applyCss();
+        }
+        if (deleteProjectButton != null) {
+            deleteProjectButton.applyCss();
+        }
+        
+        // 更新月份导航按钮样式
+        if (prevMonthButton != null) {
+            prevMonthButton.applyCss();
+        }
+        if (nextMonthButton != null) {
+            nextMonthButton.applyCss();
+        }
+        
+        // 更新标签
+        if (monthYearLabel != null) {
+            monthYearLabel.applyCss();
+        }
+        if (scrollingReminderLabel != null) {
+            scrollingReminderLabel.applyCss();
+        }
+        if (statusLabel != null) {
+            statusLabel.applyCss();
         }
     }
     

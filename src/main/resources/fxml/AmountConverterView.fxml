@@ -7,37 +7,46 @@
 <VBox spacing="15" xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.timelordtty.amountConvert.controller.AmountConverterController"
-      prefHeight="400.0" prefWidth="600.0">
+      prefHeight="400.0" prefWidth="600.0"
+      stylesheets="@../css/styles.css">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     
-    <TitledPane text="数字金额转大写" expanded="true">
+    <TitledPane text="数字金额转大写" expanded="true" styleClass="custom-titled-pane">
         <VBox spacing="10">
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="数字金额："/>
-                <TextField fx:id="numericAmountField" HBox.hgrow="ALWAYS" promptText="请输入数字金额，例如：123456.78"/>
-                <Button text="转换" onAction="#convertToChineseAmount"/>
+                <Label text="数字金额：" style="-fx-text-fill: -pink-text;"/>
+                <TextField fx:id="numericAmountField" HBox.hgrow="ALWAYS" promptText="请输入数字金额，例如：123456.78"
+                           style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+                <Button text="转换" onAction="#convertToChineseAmount" 
+                        styleClass="action-button"/>
             </HBox>
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="中文金额："/>
-                <TextField fx:id="chineseAmountField" HBox.hgrow="ALWAYS" editable="false"/>
-                <Button text="复制" onAction="#copyChineseAmount"/>
+                <Label text="中文金额：" style="-fx-text-fill: -pink-text;"/>
+                <TextField fx:id="chineseAmountField" HBox.hgrow="ALWAYS" editable="false"
+                           style="-fx-background-color: #FFF5F8; -fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+                <Button text="复制" onAction="#copyChineseAmount" 
+                        styleClass="action-button"/>
             </HBox>
         </VBox>
     </TitledPane>
     
-    <TitledPane text="中文金额转数字" expanded="true">
+    <TitledPane text="中文金额转数字" expanded="true" styleClass="custom-titled-pane">
         <VBox spacing="10">
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="中文金额："/>
-                <TextField fx:id="chineseInputField" HBox.hgrow="ALWAYS" promptText="请输入中文金额，例如：壹拾贰万叁仟肆佰伍拾陆元柒角捌分"/>
-                <Button text="转换" onAction="#convertToNumericAmount"/>
+                <Label text="中文金额：" style="-fx-text-fill: -pink-text;"/>
+                <TextField fx:id="chineseInputField" HBox.hgrow="ALWAYS" promptText="请输入中文金额，例如：壹拾贰万叁仟肆佰伍拾陆元柒角捌分"
+                           style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+                <Button text="转换" onAction="#convertToNumericAmount" 
+                        styleClass="action-button"/>
             </HBox>
             <HBox spacing="10" alignment="CENTER_LEFT">
-                <Label text="数字金额："/>
-                <TextField fx:id="numericResultField" HBox.hgrow="ALWAYS" editable="false"/>
-                <Button text="复制" onAction="#copyNumericAmount"/>
+                <Label text="数字金额：" style="-fx-text-fill: -pink-text;"/>
+                <TextField fx:id="numericResultField" HBox.hgrow="ALWAYS" editable="false"
+                           style="-fx-background-color: #FFF5F8; -fx-border-color: -pink-light; -fx-border-radius: 3;"/>
+                <Button text="复制" onAction="#copyNumericAmount" 
+                        styleClass="action-button"/>
             </HBox>
         </VBox>
     </TitledPane>

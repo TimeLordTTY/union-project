@@ -15,18 +15,36 @@
 prefWidth="800.0" 
 xmlns="http://javafx.com/javafx/17" 
 xmlns:fx="http://javafx.com/fxml/1" 
-fx:controller="com.timelordtty.MainController">
+fx:controller="com.timelordtty.MainController"
+stylesheets="@../css/styles.css">
 <top>
-        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #f5f5f5; -fx-padding: 10;">
-            <Label text="项目管理小助手" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: -theme-primary; -fx-padding: 10;">
             <Region HBox.hgrow="ALWAYS" />
-            <HBox fx:id="toolbarButtonContainer" spacing="5" alignment="CENTER_RIGHT">
+            
+            <!-- 主题选择按钮区域 -->
+            <HBox fx:id="themeButtonContainer" spacing="5" alignment="CENTER">
+                <Label text="主题:" style="-fx-text-fill: white; -fx-font-weight: bold;"/>
+                <Button fx:id="whiteThemeButton" onAction="#handleWhiteThemeClick" 
+                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #F5F5F5; -fx-border-color: #424242; -fx-border-width: 2px; -fx-cursor: hand;"/>
+                <Button fx:id="pinkThemeButton" onAction="#handlePinkThemeClick" 
+                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #FFCDD2; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
+                <Button fx:id="yellowThemeButton" onAction="#handleYellowThemeClick" 
+                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #FFF9C4; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
+                <Button fx:id="blueThemeButton" onAction="#handleBlueThemeClick" 
+                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #BBDEFB; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
+                <Button fx:id="cyanThemeButton" onAction="#handleCyanThemeClick" 
+                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #B2EBF2; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
+            </HBox>
+            
+            <Region minWidth="20" />
+            
+            <HBox fx:id="toolbarButtonContainer" spacing="8" alignment="CENTER_RIGHT">
                 <Button fx:id="amountToolButton" text="金额数字小插件" onAction="#handleAmountToolClick"
-                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+                        style="-fx-background-color: white; -fx-text-fill: -theme-text; -fx-cursor: hand; -fx-background-radius: 15; -fx-padding: 5 12; -fx-font-size: 12;" />
                 <Button fx:id="docGenToolButton" text="文档生成小插件" onAction="#handleDocGenToolClick"
-                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+                        style="-fx-background-color: white; -fx-text-fill: -theme-text; -fx-cursor: hand; -fx-background-radius: 15; -fx-padding: 5 12; -fx-font-size: 12;" />
                 <Button fx:id="textCorrectionToolButton" text="文本处理小插件" onAction="#handleTextCorrectionToolClick"
-                        style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
+                        style="-fx-background-color: white; -fx-text-fill: -theme-text; -fx-cursor: hand; -fx-background-radius: 15; -fx-padding: 5 12; -fx-font-size: 12;" />
             </HBox>
         </HBox>
     </top>
@@ -37,17 +55,17 @@ fx:controller="com.timelordtty.MainController">
         
         <!-- 小工具容器，默认隐藏 -->
         <VBox fx:id="toolsContainer" visible="false" StackPane.alignment="TOP_RIGHT" 
-              style="-fx-background-color: white; -fx-border-color: #d0d0d0; -fx-border-radius: 5; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);">
+              style="-fx-background-color: white; -fx-border-color: -theme-light; -fx-border-radius: 8; -fx-effect: dropshadow(three-pass-box, -theme-shadow, 10, 0, 0, 0);">
             <padding>
-                <Insets top="5" right="5" bottom="5" left="5"/>
+                <Insets top="8" right="8" bottom="8" left="8"/>
             </padding>
-            <HBox alignment="CENTER_RIGHT">
-                <Label fx:id="toolTitle" text="金额转换" style="-fx-font-weight: bold;"/>
+            <HBox alignment="CENTER_RIGHT" style="-fx-background-color: -theme-light; -fx-background-radius: 5 5 0 0; -fx-padding: 5;">
+                <Label fx:id="toolTitle" text="金额转换" style="-fx-font-weight: bold; -fx-text-fill: -theme-text;"/>
                 <Region HBox.hgrow="ALWAYS" />
                 <Button fx:id="closeToolButton" text="收起 ▲" onAction="#handleCloseToolClick"
-                        style="-fx-background-color: transparent; -fx-cursor: hand;"/>
+                        style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: -theme-text;"/>
             </HBox>
-            <StackPane fx:id="toolContentArea" VBox.vgrow="ALWAYS">
+            <StackPane fx:id="toolContentArea" VBox.vgrow="ALWAYS" style="-fx-padding: 5;">
                 <!-- 工具内容将动态添加到这里 -->
             </StackPane>
             <prefWidth>400</prefWidth>
