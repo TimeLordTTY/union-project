@@ -37,7 +37,7 @@ echo Maven版本检查通过，继续执行...
 echo ====================
 echo 2. 创建应用目录结构
 echo ====================
-set APP_DIR=%~dp0PersonalApps\项目管理小助手
+set APP_DIR=%~dp0项目管理小助手
 set SERVICE_DATA_DIR=%APP_DIR%\service_data
 set LIB_DIR=%SERVICE_DATA_DIR%\lib
 set JRE_DIR=%SERVICE_DATA_DIR%\jre
@@ -50,21 +50,20 @@ set DATA_BACKUP_DIR=%~dp0data_backup_temp
 set APP_NAME=项目管理小助手
 
 echo 备份数据目录（如果存在）...
-if exist "%~dp0PersonalApps\项目管理小助手\data" (
+if exist "%~dp0项目管理小助手\data" (
     echo 正在备份数据目录...
     mkdir "%DATA_BACKUP_DIR%"
-    xcopy /E /I /Y "%~dp0PersonalApps\项目管理小助手\data" "%DATA_BACKUP_DIR%"
+    xcopy /E /I /Y "%~dp0项目管理小助手\data" "%DATA_BACKUP_DIR%"
     echo 数据目录已备份到临时目录
 )
 
-REM 检查并清理整个PersonalApps目录
-if exist "%~dp0PersonalApps" (
-    echo 清理整个PersonalApps目录...
-    rd /s /q "%~dp0PersonalApps"
+REM 检查并清理整个APP目录
+if exist "%~dp0项目管理小助手" (
+    echo 清理项目管理小助手目录...
+    rd /s /q "%~dp0项目管理小助手"
 )
 
 echo 创建目录结构...
-mkdir "%~dp0PersonalApps"
 mkdir "%APP_DIR%"
 mkdir "%SERVICE_DATA_DIR%"
 mkdir "%LIB_DIR%"
@@ -401,7 +400,7 @@ echo 双击「启动小助手.bat」开启小助手~ >> "%APP_DIR%\~❤~宝宝�
 echo 遇到小调皮时，点「调试小助手.bat」后把日志发给宝宝的专属工程师就好啦 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 
-echo 🌸❀•°*” 专属小助手功能 ”*°•❀🌸 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 🌸❀•°*" 专属小助手功能 "*°•❀🌸 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo →💌 智能项目管理（藏着我们的小秘密） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo →💰 金额转换（有特别小彩蛋💖） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo →📜 一键（三键）生成超专业文档（这个功能需要下个版本进行升级哦） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
@@ -484,4 +483,4 @@ if /i "%ANSWER%" == "Y" (
 
 echo.
 echo 完成所有操作！按任意键退出...
-pause 
+pause
