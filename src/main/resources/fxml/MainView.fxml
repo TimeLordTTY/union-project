@@ -21,11 +21,11 @@ fx:controller="com.timelordtty.MainController">
             <Label text="项目管理小助手" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
             <Region HBox.hgrow="ALWAYS" />
             <HBox fx:id="toolbarButtonContainer" spacing="5" alignment="CENTER_RIGHT">
-                <Button fx:id="amountToolButton" text="金额转换" onAction="#handleAmountToolClick"
+                <Button fx:id="amountToolButton" text="金额数字小插件" onAction="#handleAmountToolClick"
                         style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
-                <Button fx:id="docGenToolButton" text="文档生成" onAction="#handleDocGenToolClick"
+                <Button fx:id="docGenToolButton" text="文档生成小插件" onAction="#handleDocGenToolClick"
                         style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
-                <Button fx:id="textCorrectionToolButton" text="文本纠错" onAction="#handleTextCorrectionToolClick"
+                <Button fx:id="textCorrectionToolButton" text="文本处理小插件" onAction="#handleTextCorrectionToolClick"
                         style="-fx-background-color: #e3f2fd; -fx-cursor: hand;" />
             </HBox>
         </HBox>

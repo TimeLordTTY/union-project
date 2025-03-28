@@ -467,8 +467,8 @@ public class ProjectCalendarController {
     private void deleteProject(Project project) {
         Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
         confirmDialog.setTitle("确认删除");
-        confirmDialog.setHeaderText("确定要删除项目 '" + project.getName() + "' 吗？");
-        confirmDialog.setContentText("此操作不可恢复！");
+        confirmDialog.setHeaderText("宝宝不再需要'" + project.getName() + "'这个项目了吗？");
+        confirmDialog.setContentText("删除以后就真的没有了哦~");
         
         Optional<ButtonType> result = confirmDialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
