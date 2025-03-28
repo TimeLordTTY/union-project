@@ -289,7 +289,7 @@ public class ReminderController {
             content.setStyle("-fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);");
             content.setMaxHeight(400);
             
-            Label titleLabel = new Label("项目提醒列表");
+            Label titleLabel = new Label("宝宝将要处理的所有项目事项");
             titleLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
             content.getChildren().add(titleLabel);
             

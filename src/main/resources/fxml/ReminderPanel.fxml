@@ -15,7 +15,7 @@
         <padding>
             <Insets top="10.0" bottom="10.0" left="5.0" right="5.0" />
         </padding>
-        <Label text="项目提醒" style="-fx-text-fill: #424242; -fx-font-weight: bold; -fx-rotate: 90;">
+        <Label text="宝宝将要处理的项目事项" style="-fx-text-fill: #424242; -fx-font-weight: bold; -fx-rotate: 90;">
             <font>
                 <Font name="System Bold" size="12.0" />
             </font>
