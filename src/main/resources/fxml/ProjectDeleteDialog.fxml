@@ -15,7 +15,7 @@
     </header>
     <content>
         <VBox spacing="20" style="-fx-background-color: #FFF5F8; -fx-padding: 15;">
-            <Text text="您确定要删除以下项目吗？" style="-fx-font-size: 14px; -fx-fill: #D81B60;" />
+            <Text text="宝宝不需要这个项目了吗？" style="-fx-font-size: 14px; -fx-fill: #D81B60;" />
             
             <GridPane hgap="10" vgap="10">
                 <Label text="项目名称:" GridPane.columnIndex="0" GridPane.rowIndex="0" 
@@ -40,7 +40,7 @@
                 </columnConstraints>
             </GridPane>
             
-            <Text text="此操作不可恢复，请谨慎操作！" style="-fx-font-size: 14px; -fx-fill: #F06292; -fx-font-weight: bold;" />
+            <Text text="删掉后就真的没有了哦~" style="-fx-font-size: 14px; -fx-fill: #F06292; -fx-font-weight: bold;" />
         </VBox>
     </content>
     <buttonTypes>

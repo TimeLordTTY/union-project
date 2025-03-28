@@ -206,15 +206,42 @@
     -fx-effect: dropshadow(three-pass-box, -theme-shadow, 10, 0, 0, 3);
 }
 
+/* 节假日单元格样式 */
+.holiday-cell {
+    -fx-background-color: #FFF0F5;
+}
+
+.new-year-holiday {
+    -fx-background-color: rgba(255, 215, 0, 0.1);
+}
+
+.spring-festival-holiday {
+    -fx-background-color: rgba(255, 0, 0, 0.05);
+}
+
+.valentine-holiday {
+    -fx-background-color: rgba(255, 182, 193, 0.1);
+}
+
+.children-holiday {
+    -fx-background-color: rgba(152, 251, 152, 0.1);
+}
+
+.qixi-holiday {
+    -fx-background-color: rgba(221, 160, 221, 0.1);
+}
+
+.general-holiday {
+    -fx-background-color: rgba(255, 240, 245, 0.1);
+}
+
 /* 悬浮提示框样式 */
 .popup-validation {
-    -fx-background-color: -theme-background;
-    -fx-background-radius: 10;
-    -fx-border-color: -theme-border;
-    -fx-border-width: 1.5;
-    -fx-border-radius: 10;
-    -fx-effect: dropshadow(three-pass-box, -theme-shadow, 8, 0, 0, 2);
-    -fx-padding: 10;
+    -fx-background-color: #FFF5F8;
+    -fx-padding: 5px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-text-fill: #444444;
 }
 
 .popup-validation-text {
@@ -609,4 +636,29 @@
 
 .info-icon {
     -fx-fill: #2196F3;
+}
+
+/* 节日单元格样式 */
+.holiday-cell {
+    -fx-background-color: #FFF0F5;
+}
+
+.newyear-holiday-cell {
+    -fx-background-color: #F5F9FF;
+}
+
+.spring-festival-holiday-cell {
+    -fx-background-color: #FFF9F5;
+}
+
+.valentine-holiday-cell {
+    -fx-background-color: #FFF0F5;
+}
+
+.children-holiday-cell {
+    -fx-background-color: #F5FFF9;
+}
+
+.qixi-holiday-cell {
+    -fx-background-color: #FFF0FF;
 } 

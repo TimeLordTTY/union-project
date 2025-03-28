@@ -18,23 +18,9 @@ xmlns:fx="http://javafx.com/fxml/1"
 fx:controller="com.timelordtty.MainController"
 stylesheets="@../css/styles.css">
 <top>
-        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: -theme-primary; -fx-padding: 10;">
-            <Region HBox.hgrow="ALWAYS" />
-            
-            <!-- 主题选择按钮区域 -->
-            <HBox fx:id="themeButtonContainer" spacing="5" alignment="CENTER">
-                <Label text="主题:" style="-fx-text-fill: white; -fx-font-weight: bold;"/>
-                <Button fx:id="whiteThemeButton" onAction="#handleWhiteThemeClick" 
-                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #F5F5F5; -fx-border-color: #424242; -fx-border-width: 2px; -fx-cursor: hand;"/>
-                <Button fx:id="pinkThemeButton" onAction="#handlePinkThemeClick" 
-                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #FFCDD2; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
-                <Button fx:id="yellowThemeButton" onAction="#handleYellowThemeClick" 
-                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #FFF9C4; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
-                <Button fx:id="blueThemeButton" onAction="#handleBlueThemeClick" 
-                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #BBDEFB; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
-                <Button fx:id="cyanThemeButton" onAction="#handleCyanThemeClick" 
-                        style="-fx-min-width: 25px; -fx-max-width: 25px; -fx-min-height: 25px; -fx-max-height: 25px; -fx-background-radius: 50%; -fx-border-radius: 50%; -fx-background-color: #B2EBF2; -fx-border-color: transparent; -fx-border-width: 1px; -fx-cursor: hand;"/>
-            </HBox>
+        <HBox spacing="10" alignment="CENTER" style="-fx-background-color: -theme-primary; -fx-padding: 10;">
+            <!-- 标题居中显示 -->
+            <Label text="项目管理小助手" style="-fx-text-fill: -theme-text; -fx-font-weight: bold; -fx-font-size: 18px;" />
             
             <Region minWidth="20" />
             
