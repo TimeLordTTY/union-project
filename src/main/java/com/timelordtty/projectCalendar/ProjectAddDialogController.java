@@ -14,6 +14,7 @@ import com.timelordtty.projectCalendar.utils.DateCalculator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -26,7 +27,13 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
@@ -60,6 +67,10 @@ public class ProjectAddDialogController {
     private boolean isEditing = false;
     private boolean isReadOnly = false;
     
+    // 悬浮提示框
+    private Popup validationPopup;
+    private Text popupText;
+    
     // 生成时间选项的方法
     private List<String> generateTimeOptions() {
         List<String> options = new ArrayList<>();
@@ -81,6 +92,9 @@ public class ProjectAddDialogController {
             AppLogger.info("初始化项目添加对话框控制器");
             projectService = ProjectService.getInstance();
             
+            // 初始化悬浮提示框
+            initValidationPopup();
+            
             // 设置日期选择器格式
             setupDatePickers();
             
@@ -93,9 +107,11 @@ public class ProjectAddDialogController {
             expectedReviewTimeComboBox.setValue("09:00");
             expertReviewTimeComboBox.setValue("09:00");
             
-            // 初始化校验标签
-            validationLabel.setTextFill(Color.RED);
-            validationLabel.setText("");
+            // 隐藏原来的validationLabel
+            if (validationLabel != null) {
+                validationLabel.setVisible(false);
+                validationLabel.setManaged(false);
+            }
             
             // 设置默认值
             onlineDatePicker.setValue(LocalDate.now());
@@ -110,6 +126,7 @@ public class ProjectAddDialogController {
             
             // 使用Platform.runLater确保在JavaFX线程完成UI初始化后设置按钮事件和禁用状态
             Platform.runLater(() -> {
+                // 这里使用内嵌的完整try-catch块
                 try {
                     // 如果dialogPane已经被设置，则设置按钮事件
                     if (dialogPane != null) {
@@ -122,6 +139,68 @@ public class ProjectAddDialogController {
         } catch (Exception e) {
             AppLogger.error("初始化项目添加对话框控制器时发生异常: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 初始化悬浮提示框
+     */
+    private void initValidationPopup() {
+        validationPopup = new Popup();
+        validationPopup.setAutoHide(true);
+        
+        // 创建粉嫩的背景
+        Rectangle background = new Rectangle(300, 40);
+        background.setFill(Color.rgb(255, 182, 193, 0.9)); // 淡粉色带透明度
+        background.setArcWidth(15);
+        background.setArcHeight(15);
+        background.setStroke(Color.rgb(219, 112, 147)); // 深粉色边框
+        background.setStrokeWidth(1.5);
+        
+        // 创建文本
+        popupText = new Text();
+        popupText.setFill(Color.rgb(139, 0, 139)); // 紫色文字
+        popupText.setFont(Font.font("System", 14));
+        popupText.setTextAlignment(TextAlignment.CENTER);
+        
+        // 创建容器
+        StackPane container = new StackPane();
+        container.getChildren().addAll(background, popupText);
+        container.setPadding(new Insets(8));
+        
+        validationPopup.getContent().add(container);
+    }
+    
+    /**
+     * 显示悬浮提示
+     * @param control 控件
+     * @param message 提示信息
+     */
+    private void showValidationPopup(javafx.scene.Node control, String message) {
+        if (validationPopup.isShowing()) {
+            validationPopup.hide();
+        }
+        
+        popupText.setText(message);
+        
+        // 调整位置，放在控件上方
+        javafx.geometry.Bounds bounds = control.localToScreen(control.getBoundsInLocal());
+        validationPopup.show(control, 
+                             bounds.getMinX(), 
+                             bounds.getMinY() - 50); // 上方50像素
+        
+        // 2.5秒后自动隐藏
+        new Thread(() -> {
+            try {
+                Thread.sleep(2500);
+                Platform.runLater(() -> {
+                    if (validationPopup.isShowing()) {
+                        validationPopup.hide();
+                    }
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
     
     /**
@@ -213,19 +292,16 @@ public class ProjectAddDialogController {
         
         if (name.isEmpty()) {
             // 项目名称为空，禁用确定按钮并显示错误提示
-            projectNameField.setStyle("-fx-border-color: red; -fx-border-width: 1px;");
-            validationLabel.setText("请输入项目名称");
-            validationLabel.setVisible(true);
+            projectNameField.setStyle("-fx-border-color: #FF6B6B; -fx-border-width: 2px;");
+            showValidationPopup(projectNameField, "请输入项目名称");
             
             // 禁用确定按钮
             if (dialogPane != null) {
                 dialogPane.lookupButton(ButtonType.OK).setDisable(true);
             }
         } else {
-            // 项目名称有效，启用确定按钮并清除错误提示
+            // 项目名称有效，恢复输入框样式并启用确定按钮
             projectNameField.setStyle("");
-            validationLabel.setText("");
-            validationLabel.setVisible(false);
             
             // 启用确定按钮
             if (dialogPane != null) {
@@ -242,10 +318,8 @@ public class ProjectAddDialogController {
         String regPeriodText = registrationPeriodField.getText().trim();
         String reviewPeriodText = reviewPeriodField.getText().trim();
         
-        // 清除之前可能存在的日期相关提示信息（但保留其他提示如项目名称验证）
-        if (validationLabel.getText().contains("开标时间")) {
-            validationLabel.setText("");
-        }
+        // 重置开标时间输入框样式
+        expectedReviewDatePicker.setStyle("");
         
         // 计算报名截止日期，但只在上网日期和报名期限都有值时进行
         if (onlineDate != null && !regPeriodText.isEmpty()) {
@@ -276,13 +350,13 @@ public class ProjectAddDialogController {
                     LocalDate expectedReviewDate = expectedReviewDatePicker.getValue();
                     if (expectedReviewDate != null) {
                         if (expectedReviewDate.isBefore(earliestReviewDate)) {
-                            // 如果开标时间早于最早评审日期，显示提示（但不阻止操作）
-                            validationLabel.setText("当前开标时间早于最早评审日期");
-                            validationLabel.setVisible(true);
+                            // 如果开标时间早于最早评审日期，显示提示
+                            expectedReviewDatePicker.setStyle("-fx-border-color: #FF6B6B; -fx-border-width: 2px;");
+                            showValidationPopup(expectedReviewDatePicker, "当前开标时间早于最早评审日期");
                         } else if (earliestReviewDate.isAfter(expectedReviewDate)) {
-                            // 如果最早评审日期晚于开标时间，显示提示（但不阻止操作）
-                            validationLabel.setText("当前最早评审日期晚于开标时间");
-                            validationLabel.setVisible(true);
+                            // 如果最早评审日期晚于开标时间，显示提示
+                            expectedReviewDatePicker.setStyle("-fx-border-color: #FF6B6B; -fx-border-width: 2px;");
+                            showValidationPopup(expectedReviewDatePicker, "当前最早评审日期晚于开标时间");
                         }
                     }
                 } else {
@@ -334,6 +408,9 @@ public class ProjectAddDialogController {
         String reviewPeriodText = reviewPeriodField.getText().trim();
         LocalDate onlineDate = onlineDatePicker.getValue();
         
+        // 重置开标时间输入框样式
+        expectedReviewDatePicker.setStyle("");
+        
         // 如果缺少必要的值，则不进行验证
         if (expectedReviewDate == null || reviewPeriodText.isEmpty() || onlineDate == null) {
             return;
@@ -350,11 +427,8 @@ public class ProjectAddDialogController {
             
             // 验证日期关系
             if (expectedReviewDate.isBefore(earliestReviewDate)) {
-                validationLabel.setText("当前开标时间早于最早评审日期");
-                validationLabel.setVisible(true);
-            } else {
-                validationLabel.setText("");
-                validationLabel.setVisible(false);
+                expectedReviewDatePicker.setStyle("-fx-border-color: #FF6B6B; -fx-border-width: 2px;");
+                showValidationPopup(expectedReviewDatePicker, "当前开标时间早于最早评审日期");
             }
         } catch (NumberFormatException e) {
             // 忽略
@@ -620,9 +694,9 @@ public class ProjectAddDialogController {
             // 获取确定按钮
             javafx.scene.Node okButton = dialogPane.lookupButton(ButtonType.OK);
             if (okButton != null) {
-                // 初始禁用确定按钮，直到输入项目名称
-                okButton.setDisable(true);
-                AppLogger.info("初始禁用确定按钮");
+                // 项目名称为空时禁用确定按钮
+                String name = projectNameField.getText().trim();
+                okButton.setDisable(name.isEmpty());
                 
                 // 添加确定按钮的点击监听器，在提交前进行验证
                 okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
@@ -825,21 +899,6 @@ public class ProjectAddDialogController {
         clipboard.setContent(content);
         
         // 显示成功提示
-        validationLabel.setTextFill(Color.GREEN);
-        validationLabel.setText("提示语已复制到剪贴板");
-        
-        // 2秒后清除提示
-        new Thread(() -> {
-            try {
-                Thread.sleep(2000);
-                Platform.runLater(() -> {
-                    if (validationLabel.getText().equals("提示语已复制到剪贴板")) {
-                        validationLabel.setText("");
-                    }
-                });
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
+        showValidationPopup(copyBidTimeBtn, "提示语已复制到剪贴板");
     }
 } 

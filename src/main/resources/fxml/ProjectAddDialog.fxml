@@ -88,9 +88,9 @@
                 </GridPane.margin>
             </HBox>
                 
-            <!-- 提示信息 -->
+            <!-- 提示信息 - 现在使用悬浮提示框，因此隐藏此标签但保留以避免代码错误 -->
             <Label fx:id="validationLabel" text="" GridPane.columnIndex="0" GridPane.rowIndex="11" 
-                GridPane.columnSpan="2" style="-fx-text-fill: red;" maxHeight="20" />
+                GridPane.columnSpan="2" style="-fx-text-fill: red;" visible="false" managed="false" />
                 
             <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" minWidth="120" />
