@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import com.timelordtty.projectCalendar.ProjectCalendarController;
 
+import javafx.animation.FadeTransition;
+import javafx.animation.ParallelTransition;
+import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -13,6 +16,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 /**
  * 应用程序主控制器
@@ -23,6 +27,7 @@ public class MainController {
     @FXML private VBox toolsContainer;
     @FXML private StackPane toolContentArea;
     @FXML private Label toolTitle;
+    @FXML private Button closeToolButton;
     
     // 主题按钮
     @FXML private Button whiteThemeButton;
@@ -33,6 +38,16 @@ public class MainController {
     @FXML private HBox themeButtonContainer;
     
     @FXML private ProjectCalendarController projectCalendarController;
+    
+    // 动画时长（毫秒）
+    private final int ANIMATION_DURATION = 250; // 稍微快一点更自然
+    private final int FADE_DURATION = 200; // 淡入淡出可以更快一些
+    
+    // 按钮当前状态 - true表示展开状态，false表示收起状态
+    private boolean isExpanded = false;
+    
+    // 当前加载的工具
+    private String currentTool = null;
     
     /**
      * 初始化控制器
@@ -45,6 +60,7 @@ public class MainController {
             // 初始化工具容器
             if (toolsContainer != null) {
                 toolsContainer.setVisible(false);
+                isExpanded = false;
             }
             
             // 高亮粉色主题按钮
@@ -268,6 +284,108 @@ public class MainController {
     }
     
     /**
+     * 处理关闭工具按钮点击
+     */
+    @FXML
+    private void handleCloseToolClick() {
+        if (isExpanded) {
+            // 当前是展开状态，收起
+            closeToolButton.setText("展开 ▼");
+            animateClose();
+            isExpanded = false;
+        } else {
+            // 当前是收起状态，展开
+            closeToolButton.setText("收起 ▲");
+            animateOpen();
+            isExpanded = true;
+        }
+    }
+    
+    /**
+     * 收起动画
+     */
+    private void animateClose() {
+        // 创建向上移动动画
+        TranslateTransition translateTransition = new TranslateTransition(Duration.millis(ANIMATION_DURATION), toolsContainer);
+        translateTransition.setFromY(0);
+        translateTransition.setToY(-50); // 增大移动距离让效果更明显
+        
+        // 创建淡出动画
+        FadeTransition fadeTransition = new FadeTransition(Duration.millis(FADE_DURATION), toolsContainer);
+        fadeTransition.setFromValue(1.0);
+        fadeTransition.setToValue(0.0);
+        
+        // 同时播放两个动画
+        ParallelTransition parallelTransition = new ParallelTransition();
+        parallelTransition.getChildren().addAll(translateTransition, fadeTransition);
+        
+        // 动画结束后隐藏工具容器
+        parallelTransition.setOnFinished(event -> {
+            toolsContainer.setVisible(false);
+            // 重置Y位置，以便下次动画
+            toolsContainer.setTranslateY(0);
+        });
+        
+        // 开始播放动画
+        parallelTransition.play();
+    }
+    
+    /**
+     * 展开动画
+     */
+    private void animateOpen() {
+        // 先设置初始状态
+        toolsContainer.setOpacity(0.0);
+        toolsContainer.setTranslateY(-50); // 与收起动画保持一致
+        toolsContainer.setVisible(true);
+        
+        // 创建向下移动动画
+        TranslateTransition translateTransition = new TranslateTransition(Duration.millis(ANIMATION_DURATION), toolsContainer);
+        translateTransition.setFromY(-50);
+        translateTransition.setToY(0);
+        
+        // 创建淡入动画
+        FadeTransition fadeTransition = new FadeTransition(Duration.millis(FADE_DURATION), toolsContainer);
+        fadeTransition.setFromValue(0.0);
+        fadeTransition.setToValue(1.0);
+        
+        // 同时播放两个动画
+        ParallelTransition parallelTransition = new ParallelTransition();
+        parallelTransition.getChildren().addAll(translateTransition, fadeTransition);
+        
+        // 开始播放动画
+        parallelTransition.play();
+    }
+    
+    /**
+     * 工具内容切换动画
+     * @param toolView 新的工具视图
+     */
+    private void animateToolChange(javafx.scene.Parent toolView, String title) {
+        // 创建当前内容淡出动画
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(FADE_DURATION), toolContentArea);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        
+        // 淡出完成后切换内容，然后淡入
+        fadeOut.setOnFinished(e -> {
+            // 清空并设置新内容
+            toolContentArea.getChildren().clear();
+            toolContentArea.getChildren().add(toolView);
+            toolTitle.setText(title);
+            
+            // 创建新内容淡入动画
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(FADE_DURATION), toolContentArea);
+            fadeIn.setFromValue(0.0);
+            fadeIn.setToValue(1.0);
+            fadeIn.play();
+        });
+        
+        // 开始淡出动画
+        fadeOut.play();
+    }
+    
+    /**
      * 处理金额转换工具按钮点击
      */
     @FXML
@@ -307,36 +425,46 @@ public class MainController {
     }
     
     /**
-     * 处理关闭工具按钮点击
-     */
-    @FXML
-    private void handleCloseToolClick() {
-        // 隐藏工具容器
-        toolsContainer.setVisible(false);
-    }
-    
-    /**
      * 加载工具
      * @param title 工具标题
      * @param fxmlPath 工具FXML路径
      */
     private void loadTool(String title, String fxmlPath) {
         try {
-            // 首先清空工具内容区域
-            toolContentArea.getChildren().clear();
-            
             // 加载工具FXML
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             javafx.scene.Parent toolView = loader.load();
+            
+            // 检查是否只是切换工具
+            if (toolsContainer.isVisible()) {
+                // 如果是切换到相同的工具，不做任何操作
+                if (fxmlPath.equals(currentTool)) {
+                    return;
+                }
+                
+                // 使用淡入淡出动画切换工具内容
+                animateToolChange(toolView, title);
+                currentTool = fxmlPath;
+                return;
+            }
+            
+            // 记录当前工具
+            currentTool = fxmlPath;
             
             // 设置工具标题
             toolTitle.setText(title);
             
             // 将工具视图添加到内容区域
+            toolContentArea.getChildren().clear();
             toolContentArea.getChildren().add(toolView);
             
-            // 显示工具容器
-            toolsContainer.setVisible(true);
+            // 更新状态和按钮文本
+            closeToolButton.setText("收起 ▲");
+            isExpanded = true;
+            
+            // 展示工具容器（带动画）
+            animateOpen();
+            
         } catch (IOException e) {
             AppLogger.error("加载工具时发生IO异常: " + e.getMessage(), e);
             showError("无法加载工具", "加载工具时发生IO异常: " + e.getMessage());
