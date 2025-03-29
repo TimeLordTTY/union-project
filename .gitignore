@@ -78,7 +78,7 @@ temp/
 javafx-modules/
 
 # 打包后的文件
-项目管理小助手/
+ProjectAssistant/
 lib/
 jre/
 

@@ -43,6 +43,7 @@
         <VBox spacing="10">
             <!-- 字段列表管理区域 -->
             <VBox spacing="10">
+                <Label text="字段列表管理区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
                 <HBox spacing="5">
                     <Label text="对象字段：" style="-fx-text-fill: -pink-text;"/>
                     <TextField fx:id="objectFieldInput" HBox.hgrow="ALWAYS" promptText="输入对象字段名称"/>
@@ -56,7 +57,7 @@
             </VBox>
             
             <!-- 字段列表区域 -->
-            <Label text="字段列表" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <Label text="字段列表区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
             
             <!-- 对象字段列表 -->
             <TitledPane text="对象字段" expanded="true" collapsible="true">
@@ -70,14 +71,19 @@
             </TitledPane>
             
             <!-- 列表字段区域 -->
-            <TitledPane text="列表字段" expanded="true" collapsible="true" VBox.vgrow="ALWAYS">
-                <VBox fx:id="listFieldsContainer" spacing="10">
-                    <!-- 列表字段会动态添加到这里 -->
-                </VBox>
+            <TitledPane text="列表名称" expanded="true" collapsible="true" VBox.vgrow="ALWAYS">
+                <TableView fx:id="listFieldsTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="listNameColumn" text="列表名称" prefWidth="120"/>
+                        <TableColumn fx:id="listObjectNameColumn" text="列表对象名" prefWidth="150"/>
+                        <TableColumn fx:id="listAddColumn" text="+" prefWidth="30"/>
+                        <TableColumn fx:id="listDeleteColumn" text="X" prefWidth="30"/>
+                    </columns>
+                </TableView>
             </TitledPane>
             
             <!-- 模板编辑区域 -->
-            <Label text="模板编辑区" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <Label text="模板编辑区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
             <StackPane VBox.vgrow="ALWAYS">
                 <!-- Word模式编辑区 -->
                 <TextArea fx:id="wordEditor" styleClass="template-editor" wrapText="true" visible="true"/>
@@ -98,7 +104,7 @@
         <!-- 右侧：数据填充和预览区域 -->
         <VBox spacing="10">
             <!-- 字段填充区域 -->
-            <Label text="数据填充区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <Label text="字段填充区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
             
             <!-- 对象字段填充 -->
             <TitledPane text="对象字段填充" expanded="true" collapsible="true">
@@ -113,12 +119,22 @@
             <!-- 列表数据填充 -->
             <TitledPane text="列表数据填充" expanded="true" collapsible="true" VBox.vgrow="ALWAYS">
                 <VBox fx:id="listDataContainer" spacing="10">
-                    <!-- 动态添加列表数据表格 -->
+                    <!-- 每个列表会生成一个TableView，动态添加 -->
+                    <TableView fx:id="listDataTableExample" VBox.vgrow="ALWAYS">
+                        <!-- 表头动态生成，示例结构 -->
+                        <columns>
+                            <TableColumn fx:id="listNameDataColumn" text="列表名称" prefWidth="120"/>
+                            <!-- 其他列会根据列表对象名动态添加 -->
+                        </columns>
+                    </TableView>
+                    <HBox alignment="CENTER_RIGHT">
+                        <Button text="+" onAction="#handleAddListDataRow" styleClass="small-button"/>
+                    </HBox>
                 </VBox>
             </TitledPane>
             
             <!-- 实时预览区域 -->
-            <Label text="实时预览" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <Label text="实时预览区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
             <StackPane VBox.vgrow="ALWAYS">
                 <!-- Word预览区 -->
                 <TextArea fx:id="wordPreviewArea" VBox.vgrow="ALWAYS" editable="false" 

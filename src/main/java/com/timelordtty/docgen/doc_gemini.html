@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板与文档生成工具</title>
+    <style>
+        /* Reusing styles from the original doc.html */
+        :root {
+            --pink-light: #FFD0E0;
+            --pink-text: #E91E63;
+            --primary-color: #E91E63; /* Main interaction color */
+            --secondary-color: #FFD0E0; /* Lighter pink for backgrounds/tags */
+            --border-color: #FFB6C1; /* Light pink border */
+            --text-color: #333;
+            --bg-color: #FFF5F8; /* Very light pink background */
+            --hover-color: #D81B60; /* Darker pink for hover */
+            --placeholder-bg: rgba(233, 30, 99, 0.1);
+            --placeholder-border: #E91E63;
+            --button-text-color: #E91E63;
+            --button-bg-color: #FFF0F5; /* Light pinkish for buttons */
+            --button-border-color: #FFB6C1;
+            --header-bg: #EAAA00; /* Keeping original header color for now */
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 10px 15px; /* Slightly smaller header */
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+         .header h1 {
+             margin: 0;
+             font-size: 1.5em;
+         }
+
+        .main-container {
+            width: 98%; /* More width */
+            margin: 15px auto;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Allow container to grow */
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px;
+            gap: 15px; /* Spacing between sections */
+        }
+
+        /* Top Controls Area */
+        .top-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Spacing between control groups */
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .top-controls label {
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        .top-controls select, .top-controls button {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .top-controls select {
+             min-width: 120px;
+        }
+        .top-controls button:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        /* Hidden file input for template selection */
+        #template-file-input {
+            display: none;
+        }
+
+        /* Middle Area Layout */
+        .middle-area {
+            display: flex;
+            gap: 15px;
+            flex-grow: 1; /* Allow middle area to take up space */
+            min-height: 300px; /* Ensure minimum height */
+        }
+
+        /* Left Middle: Field Management & List */
+        .field-management-area {
+            flex: 2; /* Give more space to field management */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            overflow: hidden; /* Prevent content overflow */
+        }
+        .field-management-controls {
+            flex-shrink: 0; /* Don't shrink controls */
+        }
+        .field-management-controls .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .field-management-controls label {
+            width: 70px; /* Fixed label width */
+            text-align: right;
+            font-size: 0.9em;
+        }
+        .field-management-controls input[type="text"] {
+            flex-grow: 1;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .field-management-controls button {
+            padding: 6px 10px;
+             white-space: nowrap; /* Prevent button text wrapping */
+        }
+
+        .field-list-display {
+            flex-grow: 1; /* Allow list to take remaining space */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto; /* Scroll if content overflows */
+            padding-right: 5px; /* Space for scrollbar */
+        }
+        .object-field-list, .list-field-area {
+             border: 1px dashed var(--border-color);
+             border-radius: 4px;
+             padding: 10px;
+        }
+        .object-field-list h4, .list-field-area h4 {
+             margin-top: 0;
+             margin-bottom: 10px;
+             color: var(--primary-color);
+             font-size: 1em;
+             border-bottom: 1px solid var(--secondary-color);
+             padding-bottom: 5px;
+        }
+        .field-list-item, .list-detail-row {
+             display: flex;
+             align-items: center;
+             padding: 4px 0;
+             font-size: 0.9em;
+             gap: 10px; /* Space between columns */
+        }
+        /* Style for the 3 columns in object list */
+        .field-list-item span:nth-child(1) { flex: 2; font-weight: bold; } /* Field Name */
+        .field-list-item span:nth-child(2) { flex: 3; color: #666; font-family: monospace;} /* Placeholder */
+        .field-list-item span:nth-child(3) button { /* Delete Button */
+            background: none;
+            border: none;
+            color: #ff4d4d;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 5px;
+            font-size: 1.1em;
+            line-height: 1;
+        }
+        .field-list-item span:nth-child(3) button:hover {
+             color: #cc0000;
+        }
+        .field-list-item {
+             border-bottom: 1px dotted var(--border-color);
+        }
+         .field-list-item:last-child {
+             border-bottom: none;
+        }
+
+        /* Complex List Field Structure */
+        .list-container {
+            margin-bottom: 15px;
+        }
+        .list-detail-row span:nth-child(1) { /* List Name */
+            flex: 1;
+            font-weight: bold;
+            /* CSS for rowspan simulation might be needed if not using table */
+            align-self: flex-start; /* Align top for visual merge */
+            padding-top: 2px;
+        }
+        .list-detail-row input[type="text"] { /* List Object Name Input */
+             flex: 3;
+             padding: 4px;
+             font-size: 0.9em;
+             border: 1px solid var(--border-color);
+             border-radius: 3px;
+        }
+        .list-detail-row button { /* Add/Delete buttons */
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+            padding: 0;
+        }
+        .list-detail-row .add-list-object-btn { color: #4CAF50; }
+        .list-detail-row .delete-list-object-btn { color: #ff4d4d; }
+        .list-detail-row .add-list-object-btn:hover { background-color: #e8f5e9; }
+        .list-detail-row .delete-list-object-btn:hover { background-color: #ffebee; }
+
+        /* Right Middle: Data Filling */
+        .data-filling-area {
+            flex: 3; /* Give more space to data filling */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            overflow-y: auto; /* Scroll if needed */
+        }
+        .object-filling-list, .list-filling-tables {
+            border: 1px dashed var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .object-filling-list h4, .list-filling-tables h4 {
+             margin-top: 0;
+             margin-bottom: 10px;
+             color: var(--primary-color);
+             font-size: 1em;
+             border-bottom: 1px solid var(--secondary-color);
+             padding-bottom: 5px;
+        }
+        .object-filling-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+        .object-filling-item label {
+            width: 150px; /* Adjust as needed */
+            text-align: right;
+            font-weight: bold;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+        .object-filling-item input[type="text"] {
+            flex-grow: 1;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* List Filling Table Structure */
+        .list-filling-table-container {
+             margin-bottom: 20px;
+        }
+        .list-filling-table-container h5 { /* List Name as header */
+            margin: 0 0 5px 0;
+            font-size: 1em;
+        }
+        .list-filling-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .list-filling-table th, .list-filling-table td {
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            text-align: left;
+        }
+        .list-filling-table th {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        .list-filling-table td input[type="text"] {
+            width: 95%; /* Fill cell */
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        .list-filling-table td input[type="text"]:focus {
+             border-color: var(--primary-color);
+             outline: none;
+        }
+        .add-list-data-row-btn {
+             margin-top: 5px;
+             padding: 4px 8px;
+             font-size: 0.8em;
+             float: right; /* Position add button */
+        }
+
+        /* Bottom Area Layout */
+        .bottom-area {
+            display: flex;
+            gap: 15px;
+            flex-grow: 2; /* Allow bottom area to take significant space */
+            min-height: 300px; /* Ensure minimum height */
+        }
+
+        /* Bottom Left: Template Editor */
+        .template-editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            overflow: hidden; /* Manage overflow */
+        }
+         .template-editor-area h4 {
+             margin-top: 0;
+             margin-bottom: 10px;
+             color: var(--primary-color);
+             font-size: 1em;
+             flex-shrink: 0;
+         }
+        .editor-container {
+            flex-grow: 1; /* Editor takes remaining space */
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow-y: auto; /* Scroll editor content */
+            padding: 10px;
+            line-height: 1.5;
+            background-color: #fff; /* White background for editor */
+        }
+        .editor-container[contenteditable="true"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        /* Style for placeholders within the editor */
+        .editor-placeholder {
+            background-color: var(--placeholder-bg);
+            border: 1px dashed var(--placeholder-border);
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-family: monospace;
+            cursor: default; /* Indicate it's special text */
+        }
+
+        /* Bottom Right: Real-time Preview */
+        .preview-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            overflow: hidden;
+        }
+         .preview-area h4 {
+             margin-top: 0;
+             margin-bottom: 10px;
+             color: var(--primary-color);
+             font-size: 1em;
+             flex-shrink: 0;
+         }
+        .preview-container {
+            flex-grow: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f8f8f8; /* Slightly different background for preview */
+            line-height: 1.5;
+        }
+         /* Specific styles for previewed content if needed */
+        .preview-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .preview-container th, .preview-container td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: left;
+        }
+        .preview-container th {
+             background-color: #eee;
+        }
+
+
+        /* Bottom Button Bar */
+        .bottom-buttons {
+            display: flex;
+            justify-content: space-between; /* Space out button groups */
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .button-group {
+             display: flex;
+             gap: 10px;
+        }
+        .bottom-buttons button {
+            padding: 8px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .bottom-buttons button:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .bottom-buttons .primary-action { /* Distinct style for main actions */
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .bottom-buttons .primary-action:hover {
+            background-color: var(--hover-color);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>模板与文档生成工具</h1>
+    </div>
+
+    <div class="main-container">
+
+        <!-- 1. Top Controls -->
+        <div class="top-controls">
+            <label for="template-type-select">模板类型:</label>
+            <select id="template-type-select" onchange="handleTemplateTypeChange()">
+                <option value="word">Word (.docx)</option>
+                <option value="excel">Excel (.xlsx)</option>
+            </select>
+            <button id="select-template-btn" onclick="selectTemplateFile()">选择模板</button>
+            <input type="file" id="template-file-input" accept=".docx,.xlsx" onchange="handleTemplateFileSelected(event)">
+
+            <div style="margin-left: auto;"> <!-- Push buttons to the right -->
+                 <button id="export-fields-btn" onclick="exportFieldsToExcel()">字段导出</button>
+                 <button id="import-data-btn" onclick="importDataFromExcel()">Excel数据导入</button>
+                 <input type="file" id="import-excel-input" accept=".xlsx,.xls" style="display: none;" onchange="handleExcelDataImport(event)">
+            </div>
+        </div>
+
+        <!-- 2. Middle Area (Field Management & Data Filling) -->
+        <div class="middle-area">
+            <!-- 2a. Left: Field Management -->
+            <div class="field-management-area">
+                <div class="field-management-controls">
+                    <div class="input-row">
+                        <label for="object-field-input">对象字段:</label>
+                        <input type="text" id="object-field-input" placeholder="例如: customerName">
+                        <button onclick="addObjectField()">添加</button>
+                    </div>
+                    <div class="input-row">
+                        <label for="list-name-input">列表名称:</label>
+                        <input type="text" id="list-name-input" placeholder="例如: products">
+                        <button onclick="addListName()">添加</button>
+                    </div>
+                </div>
+
+                <div class="field-list-display">
+                    <div class="object-field-list" id="object-field-list-container">
+                         <h4>对象字段列表 <small>(双击插入)</small></h4>
+                         <!-- Object fields will be added here dynamically -->
+                         <!-- Example:
+                         <div class="field-list-item" ondblclick="insertPlaceholder('customerName')">
+                            <span>customerName</span>
+                            <span>{{customerName}}</span>
+                            <span><button onclick="removeObjectField(this, 'customerName')">X</button></span>
+                         </div>
+                         -->
+                    </div>
+                    <div class="list-field-area" id="list-field-list-container">
+                         <h4>列表名称与对象 <small>(双击列表对象插入)</small></h4>
+                         <!-- List containers will be added here dynamically -->
+                         <!-- Example for ONE list named 'products':
+                         <div class="list-container" data-list-name="products">
+                            <div class="list-detail-row">
+                                <span>products</span>
+                                <input type="text" placeholder="列表对象名, e.g., productName" value="">
+                                <button class="add-list-object-btn" onclick="addListObjectRow(this)">+</button>
+                                <button class="delete-list-object-btn" onclick="removeListObjectRow(this)">X</button>
+                            </div>
+                         </div>
+                         -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2b. Right: Data Filling -->
+            <div class="data-filling-area">
+                 <div class="object-filling-list" id="object-filling-container">
+                     <h4>对象字段填充</h4>
+                     <!-- Object field inputs will be added here dynamically -->
+                     <!-- Example:
+                     <div class="object-filling-item">
+                         <label for="data-fill-customerName">customerName:</label>
+                         <input type="text" id="data-fill-customerName" oninput="updatePreview()">
+                     </div>
+                      -->
+                 </div>
+                 <div class="list-filling-tables" id="list-filling-container">
+                     <h4>列表数据填充</h4>
+                     <!-- List data tables will be added here dynamically -->
+                     <!-- Example for ONE list named 'products' with objects 'productName', 'quantity':
+                     <div class="list-filling-table-container" data-list-name="products">
+                        <h5>列表: products</h5>
+                        <table class="list-filling-table">
+                            <thead>
+                                <tr>
+                                    <th>productName</th>
+                                    <th>quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                     <td><input type="text" data-list="products" data-row="0" data-col="productName" oninput="updatePreview()"></td>
+                                     <td><input type="text" data-list="products" data-row="0" data-col="quantity" oninput="updatePreview()"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="add-list-data-row-btn action-button" onclick="addListDataRow('products')">+</button>
+                     </div>
+                     -->
+                 </div>
+            </div>
+        </div>
+
+        <!-- 3. Bottom Area (Editor & Preview) -->
+        <div class="bottom-area">
+            <!-- 3a. Left: Template Editor -->
+            <div class="template-editor-area">
+                <h4>模板编辑区域 <span id="loaded-template-name" style="font-weight:normal; color: #666;"></span></h4>
+                <div id="template-editor-content" class="editor-container" contenteditable="true" oninput="handleEditorInput()">
+                    <!-- Template content will be loaded or typed here -->
+                    <p>请先通过“选择模板”按钮加载模板，或在此处开始编辑。</p>
+                </div>
+                 <!-- Placeholder for a potential Excel-like editor (hidden by default) -->
+                 <div id="excel-editor-placeholder" class="editor-container" style="display: none;">
+                     Excel模板编辑功能需要特定库支持，当前为占位符。
+                 </div>
+            </div>
+
+            <!-- 3b. Right: Real-time Preview -->
+            <div class="preview-area">
+                 <h4>实时预览区域</h4>
+                 <div id="preview-content" class="preview-container">
+                     <!-- Preview content will be rendered here -->
+                     预览将根据模板和填充的数据实时更新。
+                 </div>
+                 <!-- Placeholder for a potential Excel-like preview (hidden by default) -->
+                  <div id="excel-preview-placeholder" class="preview-container" style="display: none;">
+                      Excel预览功能需要特定库支持，当前为占位符。
+                  </div>
+            </div>
+        </div>
+
+        <!-- 4. Bottom Buttons -->
+        <div class="bottom-buttons">
+            <div class="button-group">
+                 <button id="save-template-btn" onclick="saveTemplate()">保存模板</button>
+                 <button id="generate-template-btn" onclick="generateNewTemplate()">生成模板(另存)</button>
+            </div>
+             <div class="button-group">
+                 <button id="generate-document-btn" class="primary-action" onclick="generateDocument()">生成文档</button>
+             </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Global State (Example Placeholders) ---
+        let currentTemplateType = 'word'; // 'word' or 'excel'
+        let currentTemplateContent = ''; // Store raw template content
+        let loadedTemplatePath = null; // Store the path/handle of the loaded file for overwrite
+        let objectFields = []; // Array of { name: 'fieldName', placeholder: '{{fieldName}}' }
+        let listFields = {}; // Object like: { listName: ['objectName1', 'objectName2'] }
+        let objectData = {}; // { fieldName: 'value' }
+        let listData = {}; // { listName: [ {objectName1: 'val', objectName2: 'val'}, ...rows ] }
+
+        // --- DOM Elements (Cache frequently used ones) ---
+        const templateTypeSelect = document.getElementById('template-type-select');
+        const templateFileInput = document.getElementById('template-file-input');
+        const importExcelInput = document.getElementById('import-excel-input');
+        const objectFieldInputEl = document.getElementById('object-field-input');
+        const listNameInputEl = document.getElementById('list-name-input');
+        const objectFieldListContainer = document.getElementById('object-field-list-container');
+        const listFieldListContainer = document.getElementById('list-field-list-container');
+        const objectFillingContainer = document.getElementById('object-filling-container');
+        const listFillingContainer = document.getElementById('list-filling-container');
+        const templateEditorContent = document.getElementById('template-editor-content');
+        const previewContent = document.getElementById('preview-content');
+        const loadedTemplateNameEl = document.getElementById('loaded-template-name');
+        // Excel related placeholders (if needed)
+        const excelEditorPlaceholder = document.getElementById('excel-editor-placeholder');
+        const excelPreviewPlaceholder = document.getElementById('excel-preview-placeholder');
+
+
+        // --- Event Handlers & Functions ---
+
+        function handleTemplateTypeChange() {
+            currentTemplateType = templateTypeSelect.value;
+            console.log("Template type changed to:", currentTemplateType);
+            // TODO: Update UI if necessary (e.g., switch editor/preview view)
+            // For now, just log
+             if (currentTemplateType === 'excel') {
+                 templateEditorContent.style.display = 'none';
+                 excelEditorPlaceholder.style.display = 'block';
+                 previewContent.style.display = 'none';
+                 excelPreviewPlaceholder.style.display = 'block';
+                 alert("Excel 模板编辑和预览需要特定库支持，当前界面为占位符。");
+             } else {
+                 templateEditorContent.style.display = 'block';
+                 excelEditorPlaceholder.style.display = 'none';
+                 previewContent.style.display = 'block';
+                 excelPreviewPlaceholder.style.display = 'none';
+             }
+             // Reset content when type changes?
+             templateEditorContent.innerHTML = '<p>模板类型已切换，请重新加载或编辑。</p>';
+             previewContent.innerHTML = '预览将根据模板和填充的数据实时更新。';
+
+        }
+
+        function selectTemplateFile() {
+            templateFileInput.accept = currentTemplateType === 'word' ? '.docx' : '.xlsx';
+            templateFileInput.click(); // Trigger the hidden file input
+        }
+
+        function handleTemplateFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            console.log("Template file selected:", file.name);
+            loadedTemplatePath = file; // Store file handle/path if needed for saving
+            loadedTemplateNameEl.textContent = `- ${file.name}`;
+
+            // --- Actual File Reading/Parsing Needed Here ---
+            // Example: Use FileReader API for text-based or libraries for docx/xlsx
+            // For DOCX: Mammoth.js or PizZip+Docxtemplater (browser) or server-side
+            // For XLSX: SheetJS (js-xlsx)
+            alert(`模板文件 "${file.name}" 已选择。\n实际的文件内容加载和解析需要专门的库。\n编辑器将显示模拟内容。`);
+
+            // Simulate loading content into editor
+            if (currentTemplateType === 'word') {
+                templateEditorContent.innerHTML = `<h1>模拟加载: ${file.name}</h1><p>这是从 <b>${file.name}</b> 加载的模拟内容。</p><p>包含占位符: {{exampleField}} 和 {{anotherField}}</p>`;
+                 currentTemplateContent = templateEditorContent.innerHTML; // Store for preview
+            } else {
+                 // Handle Excel loading simulation
+                 templateEditorContent.style.display = 'none';
+                 excelEditorPlaceholder.style.display = 'block';
+                 excelEditorPlaceholder.innerHTML = `Excel 模板 "${file.name}" 已加载 (模拟)。实际编辑需要库支持。`;
+                 currentTemplateContent = `Excel: ${file.name}`; // Placeholder
+            }
+
+            // Clear the input value to allow selecting the same file again
+            event.target.value = null;
+            updatePreview(); // Update preview after loading
+        }
+
+        function exportFieldsToExcel() {
+             console.log("Exporting fields to Excel...");
+             // --- Logic to gather fields from objectFields and listFields ---
+             // --- Use SheetJS or similar library to create and download Excel ---
+             alert("字段导出功能需要实现。\n将收集当前定义的对象字段和列表字段，并生成匹配数据填充区域结构的Excel模板。");
+        }
+
+        function importDataFromExcel() {
+            importExcelInput.click(); // Trigger hidden file input for data import
+        }
+
+        function handleExcelDataImport(event) {
+             const file = event.target.files[0];
+             if (!file) return;
+             console.log("Importing data from Excel:", file.name);
+             // --- Use SheetJS or similar library to read Excel data ---
+             // --- Parse data and populate the input fields in the Data Filling area ---
+             alert(`Excel 数据文件 "${file.name}" 已选择。\n实际的数据解析和填充需要库支持。`);
+             event.target.value = null; // Clear input
+             // Potentially call updatePreview() after data is filled (simulation)
+        }
+
+        function addObjectField() {
+            const fieldName = objectFieldInputEl.value.trim();
+            if (!fieldName || objectFields.some(f => f.name === fieldName)) {
+                alert("请输入有效的、唯一的对象字段名称。");
+                return;
+            }
+             if (!/^[a-zA-Z0-9_]+$/.test(fieldName)) {
+                 alert("字段名称只能包含字母、数字和下划线。");
+                 return;
+             }
+
+            const placeholder = `{{${fieldName}}}`;
+            objectFields.push({ name: fieldName, placeholder: placeholder });
+            objectFieldInputEl.value = ''; // Clear input
+
+            renderObjectFieldList();
+            renderObjectFillingList();
+            updatePreview(); // Update preview as fields change
+            console.log("Added object field:", fieldName);
+        }
+
+         function removeObjectField(buttonElement, fieldName) {
+            objectFields = objectFields.filter(f => f.name !== fieldName);
+            delete objectData[fieldName]; // Remove corresponding data
+
+            renderObjectFieldList();
+            renderObjectFillingList();
+            updatePreview();
+            console.log("Removed object field:", fieldName);
+         }
+
+        function addListName() {
+            const listName = listNameInputEl.value.trim();
+             if (!listName || listFields.hasOwnProperty(listName)) {
+                 alert("请输入有效的、唯一的列表名称。");
+                 return;
+             }
+            if (!/^[a-zA-Z0-9_]+$/.test(listName)) {
+                 alert("列表名称只能包含字母、数字和下划线。");
+                 return;
+             }
+
+            listFields[listName] = []; // Initialize with empty object list
+            listData[listName] = []; // Initialize data for this list
+            listNameInputEl.value = '';
+
+            renderListFieldArea();
+            renderListFillingTables();
+            updatePreview();
+            console.log("Added list name:", listName);
+        }
+
+        // --- Rendering Functions (Crucial for Dynamic UI) ---
+
+        function renderObjectFieldList() {
+            // Clear existing list first, except the header
+            const header = objectFieldListContainer.querySelector('h4');
+            objectFieldListContainer.innerHTML = '';
+            if (header) objectFieldListContainer.appendChild(header);
+
+            objectFields.forEach(field => {
+                const item = document.createElement('div');
+                item.className = 'field-list-item';
+                item.ondblclick = () => insertPlaceholder(field.name);
+                item.innerHTML = `
+                    <span>${field.name}</span>
+                    <span>${field.placeholder}</span>
+                    <span><button onclick="removeObjectField(this, '${field.name}')">X</button></span>
+                `;
+                objectFieldListContainer.appendChild(item);
+            });
+        }
+
+        function renderListFieldArea() {
+            // Clear existing list first, except the header
+            const header = listFieldListContainer.querySelector('h4');
+            listFieldListContainer.innerHTML = '';
+             if (header) listFieldListContainer.appendChild(header);
+
+            for (const listName in listFields) {
+                const listContainer = document.createElement('div');
+                listContainer.className = 'list-container';
+                listContainer.dataset.listName = listName;
+
+                const listObjects = listFields[listName];
+                if (listObjects.length === 0) {
+                     // Initial row when list is first added
+                     listContainer.innerHTML += createListObjectRowHTML(listName, '', 0, true);
+                } else {
+                     listObjects.forEach((objName, index) => {
+                         listContainer.innerHTML += createListObjectRowHTML(listName, objName, index, index === 0);
+                     });
+                }
+                 listFieldListContainer.appendChild(listContainer);
+            }
+        }
+
+        function createListObjectRowHTML(listName, objectName, index, isFirstRow) {
+             // Rowspan simulation: only show list name on the first row conceptually
+             const listNameHTML = isFirstRow ? `<span>${listName}</span>` : `<span></span>`; // Placeholder for alignment
+             return `
+                <div class="list-detail-row" data-list-name="${listName}" data-index="${index}">
+                    ${listNameHTML}
+                    <input type="text" placeholder="列表对象名, e.g., productName" value="${objectName || ''}" onchange="updateListObjectName('${listName}', ${index}, this.value)">
+                    <button class="add-list-object-btn" onclick="addListObjectRow(this)">+</button>
+                    <button class="delete-list-object-btn" onclick="removeListObjectRow(this, '${listName}', ${index})">X</button>
+                </div>
+             `;
+        }
+
+
+        function renderObjectFillingList() {
+             // Clear existing list first, except the header
+             const header = objectFillingContainer.querySelector('h4');
+             objectFillingContainer.innerHTML = '';
+             if (header) objectFillingContainer.appendChild(header);
+
+             objectFields.forEach(field => {
+                 const item = document.createElement('div');
+                 item.className = 'object-filling-item';
+                 const dataId = `data-fill-${field.name}`;
+                 item.innerHTML = `
+                     <label for="${dataId}">${field.name}:</label>
+                     <input type="text" id="${dataId}" value="${objectData[field.name] || ''}" oninput="updateObjectData('${field.name}', this.value); updatePreview();">
+                 `;
+                 objectFillingContainer.appendChild(item);
+             });
+        }
+
+        function renderListFillingTables() {
+            // Clear existing list first, except the header
+            const header = listFillingContainer.querySelector('h4');
+            listFillingContainer.innerHTML = '';
+            if (header) listFillingContainer.appendChild(header);
+
+            for (const listName in listFields) {
+                 const listObjects = listFields[listName];
+                 if(listObjects.length === 0) continue; // Don't render table if no objects defined
+
+                 const tableContainer = document.createElement('div');
+                 tableContainer.className = 'list-filling-table-container';
+                 tableContainer.dataset.listName = listName;
+
+                 let tableHTML = `<h5>列表: ${listName}</h5>
+                                 <table class="list-filling-table">
+                                    <thead><tr>`;
+                 listObjects.forEach(objName => {
+                     tableHTML += `<th>${objName}</th>`;
+                 });
+                 tableHTML += `</tr></thead><tbody>`;
+
+                 const currentListData = listData[listName] || [];
+                 if (currentListData.length === 0) {
+                     // Add one empty row by default if no data exists yet
+                     tableHTML += '<tr>';
+                     listObjects.forEach(objName => {
+                        tableHTML += `<td><input type="text" data-list="${listName}" data-row="0" data-col="${objName}" oninput="updateListData('${listName}', 0, '${objName}', this.value); updatePreview();"></td>`;
+                     });
+                     tableHTML += '</tr>';
+                      // Ensure data structure exists even for the default empty row
+                     if (!listData[listName] || listData[listName].length === 0) {
+                         listData[listName] = [{}];
+                     }
+                 } else {
+                     currentListData.forEach((row, rowIndex) => {
+                         tableHTML += '<tr>';
+                         listObjects.forEach(objName => {
+                             tableHTML += `<td><input type="text" data-list="${listName}" data-row="${rowIndex}" data-col="${objName}" value="${row[objName] || ''}" oninput="updateListData('${listName}', ${rowIndex}, '${objName}', this.value); updatePreview();"></td>`;
+                         });
+                         tableHTML += '</tr>';
+                     });
+                 }
+
+                 tableHTML += `</tbody></table>
+                              <button class="add-list-data-row-btn action-button" onclick="addListDataRow('${listName}')">+</button>`;
+
+                 tableContainer.innerHTML = tableHTML;
+                 listFillingContainer.appendChild(tableContainer);
+             }
+        }
+
+
+        // --- Data Update Functions ---
+        function updateObjectData(fieldName, value) {
+            objectData[fieldName] = value;
+        }
+
+        function updateListData(listName, rowIndex, colName, value) {
+            if (!listData[listName]) listData[listName] = [];
+            while (listData[listName].length <= rowIndex) {
+                listData[listName].push({}); // Ensure row object exists
+            }
+            listData[listName][rowIndex][colName] = value;
+        }
+
+        function updateListObjectName(listName, index, newName) {
+            // Basic validation
+            if (!/^[a-zA-Z0-9_]+$/.test(newName) && newName !== '') {
+                 alert("列表对象名称只能包含字母、数字和下划线。");
+                 // Re-render to potentially reset the input value or handle differently
+                 renderListFieldArea();
+                 return;
+             }
+             // Check for duplicates within the same list
+             if (newName && listFields[listName].some((name, i) => name === newName && i !== index)) {
+                  alert(`列表 "${listName}" 中已存在对象名称 "${newName}"。`);
+                  renderListFieldArea(); // Re-render to reset
+                  return;
+             }
+
+            const oldName = listFields[listName][index];
+            listFields[listName][index] = newName;
+
+            // Update data keys if name changed
+            if (oldName && oldName !== newName && listData[listName]) {
+                listData[listName].forEach(row => {
+                     if(row.hasOwnProperty(oldName)) {
+                         row[newName] = row[oldName];
+                         delete row[oldName];
+                     }
+                 });
+            }
+
+            console.log(`Updated list object name for ${listName}[${index}] from ${oldName} to ${newName}`);
+            // Re-render the filling table for this list as headers changed
+            renderListFillingTables();
+            updatePreview();
+        }
+
+        // --- List Manipulation Functions ---
+
+        function addListObjectRow(buttonElement) {
+             const row = buttonElement.closest('.list-detail-row');
+             const container = buttonElement.closest('.list-container');
+             const listName = container.dataset.listName;
+             const newIndex = container.querySelectorAll('.list-detail-row').length;
+
+             // Basic check: ensure previous input is not empty before adding new
+             const previousInput = row.querySelector('input[type="text"]');
+             if (!previousInput.value.trim()) {
+                 alert('请先为当前行输入列表对象名称。');
+                 return;
+             }
+             // Basic check: Ensure the newName is valid
+             if (!/^[a-zA-Z0-9_]+$/.test(previousInput.value.trim())) {
+                 alert("列表对象名称只能包含字母、数字和下划线。");
+                 return;
+             }
+             // Basic check: Ensure the newName is unique in this list
+             if (listFields[listName].includes(previousInput.value.trim())) {
+                 alert(`列表 "${listName}" 中已存在对象名称 "${previousInput.value.trim()}"。`);
+                 return;
+             }
+
+
+             // Update data structure (implicitly done by onchange, but ensure it exists)
+             if (!listFields[listName][previousInput.dataset.index]) {
+                  listFields[listName][previousInput.dataset.index] = previousInput.value.trim();
+             }
+
+
+             const newRowHTML = createListObjectRowHTML(listName, '', newIndex, false);
+             row.insertAdjacentHTML('afterend', newRowHTML);
+
+             // Add placeholder for the new object in the data model IF the list already had data
+             // Usually handled when rendering the filling table, but good practice:
+              if(!listFields[listName][newIndex]) {
+                   listFields[listName].push(''); // Add empty placeholder for name
+              }
+
+             console.log(`Added new object row for list ${listName} at index ${newIndex}`);
+             // Re-render filling tables because structure changed
+             renderListFillingTables();
+             updatePreview(); // Update preview
+        }
+
+        function removeListObjectRow(buttonElement, listName, index) {
+             const container = buttonElement.closest('.list-container');
+             const row = buttonElement.closest('.list-detail-row');
+             const listObjectToRemove = listFields[listName][index];
+
+             if (container.querySelectorAll('.list-detail-row').length <= 1) {
+                 // Don't remove the last row, just clear its input
+                 const input = row.querySelector('input[type="text"]');
+                 input.value = '';
+                 listFields[listName][index] = ''; // Clear name in model
+                 console.log(`Cleared last object row for list ${listName} at index ${index}`);
+
+             } else {
+                 row.remove();
+                  // Remove from data model
+                  listFields[listName].splice(index, 1);
+                  console.log(`Removed object row for list ${listName} at index ${index}`);
+                  // Re-index subsequent rows' data attributes (important!)
+                  container.querySelectorAll('.list-detail-row').forEach((r, i) => {
+                       r.dataset.index = i;
+                       // Update onchange/onclick handlers with new index if needed
+                       const input = r.querySelector('input');
+                       input.onchange = () => updateListObjectName(listName, i, input.value);
+                       const delBtn = r.querySelector('.delete-list-object-btn');
+                       delBtn.onclick = () => removeListObjectRow(delBtn, listName, i);
+                  });
+             }
+
+             // Remove corresponding data column
+             if (listObjectToRemove && listData[listName]) {
+                 listData[listName].forEach(rowData => {
+                      delete rowData[listObjectToRemove];
+                  });
+             }
+             // Re-render list field area if row removed to handle first row list name display
+             if (container.querySelectorAll('.list-detail-row').length > 0) {
+                  renderListFieldArea(); // May cause focus loss, alternative is more complex DOM manipulation
+             }
+
+
+             // Re-render filling tables because structure changed
+             renderListFillingTables();
+             updatePreview();
+        }
+
+        function addListDataRow(listName) {
+             const tableBody = listFillingContainer.querySelector(`.list-filling-table-container[data-list-name="${listName}"] tbody`);
+             if (!tableBody) return;
+
+             const newRowIndex = tableBody.rows.length;
+             const newRow = tableBody.insertRow();
+             const listObjects = listFields[listName];
+
+             // Validation: Check if last row is completely empty before adding
+             if (newRowIndex > 0) {
+                 const lastRowInputs = tableBody.rows[newRowIndex - 1].querySelectorAll('input[type="text"]');
+                 let lastRowIsEmpty = true;
+                 lastRowInputs.forEach(input => {
+                     if (input.value.trim() !== '') {
+                         lastRowIsEmpty = false;
+                     }
+                 });
+                 if (lastRowIsEmpty) {
+                      alert("请先填写上一行的数据，再添加新行。");
+                      tableBody.deleteRow(newRowIndex); // Remove the added empty row
+                      return;
+                 }
+             }
+
+
+             listObjects.forEach(objName => {
+                 const cell = newRow.insertCell();
+                 const input = document.createElement('input');
+                 input.type = 'text';
+                 input.dataset.list = listName;
+                 input.dataset.row = newRowIndex;
+                 input.dataset.col = objName;
+                 input.oninput = () => {
+                     updateListData(listName, newRowIndex, objName, input.value);
+                     updatePreview();
+                 };
+                 cell.appendChild(input);
+             });
+
+              // Ensure data structure exists
+              if (!listData[listName]) listData[listName] = [];
+              while (listData[listName].length <= newRowIndex) {
+                 listData[listName].push({});
+              }
+
+             console.log(`Added data row ${newRowIndex} to list ${listName}`);
+        }
+
+
+        // --- Editor & Preview Functions ---
+
+        function insertPlaceholder(fieldName) {
+             // Find the placeholder for the field name
+             const field = objectFields.find(f => f.name === fieldName) ||
+                           // Or check if it's a list object name (more complex check needed)
+                           findListObjectField(fieldName);
+
+             if (!field || !field.placeholder) {
+                  console.warn("Cannot find placeholder for:", fieldName);
+                  // Maybe it's a list object? Need to construct {{listName.objectName}}
+                  // This requires knowing which list the object belongs to if names aren't unique globally.
+                  // Simple approach: Assume it's just the name for now.
+                  // Let's stick to inserting only defined objectFields for now via double click.
+                  // For list objects, maybe a different insertion method?
+                  alert(`无法直接插入列表对象字段 "${fieldName}"。请在模板中手动输入 {{listName.${fieldName}}} 格式的占位符，或实现更复杂的插入逻辑。`);
+                  return;
+
+             }
+             const placeholderText = field.placeholder;
+
+             const editor = templateEditorContent; // Target the contenteditable div
+             const selection = window.getSelection();
+             if (!selection.rangeCount) return; // No selection/cursor
+
+             const range = selection.getRangeAt(0);
+
+             // Check if the cursor/selection is within the editor
+             if (!editor.contains(range.commonAncestorContainer)) {
+                 // If not, maybe set cursor at the end? Or just return.
+                 // For simplicity, let's require the cursor to be inside.
+                 console.log("Cursor not inside editor.");
+                 return;
+             }
+
+
+             // Create a span for visual distinction (optional, but helps)
+             const placeholderNode = document.createElement('span');
+             placeholderNode.className = 'editor-placeholder'; // Style it
+             placeholderNode.textContent = placeholderText;
+             placeholderNode.contentEditable = 'false'; // Prevent editing inside placeholder
+
+             // Insert the node
+             range.deleteContents(); // Remove selected text if any
+             range.insertNode(placeholderNode);
+
+             // Move cursor after the inserted node
+             range.setStartAfter(placeholderNode);
+             range.collapse(true);
+             selection.removeAllRanges();
+             selection.addRange(range);
+
+             console.log("Inserted placeholder:", placeholderText);
+             // Trigger preview update after manual insertion
+             handleEditorInput();
+        }
+
+        function findListObjectField(objectName) {
+             // Helper to find if a name belongs to any list object
+             for (const listName in listFields) {
+                 if (listFields[listName].includes(objectName)) {
+                     // Construct a placeholder-like object for insertion logic if needed
+                     // Note: Standard insertion might just be the name, full placeholder requires context
+                     return { name: objectName, placeholder: `{{${listName}.${objectName}}}` }; // Example format
+                 }
+             }
+             return null;
+        }
+
+
+        function handleEditorInput() {
+            // Called when contenteditable div content changes
+            currentTemplateContent = templateEditorContent.innerHTML;
+            updatePreview();
+        }
+
+        function updatePreview() {
+             if (currentTemplateType === 'excel') {
+                 previewContent.style.display = 'none';
+                 excelPreviewPlaceholder.style.display = 'block';
+                 excelPreviewPlaceholder.innerHTML = 'Excel 模板预览需要特定库支持。';
+                 return; // Skip preview for Excel for now
+             } else {
+                 previewContent.style.display = 'block';
+                 excelPreviewPlaceholder.style.display = 'none';
+             }
+
+
+             console.log("Updating preview...");
+             let previewHTML = currentTemplateContent; // Start with raw editor HTML
+
+             // --- Placeholder Replacement Logic ---
+             // 1. Replace simple object field placeholders {{fieldName}}
+             objectFields.forEach(field => {
+                 const value = objectData[field.name] || ''; // Get data or empty string
+                 // Need robust regex to find placeholders, potentially ignoring those inside attributes
+                 // Simple text replace first (might break HTML if placeholders are in tags)
+                 // A more robust way involves DOM parsing or specific template engines.
+                 const placeholderRegex = new RegExp(escapeRegExp(field.placeholder), 'g');
+                 previewHTML = previewHTML.replace(placeholderRegex, value);
+             });
+
+             // 2. Replace list placeholders (more complex) - Requires template engine usually
+             // Example: Find loops like {#listName} ... {/listName}
+             // Inside loop, replace {{objectName}} or {{this.objectName}} with data from listData[listName]
+             // This basic implementation WON'T handle loops. We'll just replace {{listName.objectName}} for now.
+
+             for (const listName in listFields) {
+                  const listObjects = listFields[listName];
+                  const currentListData = listData[listName] || [];
+
+                   // Simple placeholder replacement like {{listName.objectName}}
+                   listObjects.forEach(objName => {
+                        const placeholder = `{{${listName}.${objName}}}`;
+                        const placeholderRegex = new RegExp(escapeRegExp(placeholder), 'g');
+                        // This simple replace is WRONG for lists. It replaces ALL occurrences with the first(?) row's data.
+                        // We'll just put a note for now. A real implementation needs looping.
+                         if (currentListData.length > 0) {
+                             previewHTML = previewHTML.replace(placeholderRegex, `[${listName}.${objName} data from row 0: ${currentListData[0][objName] || ''}]`);
+                         } else {
+                             previewHTML = previewHTML.replace(placeholderRegex, `[${listName}.${objName} no data]`);
+                         }
+                   });
+             }
+
+              // Remove the editor-placeholder class spans from preview
+              previewHTML = previewHTML.replace(/<span class="editor-placeholder"[^>]*>(.*?)<\/span>/g, '$1');
+
+
+             previewContent.innerHTML = previewHTML;
+        }
+
+        function escapeRegExp(string) {
+             // $& means the whole matched string
+             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+
+        // --- Bottom Button Actions ---
+
+        function saveTemplate() {
+             if (!loadedTemplatePath) {
+                 alert("请先使用“选择模板”加载一个模板文件，才能覆盖保存。");
+                 return;
+             }
+             const contentToSave = templateEditorContent.innerHTML; // Or handle Excel data
+             console.log("Saving template (overwrite):", loadedTemplatePath.name);
+             // --- Actual File Saving Logic Needed ---
+             // Browser cannot directly overwrite files. Needs server interaction,
+             // or use File System Access API (requires user permission).
+             // Simulate:
+             alert(`模拟覆盖保存模板 "${loadedTemplatePath.name}"。\n实际操作需要 File System Access API 或服务器支持。`);
+        }
+
+        function generateNewTemplate() {
+            const contentToSave = templateEditorContent.innerHTML; // Or handle Excel data
+            const timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            const defaultFileName = `模板_${currentTemplateType}_${timestamp}.${currentTemplateType === 'word' ? 'docx' : 'xlsx'}`;
+            console.log("Generating new template:", defaultFileName);
+
+            // --- Actual File Saving Logic Needed (Download) ---
+             // Create a Blob and trigger download
+             try {
+                 // Note: Saving complex formats like docx/xlsx requires libraries to generate the correct binary data.
+                 // This example saves the RAW HTML content as a basic text/html file for demonstration.
+                 const blobType = currentTemplateType === 'word' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; // Correct MIME for Excel if generating real file
+                 const blob = new Blob([contentToSave], { type: 'text/html' }); // SAVING HTML FOR DEMO
+                 const link = document.createElement('a');
+                 link.href = URL.createObjectURL(blob);
+                 link.download = defaultFileName.replace(/\.docx|\.xlsx/, '.html'); // DEMO: save as html
+                 link.click();
+                 URL.revokeObjectURL(link.href);
+                 alert(`模拟生成新模板 "${link.download}"。\n注意：实际生成 DOCX/XLSX 需要专门库，当前仅保存编辑器HTML内容。`);
+             } catch (e) {
+                 console.error("Error generating template blob:", e);
+                 alert("生成模板文件时出错。");
+             }
+        }
+
+        function generateDocument() {
+            const renderedContent = previewContent.innerHTML; // Get the rendered HTML
+            const templateNameBase = loadedTemplatePath ? loadedTemplatePath.name.split('.').slice(0, -1).join('.') : '未命名模板';
+            const timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+             const defaultFileName = `${templateNameBase}_文档_${timestamp}.${currentTemplateType === 'word' ? 'docx' : 'xlsx'}`; // Or maybe save preview as PDF/HTML?
+            console.log("Generating document:", defaultFileName);
+
+            // --- Actual Document Generation Logic Needed ---
+             // Similar to generateNewTemplate, but using the *preview* content.
+             // Saving as actual DOCX/XLSX requires libraries. Saving the preview HTML is simpler for demo.
+             try {
+                 const blob = new Blob([`<html><head><meta charset="UTF-8"><title>${defaultFileName}</title></head><body>${renderedContent}</body></html>`], { type: 'text/html' });
+                 const link = document.createElement('a');
+                 link.href = URL.createObjectURL(blob);
+                 link.download = defaultFileName.replace(/\.docx|\.xlsx/, '.html'); // DEMO: save as html
+                 link.click();
+                 URL.revokeObjectURL(link.href);
+                 alert(`模拟生成文档 "${link.download}"。\n注意：实际生成 DOCX/XLSX 需要专门库，当前仅保存预览HTML内容。`);
+             } catch (e) {
+                  console.error("Error generating document blob:", e);
+                  alert("生成文档文件时出错。");
+             }
+        }
+
+        // --- Utility for Timestamp (requires including a library or simple formatting) ---
+        // Simple Date Formatting (Replace with library like Moment.js/Day.js if needed)
+        class SimpleDateFormat {
+            constructor(format) { this.formatStr = format; }
+            format(date) {
+                const year = date.getFullYear();
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const day = date.getDate().toString().padStart(2, '0');
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                // Very basic replace, only handles this specific format
+                return this.formatStr
+                    .replace('yyyy', year)
+                    .replace('MM', month)
+                    .replace('dd', day)
+                    .replace('HH', hours)
+                    .replace('mm', minutes)
+                    .replace('ss', seconds);
+            }
+        }
+
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Document Generator UI Initialized.");
+            // Initial rendering of empty lists/areas if needed
+            renderObjectFieldList();
+            renderListFieldArea();
+            renderObjectFillingList();
+            renderListFillingTables();
+            handleTemplateTypeChange(); // Set initial editor/preview visibility
+        });
+
+    </script>
+</body>
+</html>

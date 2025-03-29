@@ -45,7 +45,7 @@ public class MainApp extends Application {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(800);
             primaryStage.setMinHeight(600);
-            primaryStage.setTitle("项目管理小助手");
+            primaryStage.setTitle("ProjectAssistant");
             
             // 设置主控制器的主舞台引用
             mainController.setMainStage(primaryStage);

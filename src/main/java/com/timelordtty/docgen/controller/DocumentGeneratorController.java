@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -18,10 +20,12 @@ import com.timelordtty.docgen.model.TemplateField;
 import com.timelordtty.docgen.service.ExcelTemplateService;
 import com.timelordtty.docgen.service.WordTemplateService;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -74,6 +78,9 @@ public class DocumentGeneratorController {
     // 预览区域
     @FXML private TextArea wordPreviewArea;
     @FXML private TableView<ObservableList<String>> excelPreviewArea;
+    
+    // 列表数据示例表格
+    @FXML private TableView<ObservableList<String>> listDataTableExample;
     
     // 私有字段
     private ObservableList<TemplateField> fields = FXCollections.observableArrayList();
@@ -628,31 +635,95 @@ public class DocumentGeneratorController {
         // 清空现有字段
         objectFields.clear();
         
-        // 查找所有{{字段}}模式
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{\\{([^{}]+)\\}\\}");
-        java.util.regex.Matcher matcher = pattern.matcher(content);
+        // 支持两种占位符格式：{{field}} 和 ${field}
+        List<String> foundFields = new ArrayList<>();
+        Map<String, Boolean> fieldIsListMap = new HashMap<>();
         
-        while (matcher.find()) {
-            String fieldName = matcher.group(1);
+        // 查找Mustache格式占位符 {{field}}
+        java.util.regex.Pattern mustachePattern = java.util.regex.Pattern.compile("\\{\\{([^{}]+)\\}\\}");
+        java.util.regex.Matcher mustacheMatcher = mustachePattern.matcher(content);
+        
+        while (mustacheMatcher.find()) {
+            String fieldName = mustacheMatcher.group(1);
             // 忽略#和/开头的字段，这些是列表的开始和结束标记
             if (!fieldName.startsWith("#") && !fieldName.startsWith("/")) {
+                foundFields.add(fieldName);
+                
                 // 检查是否是列表字段
                 boolean isList = content.contains("{{#" + fieldName + "}}") && content.contains("{{/" + fieldName + "}}");
-                
-                // 检查是否已存在
-                boolean exists = false;
-                for (TemplateField field : objectFields) {
-                    if (field.getName().equals(fieldName)) {
-                        exists = true;
-                        break;
-                    }
-                }
-                
-                if (!exists) {
-                    objectFields.add(new TemplateField(fieldName, isList));
-                }
+                fieldIsListMap.put(fieldName, isList);
             }
         }
+        
+        // 查找${field}格式占位符
+        java.util.regex.Pattern dollarPattern = java.util.regex.Pattern.compile("\\$\\{([^{}]+)\\}");
+        java.util.regex.Matcher dollarMatcher = dollarPattern.matcher(content);
+        
+        while (dollarMatcher.find()) {
+            String fieldName = dollarMatcher.group(1);
+            
+            // 处理数组格式: items[0].name -> items.0.name，便于后续处理
+            if (fieldName.contains("[")) {
+                fieldName = fieldName.replaceAll("\\[(\\d+)\\]", ".$1");
+                // 对于数组的引用，认为父字段是列表
+                String parentField = fieldName.substring(0, fieldName.indexOf("."));
+                foundFields.add(parentField);
+                fieldIsListMap.put(parentField, true);
+            }
+            
+            foundFields.add(fieldName);
+            // 默认非列表字段
+            if (!fieldIsListMap.containsKey(fieldName)) {
+                fieldIsListMap.put(fieldName, false);
+            }
+        }
+        
+        // 处理嵌套字段，确保父字段先添加
+        Map<String, Set<String>> parentChildMap = new HashMap<>();
+        
+        for (String field : foundFields) {
+            if (field.contains(".")) {
+                String parentField = field.substring(0, field.indexOf("."));
+                if (!parentChildMap.containsKey(parentField)) {
+                    parentChildMap.put(parentField, new HashSet<>());
+                }
+                parentChildMap.get(parentField).add(field);
+            }
+        }
+        
+        // 先添加非嵌套字段
+        for (String field : foundFields) {
+            if (!field.contains(".")) {
+                objectFields.add(new TemplateField(field, fieldIsListMap.getOrDefault(field, false)));
+            }
+        }
+        
+        // 再添加嵌套字段
+        for (String field : foundFields) {
+            if (field.contains(".")) {
+                objectFields.add(new TemplateField(field, fieldIsListMap.getOrDefault(field, false)));
+            }
+        }
+        
+        // 去重
+        List<TemplateField> uniqueFields = new ArrayList<>();
+        Set<String> addedFields = new HashSet<>();
+        
+        for (TemplateField field : objectFields) {
+            if (!addedFields.contains(field.getName())) {
+                uniqueFields.add(field);
+                addedFields.add(field.getName());
+            }
+        }
+        
+        objectFields.clear();
+        objectFields.addAll(uniqueFields);
+        
+        // 在UI上更新字段列表
+        Platform.runLater(() -> {
+            objectFieldsTable.setItems(FXCollections.observableArrayList(objectFields));
+            updateDataTables();
+        });
         
         AppLogger.info("从模板中提取了 " + objectFields.size() + " 个字段");
     }
@@ -1355,5 +1426,236 @@ public class DocumentGeneratorController {
                 showError("导入失败", "无法读取所选文件: " + e.getMessage());
             }
         }
+    }
+    
+    /**
+     * 更新数据表格
+     */
+    private void updateDataTables() {
+        // 更新对象字段表格
+        objectFieldsTable.setItems(FXCollections.observableArrayList(objectFields));
+        
+        // 更新数据填充表格
+        ObservableList<Map<String, String>> data = FXCollections.observableArrayList();
+        for (TemplateField field : objectFields) {
+            if (!field.isList() && !field.getName().contains(".")) {
+                // 只添加非列表的顶级字段
+                fieldDataMap.putIfAbsent(field.getName(), "");
+                Map<String, String> row = new HashMap<>();
+                row.put("name", field.getName());
+                row.put("value", fieldDataMap.get(field.getName()));
+                data.add(row);
+            }
+        }
+        
+        // 更新列表数据填充区域
+        updateListDataTables();
+    }
+    
+    /**
+     * 更新列表数据表格
+     */
+    private void updateListDataTables() {
+        listDataContainer.getChildren().clear();
+        
+        // 为每个列表字段创建数据表格
+        for (TemplateField field : objectFields) {
+            if (field.isList()) {
+                createListDataTable(field);
+            }
+        }
+    }
+    
+    /**
+     * 为列表字段创建数据表格
+     */
+    private void createListDataTable(TemplateField listField) {
+        // 创建列表字段的标题窗格
+        TitledPane pane = new TitledPane();
+        pane.setText(listField.getName());
+        pane.setCollapsible(true);
+        pane.setExpanded(false);
+        
+        // 创建VBox容器
+        VBox container = new VBox(5);
+        
+        // 创建添加行按钮
+        Button addButton = new Button("添加行");
+        addButton.getStyleClass().add("action-button");
+        
+        // 创建表格
+        TableView<Map<String, String>> table = new TableView<>();
+        
+        // 如果列表项数据不存在，则初始化
+        if (!listFieldDataMap.containsKey(listField.getName())) {
+            listFieldDataMap.put(listField.getName(), new ArrayList<>());
+        }
+        
+        // 查找此列表下的所有列表项字段
+        List<String> listItemFields = new ArrayList<>();
+        for (TemplateField field : objectFields) {
+            if (!field.isList() && field.getName().startsWith(listField.getName() + ".")) {
+                String itemName = field.getName().substring(field.getName().indexOf(".") + 1);
+                listItemFields.add(itemName);
+            }
+        }
+        
+        // 如果没有找到列表项字段，使用默认的字段
+        if (listItemFields.isEmpty()) {
+            listItemFields.add("value");
+        }
+        
+        // 创建表格列
+        for (String itemField : listItemFields) {
+            TableColumn<Map<String, String>, String> column = new TableColumn<>(itemField);
+            column.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOrDefault(itemField, "")));
+            column.setCellFactory(TextFieldTableCell.forTableColumn());
+            column.setOnEditCommit(event -> {
+                Map<String, String> row = event.getRowValue();
+                row.put(itemField, event.getNewValue());
+            });
+            table.getColumns().add(column);
+        }
+        
+        // 添加操作列
+        TableColumn<Map<String, String>, String> actionColumn = new TableColumn<>("操作");
+        actionColumn.setCellFactory(param -> new TableCell<>() {
+            final Button deleteButton = new Button("删除");
+            
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                
+                deleteButton.setOnAction(event -> {
+                    int index = getIndex();
+                    if (index >= 0 && index < listFieldDataMap.get(listField.getName()).size()) {
+                        listFieldDataMap.get(listField.getName()).remove(index);
+                        table.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listField.getName())));
+                        updatePreview();
+                    }
+                });
+                
+                setGraphic(deleteButton);
+            }
+        });
+        actionColumn.setPrefWidth(80);
+        table.getColumns().add(actionColumn);
+        
+        // 设置表格数据
+        table.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listField.getName())));
+        
+        // 添加行按钮事件
+        addButton.setOnAction(e -> {
+            Map<String, String> newRow = new HashMap<>();
+            for (String itemField : listItemFields) {
+                newRow.put(itemField, "");
+            }
+            listFieldDataMap.get(listField.getName()).add(newRow);
+            table.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listField.getName())));
+            updatePreview();
+        });
+        
+        // 添加组件到容器
+        container.getChildren().addAll(addButton, table);
+        pane.setContent(container);
+        
+        // 添加到列表数据容器
+        listDataContainer.getChildren().add(pane);
+    }
+
+    /**
+     * 处理添加列表数据行的操作
+     */
+    @FXML
+    private void handleAddListDataRow() {
+        // 获取当前选中的列表数据表格
+        TableView<Map<String, String>> currentTable = null;
+        
+        for (Node node : listDataContainer.getChildren()) {
+            if (node instanceof VBox) {
+                VBox vbox = (VBox)node;
+                for (Node child : vbox.getChildren()) {
+                    if (child instanceof TableView) {
+                        currentTable = (TableView<Map<String, String>>)child;
+                        break;
+                    }
+                }
+                if (currentTable != null) break;
+            }
+        }
+        
+        if (currentTable == null) {
+            // 使用示例表格
+            if (listDataTableExample != null) {
+                // 检查最后一行是否有数据
+                ObservableList<String> items = listDataTableExample.getItems().get(listDataTableExample.getItems().size() - 1);
+                boolean hasData = false;
+                for (String item : items) {
+                    if (item != null && !item.trim().isEmpty()) {
+                        hasData = true;
+                        break;
+                    }
+                }
+                
+                if (hasData) {
+                    // 添加新行
+                    ObservableList<String> newRow = FXCollections.observableArrayList();
+                    for (int i = 0; i < items.size(); i++) {
+                        newRow.add("");
+                    }
+                    listDataTableExample.getItems().add(newRow);
+                    AppLogger.info("添加列表数据行到示例表格");
+                } else {
+                    AppLogger.info("最后一行没有数据，不添加新行");
+                    showInfo("提示", "请先填写当前行数据");
+                }
+            }
+            return;
+        }
+        
+        // 获取当前表格的最后一行
+        if (currentTable.getItems().isEmpty()) {
+            // 如果没有行，添加第一行
+            Map<String, String> newRow = new HashMap<>();
+            currentTable.getColumns().forEach(col -> {
+                if (col.getId() != null) {
+                    newRow.put(col.getId(), "");
+                }
+            });
+            currentTable.getItems().add(newRow);
+            AppLogger.info("添加第一行到列表数据表格");
+        } else {
+            // 检查最后一行是否有数据
+            Map<String, String> lastRow = currentTable.getItems().get(currentTable.getItems().size() - 1);
+            boolean hasData = false;
+            for (String value : lastRow.values()) {
+                if (value != null && !value.trim().isEmpty()) {
+                    hasData = true;
+                    break;
+                }
+            }
+            
+            if (hasData) {
+                // 添加新行
+                Map<String, String> newRow = new HashMap<>();
+                currentTable.getColumns().forEach(col -> {
+                    if (col.getId() != null) {
+                        newRow.put(col.getId(), "");
+                    }
+                });
+                currentTable.getItems().add(newRow);
+                AppLogger.info("添加新行到列表数据表格");
+            } else {
+                AppLogger.info("最后一行没有数据，不添加新行");
+                showInfo("提示", "请先填写当前行数据");
+            }
+        }
+        
+        // 更新预览
+        updatePreview();
     }
 } 

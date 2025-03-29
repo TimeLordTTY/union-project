@@ -646,9 +646,52 @@ public class MainController {
      */
     private void loadTool(String title, String fxmlPath) {
         try {
-            // 使用类加载器加载工具FXML（修复中文路径问题）
+            // 修改类加载器的加载方式
             FXMLLoader loader = new FXMLLoader();
-            loader.setLocation(MainController.class.getClassLoader().getResource(fxmlPath.substring(1)));
+            
+            // 记录正在尝试加载的路径
+            AppLogger.info("尝试加载工具: " + title + ", 路径: " + fxmlPath);
+            
+            // 尝试用不同的方法加载资源
+            java.net.URL url = null;
+            
+            // 方法1: 使用类的资源加载器
+            url = getClass().getResource(fxmlPath);
+            AppLogger.info("方法1加载结果: " + (url != null ? "成功" : "失败"));
+            
+            // 方法2: 如果失败，尝试使用类加载器
+            if (url == null) {
+                url = getClass().getClassLoader().getResource(fxmlPath.substring(1));
+                AppLogger.info("方法2加载结果: " + (url != null ? "成功" : "失败"));
+            }
+            
+            // 方法3: 如果仍然失败，尝试直接从文件系统加载
+            if (url == null) {
+                // 从resources目录尝试加载
+                String resourcePath = "resources" + fxmlPath;
+                java.io.File file = new java.io.File(resourcePath);
+                if (file.exists()) {
+                    url = file.toURI().toURL();
+                    AppLogger.info("从外部resources目录加载成功: " + file.getAbsolutePath());
+                } else {
+                    // 从src目录尝试加载
+                    String srcPath = "src/main/resources" + fxmlPath;
+                    file = new java.io.File(srcPath);
+                    if (file.exists()) {
+                        url = file.toURI().toURL();
+                        AppLogger.info("从src目录加载成功: " + file.getAbsolutePath());
+                    } else {
+                        AppLogger.warning("文件不存在: " + file.getAbsolutePath());
+                    }
+                }
+            }
+            
+            // 如果所有方法都失败，抛出异常
+            if (url == null) {
+                throw new java.io.IOException("无法加载FXML文件: " + fxmlPath);
+            }
+            
+            loader.setLocation(url);
             javafx.scene.Parent toolView = loader.load();
             
             // 检查是否只是切换工具
@@ -669,9 +712,9 @@ public class MainController {
                     toolsContainer.setPrefHeight(350);
                     toolsContainer.setMaxWidth(450);
                 } else if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
-                    // 文档生成小工具需要较大空间
-                    toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
-                    toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                    // 文档生成小工具需要与日历相同大小
+                    toolsContainer.setPrefWidth(1000);
+                    toolsContainer.setPrefHeight(680);
                     toolsContainer.setMaxWidth(Double.MAX_VALUE);
                     toolsContainer.setMaxHeight(Double.MAX_VALUE);
                 } else if (fxmlPath.equals("/fxml/TextCorrectorView.fxml")) {
@@ -735,9 +778,9 @@ public class MainController {
             
             // 根据内容调整大小
             if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
-                // 文档生成小工具需要较大空间
-                toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
-                toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                // 文档生成小工具需要与日历相同大小
+                toolsContainer.setPrefWidth(1000);
+                toolsContainer.setPrefHeight(680);
                 toolsContainer.setMaxWidth(Double.MAX_VALUE);
                 toolsContainer.setMaxHeight(Double.MAX_VALUE);
             } else {

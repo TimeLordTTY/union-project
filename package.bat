@@ -1,5 +1,5 @@
 @echo off
-title 项目管理小助手打包和运行
+title ProjectAssistant打包和运行
 setlocal EnableDelayedExpansion
 
 echo ====================
@@ -37,7 +37,7 @@ echo Maven版本检查通过，继续执行...
 echo ====================
 echo 2. 创建应用目录结构
 echo ====================
-set APP_DIR=%~dp0项目管理小助手
+set APP_DIR=%~dp0ProjectAssistant
 set SERVICE_DATA_DIR=%APP_DIR%\service_data
 set LIB_DIR=%SERVICE_DATA_DIR%\lib
 set JRE_DIR=%SERVICE_DATA_DIR%\jre
@@ -47,20 +47,20 @@ set LOG_DIR=%SERVICE_DATA_DIR%\logs
 set CONF_DIR=%SERVICE_DATA_DIR%\conf
 set DATA_DIR=%APP_DIR%\data
 set DATA_BACKUP_DIR=%~dp0data_backup_temp
-set APP_NAME=项目管理小助手
+set APP_NAME=ProjectAssistant
 
 echo 备份数据目录（如果存在）...
-if exist "%~dp0项目管理小助手\data" (
+if exist "%~dp0ProjectAssistant\data" (
     echo 正在备份数据目录...
     mkdir "%DATA_BACKUP_DIR%"
-    xcopy /E /I /Y "%~dp0项目管理小助手\data" "%DATA_BACKUP_DIR%"
+    xcopy /E /I /Y "%~dp0ProjectAssistant\data" "%DATA_BACKUP_DIR%"
     echo 数据目录已备份到临时目录
 )
 
 REM 检查并清理整个APP目录
-if exist "%~dp0项目管理小助手" (
-    echo 清理项目管理小助手目录...
-    rd /s /q "%~dp0项目管理小助手"
+if exist "%~dp0ProjectAssistant" (
+    echo 清理ProjectAssistant目录...
+    rd /s /q "%~dp0ProjectAssistant"
 )
 
 echo 创建目录结构...
@@ -170,7 +170,7 @@ echo 复制配置文件...
 
 REM 检查配置文件是否重复，如果logback.xml已经包含所有功能，使用它代替logging.properties
 REM 删除logging.properties的复制
-REM 现在只使用logback.xml作为日志配置文件
+REM 现在只使用logback.xml作为唯一的日志配置文件
 REM copy /Y "src\main\resources\logging.properties" "%CONF_DIR%\"
 
 REM 仅复制logback.xml作为唯一的日志配置文件
@@ -266,7 +266,7 @@ if not exist "%LIB_DIR%\h2-2.2.224.jar" (
     echo 警告: 未找到H2数据库依赖，正在尝试重新复制...
     copy /Y "%PROJECT_ROOT%\target\dependency\h2-2.2.224.jar" "%LIB_DIR%\"
     if %ERRORLEVEL% NEQ 0 (
-        echo 错误: 未找到H2数据库依赖，项目管理小助手功能可能无法正常工作！
+        echo 错误: 未找到H2数据库依赖，ProjectAssistant功能可能无法正常工作！
     )
 )
 
@@ -283,10 +283,10 @@ echo 创建启动批处理文件...
 
 (
 echo @echo off
-echo title 项目管理小助手
+echo title ProjectAssistant
 echo.
 echo cd /d %%~dp0
-echo echo 正在启动项目管理小助手...
+echo echo 正在启动ProjectAssistant...
 echo.
 echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo set JAR_PATH=multi-tools-1.0.jar
@@ -310,7 +310,7 @@ echo     pause
 echo ^)
 echo.
 echo echo 启动应用程序...
-echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 --class-path="%%JAR_PATH%%;service_data\lib\*;service_data\lib\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=service_data/conf/logback.xml -Duser.timezone=Asia/Shanghai -jar "%%JAR_PATH%%"
+echo "%%JAVA_PATH%%" -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 --class-path="%%JAR_PATH%%;service_data\lib\*;service_data\lib\*;resources" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -Djava.util.logging.config.file=service_data/conf/logback.xml -Duser.timezone=Asia/Shanghai -jar "%%JAR_PATH%%"
 echo.
 echo if %%ERRORLEVEL%% NEQ 0 (
 echo     echo 应用程序启动失败，错误代码: %%ERRORLEVEL%%
@@ -321,10 +321,10 @@ echo ^)
 echo 创建调试版启动脚本...
 (
 echo @echo on
-echo title 项目管理小助手（调试模式）
+echo title ProjectAssistant（调试模式）
 echo.
 echo cd /d %%~dp0
-echo echo 正在调试模式下启动项目管理小助手...
+echo echo 正在调试模式下启动ProjectAssistant...
 echo.
 echo set JAVA_PATH=service_data\jre\bin\java.exe
 echo.
@@ -354,7 +354,7 @@ echo echo 检查H2数据库依赖...
 echo dir service_data\lib\h2-*.jar
 echo.
 echo echo 以调试模式启动应用程序...
-echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 -Djava.util.logging.config.file=service_data/conf/logback.xml -Dlog.level=DEBUG -Duser.timezone=Asia/Shanghai --class-path="multi-tools-1.0.jar;service_data\lib\*;service_data\lib\*" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar "multi-tools-1.0.jar"
+echo "%%JAVA_PATH%%" -Xmx512m -verbose:jni -verbose:class -Dfile.encoding=UTF-8 -Dh2.bindAddress=127.0.0.1 -Djava.util.logging.config.file=service_data/conf/logback.xml -Dlog.level=DEBUG -Duser.timezone=Asia/Shanghai --class-path="multi-tools-1.0.jar;service_data\lib\*;service_data\lib\*;resources" --module-path="service_data\lib\javafx-modules" --add-modules=javafx.controls,javafx.fxml,javafx.graphics -jar "multi-tools-1.0.jar"
 echo.
 echo echo 如果宝宝的小助手没有成功运行起来，就截一下上面的图，发给宝宝的专属工程师哦~
 echo pause
@@ -427,7 +427,7 @@ echo 检查H2数据库依赖...
 if exist "%LIB_DIR%\h2-*.jar" (
     echo H2数据库依赖正常
 ) else (
-    echo 警告: H2数据库依赖缺失，项目管理小助手功能可能无法正常工作
+    echo 警告: H2数据库依赖缺失，ProjectAssistant功能可能无法正常工作
 )
 
 echo ====================
@@ -437,16 +437,16 @@ echo 应用程序文件夹: %APP_DIR%
 echo.
 echo 文件夹结构说明:
 echo - 根目录: 启动脚本、JAR文件、使用说明
-echo - data目录: 存放项目管理小助手数据（升级时应保留）
+echo - data目录: 存放ProjectAssistant数据（升级时应保留）
 echo - templates目录: 存放文档模板
 echo - service_data目录: 存放所有服务相关文件（lib、jre、conf、logs）
 echo.
 echo 使用方法:
 echo 1. 将整个"%APP_DIR%"文件夹复制给使用者
-echo 2. 双击"启动小助手.bat"运行程序
-echo 3. 若有问题，运行"调试小助手.bat"获取详细错误信息
+echo 2. 双击"start.bat"运行程序
+echo 3. 若有问题，运行"debug.bat"获取详细错误信息
 echo.
-echo 项目管理小助手功能特别说明:
+echo ProjectAssistant功能特别说明:
 echo - 数据存储在data目录中，使用H2数据库自动保存
 echo - 支持2024和2025年法定节假日信息
 echo - 所有日期计算自动考虑工作日和节假日因素
@@ -454,7 +454,7 @@ echo.
 
 set /p ANSWER=是否立即运行应用程序? (Y/N): 
 if /i "%ANSWER%" == "Y" (
-    echo 正在启动项目管理小助手...
+    echo 正在启动ProjectAssistant...
     cd /d "%APP_DIR%"
     call "启动小助手.bat"
     cd /d "%PROJECT_ROOT%"
