@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -659,6 +660,65 @@ public class MainController {
                 // 使用淡入淡出动画切换工具内容
                 animateToolChange(toolView, title);
                 currentTool = fxmlPath;
+                
+                // 根据不同工具调整大小
+                if (fxmlPath.equals("/fxml/AmountConverterView.fxml")) {
+                    // 金额转换小工具 - 小尺寸
+                    toolsContainer.setPrefWidth(400);
+                    toolsContainer.setPrefHeight(350);
+                    toolsContainer.setMaxWidth(450);
+                } else if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
+                    // 文档生成小工具需要较大空间
+                    toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                    toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                    toolsContainer.setMaxWidth(Double.MAX_VALUE);
+                    toolsContainer.setMaxHeight(Double.MAX_VALUE);
+                } else if (fxmlPath.equals("/fxml/TextCorrectorView.fxml")) {
+                    // 文本处理小工具 - 中等尺寸
+                    toolsContainer.setPrefWidth(600);
+                    toolsContainer.setPrefHeight(450);
+                    toolsContainer.setMaxWidth(650);
+                }
+                
+                // 添加代码以在工具加载完成后根据实际内容调整尺寸
+                javafx.application.Platform.runLater(() -> {
+                    if (toolView.prefWidth(-1) > 0 && toolView.prefHeight(-1) > 0) {
+                        // 如果工具视图有指定的首选尺寸，使用它
+                        toolsContainer.setPrefWidth(toolView.prefWidth(-1) + 20); // 加一些边距
+                        toolsContainer.setPrefHeight(toolView.prefHeight(-1) + 60); // 加一些边距给标题栏和底部
+                    } else {
+                        // 根据内容计算大小
+                        toolView.applyCss();
+                        toolView.layout();
+                        double width = toolView.getBoundsInLocal().getWidth() + 20;
+                        double height = toolView.getBoundsInLocal().getHeight() + 60;
+                        
+                        // 设置容器大小
+                        toolsContainer.setPrefWidth(width);
+                        toolsContainer.setPrefHeight(height);
+                    }
+                    
+                    // 防止过小
+                    if (toolsContainer.getPrefWidth() < 400) toolsContainer.setPrefWidth(400);
+                    if (toolsContainer.getPrefHeight() < 300) toolsContainer.setPrefHeight(300);
+                    
+                    // 防止过大超出屏幕
+                    if (toolsContainer.getScene() != null) {
+                        double sceneWidth = toolsContainer.getScene().getWidth();
+                        double sceneHeight = toolsContainer.getScene().getHeight();
+                        
+                        if (toolsContainer.getPrefWidth() > sceneWidth * 0.9) {
+                            toolsContainer.setPrefWidth(sceneWidth * 0.9);
+                            toolsContainer.setMaxWidth(sceneWidth * 0.9);
+                        }
+                        
+                        if (toolsContainer.getPrefHeight() > sceneHeight * 0.9) {
+                            toolsContainer.setPrefHeight(sceneHeight * 0.9);
+                            toolsContainer.setMaxHeight(sceneHeight * 0.9);
+                        }
+                    }
+                });
+                
                 return;
             }
             
@@ -672,12 +732,71 @@ public class MainController {
             toolContentArea.getChildren().clear();
             toolContentArea.getChildren().add(toolView);
             
+            // 根据内容调整大小
+            if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
+                // 文档生成小工具需要较大空间
+                toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                toolsContainer.setMaxWidth(Double.MAX_VALUE);
+                toolsContainer.setMaxHeight(Double.MAX_VALUE);
+            } else {
+                // 其他小工具使用自适应大小
+                toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+                toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                toolsContainer.setMaxWidth(Region.USE_COMPUTED_SIZE);
+                toolsContainer.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            }
+            
             // 更新状态和按钮文本
             closeToolButton.setText("收起 ▲");
             isExpanded = true;
             
-            // 展示工具容器（带动画）
-            animateOpen();
+            // 在下一个UI刷新周期计算并应用实际尺寸
+            javafx.application.Platform.runLater(() -> {
+                // 计算工具视图的尺寸
+                toolView.applyCss();
+                toolView.layout();
+                
+                double width = toolView.prefWidth(-1);
+                double height = toolView.prefHeight(-1);
+                
+                if (width <= 0 || height <= 0) {
+                    // 没有明确的首选尺寸，使用计算的边界尺寸
+                    width = toolView.getBoundsInLocal().getWidth() + 20; // 添加边距
+                    height = toolView.getBoundsInLocal().getHeight() + 60; // 添加边距给标题栏和底部
+                } else {
+                    // 有明确的首选尺寸，添加一些边距
+                    width += 20;
+                    height += 60;
+                }
+                
+                // 防止过小
+                if (width < 400) width = 400;
+                if (height < 300) height = 300;
+                
+                // 防止过大超出屏幕
+                if (toolsContainer.getScene() != null) {
+                    double sceneWidth = toolsContainer.getScene().getWidth();
+                    double sceneHeight = toolsContainer.getScene().getHeight();
+                    
+                    if (width > sceneWidth * 0.9) {
+                        width = sceneWidth * 0.9;
+                    }
+                    
+                    if (height > sceneHeight * 0.9) {
+                        height = sceneHeight * 0.9;
+                    }
+                }
+                
+                // 设置容器大小
+                toolsContainer.setPrefWidth(width);
+                toolsContainer.setPrefHeight(height);
+                toolsContainer.setMaxWidth(width);
+                toolsContainer.setMaxHeight(height);
+                
+                // 展示工具容器（带动画）
+                animateOpen();
+            });
             
         } catch (IOException e) {
             AppLogger.error("加载工具时发生IO异常: " + e.getMessage(), e);

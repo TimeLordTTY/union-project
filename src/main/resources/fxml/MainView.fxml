@@ -59,9 +59,6 @@ stylesheets="@../css/styles.css">
             <StackPane fx:id="toolContentArea" VBox.vgrow="ALWAYS" style="-fx-padding: 5;">
                 <!-- 工具内容将动态添加到这里 -->
             </StackPane>
-            <prefWidth>400</prefWidth>
-            <prefHeight>350</prefHeight>
-            <maxWidth>450</maxWidth>
         </VBox>
       </StackPane>
    </center>
