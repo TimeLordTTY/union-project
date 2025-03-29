@@ -3,14 +3,18 @@ package com.timelordtty.docgen.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
 /**
  * 模板字段类
  */
 public class TemplateField {
     
-    private String name;        // 字段名称
-    private String placeholder; // 占位符
-    private boolean isList;     // 是否为列表字段
+    private SimpleStringProperty name;        // 字段名称
+    private SimpleStringProperty placeholder; // 占位符
+    private SimpleBooleanProperty isList;     // 是否为列表字段
     private List<String> listItems = new ArrayList<>(); // 列表项
 
     /**
@@ -19,11 +23,11 @@ public class TemplateField {
      * @param isList 是否为列表字段
      */
     public TemplateField(String name, boolean isList) {
-        this.name = name;
-        this.isList = isList;
+        this.name = new SimpleStringProperty(name);
+        this.isList = new SimpleBooleanProperty(isList);
         
         // 生成占位符
-        this.placeholder = "${" + name + "}";
+        this.placeholder = new SimpleStringProperty("${" + name + "}");
     }
 
     /**
@@ -31,6 +35,14 @@ public class TemplateField {
      * @return 字段名称
      */
     public String getName() {
+        return name.get();
+    }
+
+    /**
+     * 获取字段名称属性
+     * @return 字段名称属性
+     */
+    public StringProperty nameProperty() {
         return name;
     }
 
@@ -39,10 +51,10 @@ public class TemplateField {
      * @param name 字段名称
      */
     public void setName(String name) {
-        this.name = name;
+        this.name.set(name);
         
         // 更新占位符
-        this.placeholder = "${" + name + "}";
+        this.placeholder.set("${" + name + "}");
     }
 
     /**
@@ -50,6 +62,14 @@ public class TemplateField {
      * @return 占位符
      */
     public String getPlaceholder() {
+        return placeholder.get();
+    }
+
+    /**
+     * 获取占位符属性
+     * @return 占位符属性
+     */
+    public StringProperty placeholderProperty() {
         return placeholder;
     }
 
@@ -58,7 +78,7 @@ public class TemplateField {
      * @param placeholder 占位符
      */
     public void setPlaceholder(String placeholder) {
-        this.placeholder = placeholder;
+        this.placeholder.set(placeholder);
     }
 
     /**
@@ -66,6 +86,14 @@ public class TemplateField {
      * @return 是否为列表字段
      */
     public boolean isList() {
+        return isList.get();
+    }
+
+    /**
+     * 获取是否为列表字段属性
+     * @return 是否为列表字段属性
+     */
+    public SimpleBooleanProperty isListProperty() {
         return isList;
     }
 
@@ -73,8 +101,8 @@ public class TemplateField {
      * 设置是否为列表字段
      * @param isList 是否为列表字段
      */
-    public void setList(boolean isList) {
-        this.isList = isList;
+    public void setIsList(boolean isList) {
+        this.isList.set(isList);
     }
     
     /**
@@ -117,11 +145,11 @@ public class TemplateField {
      * @return 占位符
      */
     public String getListItemPlaceholder(String itemName) {
-        return "${" + name + "." + itemName + "}";
+        return "${" + getName() + "." + itemName + "}";
     }
     
     @Override
     public String toString() {
-        return name + (isList ? " (列表)" : "");
+        return name.get();
     }
 } 

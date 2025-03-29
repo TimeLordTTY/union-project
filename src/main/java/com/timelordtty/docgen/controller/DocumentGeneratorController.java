@@ -290,6 +290,20 @@ public class DocumentGeneratorController {
         // 更新预览区域可见性
         wordPreviewArea.setVisible(isWordMode);
         excelPreviewArea.setVisible(!isWordMode);
+        
+        // 清空字段列表和数据
+        clearAllFields();
+        
+        // 清空模板编辑区和预览区
+        wordEditor.clear();
+        wordPreviewArea.clear();
+        excelEditor.getItems().clear();
+        excelPreviewArea.getItems().clear();
+        
+        // 清空当前模板文件
+        currentTemplateFile = null;
+        
+        AppLogger.info("切换模板类型为: " + selectedType);
     }
     
     /**
@@ -529,39 +543,50 @@ public class DocumentGeneratorController {
         
         String previewText = templateText;
         
-        // 替换对象字段
+        // 替换对象字段 - 支持${fieldName}格式
         for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            previewText = previewText.replace(placeholder, entry.getValue());
+            String placeholder = "${" + entry.getKey() + "}";
+            if (previewText.contains(placeholder)) {
+                previewText = previewText.replace(placeholder, entry.getValue() != null ? entry.getValue() : "");
+            }
         }
         
-        // 处理列表字段
+        // 处理列表字段 - 支持${listName.fieldName}格式
         for (Map.Entry<String, List<Map<String, String>>> listEntry : listFieldDataMap.entrySet()) {
-            String listFieldName = listEntry.getKey();
+            String listName = listEntry.getKey();
             List<Map<String, String>> listItems = listEntry.getValue();
             
-            // 找到列表开始和结束标记
-            String startMarker = "{{#" + listFieldName + "}}";
-            String endMarker = "{{/" + listFieldName + "}}";
-            
-            int startIndex = previewText.indexOf(startMarker);
-            int endIndex = previewText.indexOf(endMarker);
-            
-            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-                String listTemplate = previewText.substring(startIndex + startMarker.length(), endIndex);
-                StringBuilder listContent = new StringBuilder();
-                
-                for (Map<String, String> item : listItems) {
-                    String itemContent = listTemplate;
-                    for (Map.Entry<String, String> itemField : item.entrySet()) {
-                        String itemPlaceholder = "{{" + itemField.getKey() + "}}";
-                        itemContent = itemContent.replace(itemPlaceholder, itemField.getValue());
+            // 处理列表数据
+            for (TemplateField field : fields) {
+                if (field.isList() && field.getName().equals(listName)) {
+                    for (String itemField : field.getListItems()) {
+                        String placeholder = "${" + listName + "." + itemField + "}";
+                        
+                        // 在预览文本中查找此占位符的所有位置
+                        int startIndex = 0;
+                        while ((startIndex = previewText.indexOf(placeholder, startIndex)) != -1) {
+                            // 将占位符替换为所有列表项数据，用换行符分隔
+                            StringBuilder replacement = new StringBuilder();
+                            for (Map<String, String> item : listItems) {
+                                String value = item.get(itemField);
+                                if (value != null) {
+                                    if (replacement.length() > 0) {
+                                        replacement.append("\n");
+                                    }
+                                    replacement.append(value);
+                                }
+                            }
+                            
+                            // 替换占位符
+                            previewText = previewText.substring(0, startIndex) 
+                                        + replacement.toString() 
+                                        + previewText.substring(startIndex + placeholder.length());
+                            
+                            // 更新搜索位置
+                            startIndex += replacement.length();
+                        }
                     }
-                    listContent.append(itemContent);
                 }
-                
-                // 替换整个列表部分
-                previewText = previewText.substring(0, startIndex) + listContent.toString() + previewText.substring(endIndex + endMarker.length());
             }
         }
         
@@ -599,11 +624,39 @@ public class DocumentGeneratorController {
             for (String cellText : oldRow) {
                 String processedText = cellText;
                 
-                // 替换对象字段占位符
+                // 替换对象字段占位符 - 支持${fieldName}格式
                 for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-                    String placeholder = "{{" + entry.getKey() + "}}";
+                    String placeholder = "${" + entry.getKey() + "}";
                     if (processedText.contains(placeholder)) {
-                        processedText = processedText.replace(placeholder, entry.getValue());
+                        processedText = processedText.replace(placeholder, entry.getValue() != null ? entry.getValue() : "");
+                    }
+                }
+                
+                // 替换列表字段占位符
+                for (Map.Entry<String, List<Map<String, String>>> listEntry : listFieldDataMap.entrySet()) {
+                    String listName = listEntry.getKey();
+                    List<Map<String, String>> listItems = listEntry.getValue();
+                    
+                    // 获取该列表的所有对象字段
+                    for (TemplateField field : fields) {
+                        if (field.isList() && field.getName().equals(listName)) {
+                            for (String itemField : field.getListItems()) {
+                                String placeholder = "${" + listName + "." + itemField + "}";
+                                if (processedText.contains(placeholder)) {
+                                    StringBuilder replacement = new StringBuilder();
+                                    for (Map<String, String> item : listItems) {
+                                        String value = item.get(itemField);
+                                        if (value != null) {
+                                            if (replacement.length() > 0) {
+                                                replacement.append(", ");
+                                            }
+                                            replacement.append(value);
+                                        }
+                                    }
+                                    processedText = processedText.replace(placeholder, replacement.toString());
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -741,63 +794,93 @@ public class DocumentGeneratorController {
      */
     private void extractFieldsFromExcel(List<List<String>> data) {
         // 清空现有字段
-        objectFields.clear();
+        clearAllFields();
         
-        // 假设第一行是标题行
-        if (!data.isEmpty() && !data.get(0).isEmpty()) {
-            List<String> headers = data.get(0);
-            for (String header : headers) {
-                if (header != null && !header.trim().isEmpty()) {
-                    // 检查是否有{{}}格式
-                    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{\\{([^{}]+)\\}\\}");
-                    java.util.regex.Matcher matcher = pattern.matcher(header);
+        // 提取字段的模式
+        java.util.regex.Pattern dollarPattern = java.util.regex.Pattern.compile("\\$\\{([^{}]+)\\}");
+        
+        // 处理所有单元格
+        Set<String> foundFields = new HashSet<>();
+        Set<String> foundListFields = new HashSet<>();
+        Map<String, Set<String>> listItemsMap = new HashMap<>();
+        
+        for (List<String> row : data) {
+            for (String cell : row) {
+                if (cell == null || cell.isEmpty()) continue;
+                
+                java.util.regex.Matcher matcher = dollarPattern.matcher(cell);
+                while (matcher.find()) {
+                    String fieldPath = matcher.group(1);
                     
-                    if (matcher.find()) {
-                        String fieldName = matcher.group(1);
+                    // 处理列表字段（包含点号的字段）
+                    if (fieldPath.contains(".")) {
+                        String[] parts = fieldPath.split("\\.", 2);
+                        String listName = parts[0];
+                        String itemField = parts[1];
                         
-                        // 检查是否已存在
-                        boolean exists = false;
-                        for (TemplateField field : objectFields) {
-                            if (field.getName().equals(fieldName)) {
-                                exists = true;
-                                break;
-                            }
-                        }
+                        // 记录列表字段
+                        foundListFields.add(listName);
                         
-                        if (!exists) {
-                            // 检查是否是列表字段
-                            boolean isList = false;
-                            for (List<String> row : data) {
-                                for (String cell : row) {
-                                    if (cell.contains("{{#" + fieldName + "}}") && 
-                                        cell.contains("{{/" + fieldName + "}}")) {
-                                        isList = true;
-                                        break;
-                                    }
-                                }
-                                if (isList) break;
-                            }
-                            
-                            objectFields.add(new TemplateField(fieldName, isList));
+                        // 记录列表项
+                        if (!listItemsMap.containsKey(listName)) {
+                            listItemsMap.put(listName, new HashSet<>());
                         }
+                        listItemsMap.get(listName).add(itemField);
                     } else {
-                        // 没有{{}}格式，将整个标题作为字段名
-                        // 检查是否已存在
-                        boolean exists = false;
-                        for (TemplateField field : objectFields) {
-                            if (field.getName().equals(header)) {
-                                exists = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!exists) {
-                            objectFields.add(new TemplateField(header, false));
-                        }
+                        // 记录普通字段
+                        foundFields.add(fieldPath);
                     }
                 }
             }
         }
+        
+        // 添加普通字段
+        for (String fieldName : foundFields) {
+            TemplateField field = new TemplateField(fieldName, false);
+            objectFields.add(field);
+            
+            // 初始化字段数据
+            fieldDataMap.put(fieldName, "");
+        }
+        
+        // 添加列表字段
+        for (String listName : foundListFields) {
+            TemplateField listField = new TemplateField(listName, true);
+            fields.add(listField);
+            objectFields.add(listField);
+            
+            // 初始化列表数据
+            listFieldDataMap.put(listName, new ArrayList<>());
+            
+            // 添加列表项
+            Set<String> listItems = listItemsMap.getOrDefault(listName, new HashSet<>());
+            for (String itemName : listItems) {
+                listField.addListItem(itemName);
+                
+                // 添加列表项字段
+                String fullName = listName + "." + itemName;
+                TemplateField itemField = new TemplateField(fullName, false);
+                objectFields.add(itemField);
+            }
+            
+            // 更新列表字段UI
+            Map<String, String> row = new HashMap<>();
+            row.put("name", listName);
+            row.put("objectName", "");
+            listFieldsTable.getItems().add(row);
+            
+            // 为每个列表项添加一行
+            for (String itemName : listItems) {
+                Map<String, String> itemRow = new HashMap<>();
+                itemRow.put("name", listName);
+                itemRow.put("objectName", itemName);
+                listFieldsTable.getItems().add(itemRow);
+            }
+        }
+        
+        // 更新UI
+        updateObjectDataTable();
+        updateListDataTables();
         
         AppLogger.info("从Excel模板中提取了 " + objectFields.size() + " 个字段");
     }
@@ -917,30 +1000,22 @@ public class DocumentGeneratorController {
         // 添加到字段列表
         fields.add(field);
         
+        // 添加到UI列表
+        Map<String, String> row = new HashMap<>();
+        row.put("name", fieldName);
+        row.put("objectName", "");
+        
+        // 确保listFieldsTable不为空
+        if (listFieldsTable != null) {
+            listFieldsTable.getItems().add(row);
+            listFieldsTable.refresh();
+        }
+        
         // 清空输入框
         listFieldInput.clear();
         
-        // 更新列表字段UI
-        updateListFieldsUI();
-        
-        // 更新数据表格
-        updateListDataTables();
-        
         // 记录日志
         AppLogger.info("添加列表字段: " + fieldName);
-        
-        // 确保列表字段表格更新显示
-        if (listFieldsTable != null) {
-            // 创建ObservableList来存储列表字段
-            ObservableList<Map<String, String>> listData = FXCollections.observableArrayList();
-            Map<String, String> row = new HashMap<>();
-            row.put("name", fieldName);
-            row.put("objectName", "");
-            listData.add(row);
-            
-            // 刷新表格
-            listFieldsTable.refresh();
-        }
     }
     
     /**
@@ -1617,9 +1692,36 @@ public class DocumentGeneratorController {
         listObjectNameColumn.setOnEditCommit(event -> {
             String newValue = event.getNewValue();
             Map<String, String> rowData = event.getRowValue();
+            String oldValue = rowData.get("objectName");
+            String listName = rowData.get("name");
+            
             rowData.put("objectName", newValue);
-            // 更新相关数据和UI
+            
+            // 找到相应的列表字段，并更新或添加列表项
+            for (TemplateField field : fields) {
+                if (field.getName().equals(listName) && field.isList()) {
+                    // 如果是编辑现有对象
+                    if (oldValue != null && !oldValue.isEmpty()) {
+                        field.removeListItem(oldValue);
+                    }
+                    
+                    if (newValue != null && !newValue.isEmpty()) {
+                        field.addListItem(newValue);
+                        
+                        // 添加到对象字段
+                        String fullFieldName = listName + "." + newValue;
+                        if (objectFields.stream().noneMatch(f -> f.getName().equals(fullFieldName))) {
+                            TemplateField listItemField = new TemplateField(fullFieldName, false);
+                            objectFields.add(listItemField);
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            // 更新数据表格
             updateListDataTables();
+            updateObjectDataTable();
         });
         
         // 添加按钮列
@@ -1627,13 +1729,22 @@ public class DocumentGeneratorController {
             private final Button addButton = new Button("+");
             
             {
-                addButton.setStyle("-fx-background-color: #E91E63; -fx-text-fill: white;");
+                addButton.setStyle("-fx-background-color: #F06292; -fx-text-fill: white; -fx-background-radius: 50%; -fx-min-width: 20; -fx-min-height: 20; -fx-max-width: 20; -fx-max-height: 20; -fx-font-weight: bold;");
                 addButton.setOnAction(event -> {
                     Map<String, String> currentRow = getTableView().getItems().get(getIndex());
-                    // 添加新行逻辑
-                    Map<String, String> newRow = new HashMap<>(currentRow);
-                    newRow.put("objectName", "");
-                    getTableView().getItems().add(getIndex() + 1, newRow);
+                    // 仅当列表对象名不为空时才添加新行
+                    if (currentRow.get("objectName") != null && !currentRow.get("objectName").isEmpty()) {
+                        // 添加新行逻辑
+                        Map<String, String> newRow = new HashMap<>();
+                        newRow.put("name", currentRow.get("name"));
+                        newRow.put("objectName", "");
+                        getTableView().getItems().add(getIndex() + 1, newRow);
+                        
+                        // 确保刷新表格
+                        getTableView().refresh();
+                    } else {
+                        showInfo("提示", "请先填写当前行的列表对象名");
+                    }
                 });
             }
             
@@ -1650,21 +1761,43 @@ public class DocumentGeneratorController {
         
         // 删除按钮列
         listDeleteColumn.setCellFactory(param -> new TableCell<Map<String, String>, String>() {
-            private final Button deleteButton = new Button("X");
+            private final Button deleteButton = new Button("×");
             
             {
-                deleteButton.setStyle("-fx-background-color: #E91E63; -fx-text-fill: white;");
+                deleteButton.setStyle("-fx-background-color: #F06292; -fx-text-fill: white; -fx-background-radius: 50%; -fx-min-width: 20; -fx-min-height: 20; -fx-max-width: 20; -fx-max-height: 20; -fx-font-weight: bold;");
                 deleteButton.setOnAction(event -> {
                     Map<String, String> rowData = getTableView().getItems().get(getIndex());
+                    String listName = rowData.get("name");
+                    String objectName = rowData.get("objectName");
+                    
+                    // 删除对应的列表项
+                    if (objectName != null && !objectName.isEmpty()) {
+                        for (TemplateField field : fields) {
+                            if (field.getName().equals(listName) && field.isList()) {
+                                field.removeListItem(objectName);
+                                break;
+                            }
+                        }
+                        
+                        // 删除对象字段
+                        String fullFieldName = listName + "." + objectName;
+                        objectFields.removeIf(f -> f.getName().equals(fullFieldName));
+                    }
+                    
                     // 删除行逻辑
                     getTableView().getItems().remove(getIndex());
-                    // 如果是最后一个列表项，从fields中删除该列表
-                    if (getTableView().getItems().isEmpty() || 
-                        getTableView().getItems().stream().allMatch(row -> row.get("name") != rowData.get("name"))) {
-                        fields.removeIf(f -> f.getName().equals(rowData.get("name")) && f.isList());
+                    
+                    // 如果是该列表的最后一个项，且表格不为空，添加一个空项
+                    if (getTableView().getItems().stream().noneMatch(row -> row.get("name").equals(listName))) {
+                        Map<String, String> newRow = new HashMap<>();
+                        newRow.put("name", listName);
+                        newRow.put("objectName", "");
+                        getTableView().getItems().add(newRow);
                     }
-                    // 更新相关数据和UI
+                    
+                    // 更新列表数据
                     updateListDataTables();
+                    updateObjectDataTable();
                 });
             }
             
@@ -1681,20 +1814,67 @@ public class DocumentGeneratorController {
         
         // 设置表格数据
         listFieldsTable.setItems(listFieldsData);
+        listFieldsTable.setEditable(true);
         
         // 双击事件
         listFieldsTable.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
-                TablePosition pos = listFieldsTable.getSelectionModel().getSelectedCells().get(0);
-                Map<String, String> rowData = listFieldsTable.getItems().get(pos.getRow());
-                String listName = rowData.get("name");
-                String objectName = rowData.get("objectName");
-                
-                if (objectName != null && !objectName.isEmpty()) {
-                    String placeholder = "${" + listName + "." + objectName + "}";
-                    insertPlaceholderToEditor(placeholder);
+                try {
+                    TablePosition pos = listFieldsTable.getSelectionModel().getSelectedCells().get(0);
+                    int rowIndex = pos.getRow();
+                    if (rowIndex >= 0 && rowIndex < listFieldsTable.getItems().size()) {
+                        Map<String, String> rowData = listFieldsTable.getItems().get(rowIndex);
+                        String listName = rowData.get("name");
+                        String objectName = rowData.get("objectName");
+                        
+                        if (objectName != null && !objectName.isEmpty()) {
+                            String placeholder = "${" + listName + "." + objectName + "}";
+                            insertPlaceholderToEditor(placeholder);
+                        }
+                    }
+                } catch (IndexOutOfBoundsException e) {
+                    // 未选中单元格时可能会出现异常，忽略
                 }
             }
         });
+    }
+
+    /**
+     * 清空所有字段
+     */
+    private void clearAllFields() {
+        // 清空字段列表
+        objectFields.clear();
+        fields.clear();
+        
+        // 清空数据映射
+        fieldDataMap.clear();
+        listFieldDataMap.clear();
+        
+        // 更新字段表格
+        objectFieldsTable.getItems().clear();
+        objectFieldsTable.refresh();
+        
+        // 更新列表字段表格
+        if (listFieldsTable != null) {
+            listFieldsTable.getItems().clear();
+            listFieldsTable.refresh();
+        }
+        
+        // 更新数据填充表格
+        objectDataTable.getItems().clear();
+        objectDataTable.refresh();
+        
+        // 清空列表数据容器
+        listDataContainer.getChildren().clear();
+    }
+
+    /**
+     * 更新对象数据表格
+     */
+    private void updateObjectDataTable() {
+        // 更新数据填充表格
+        objectDataTable.setItems(FXCollections.observableArrayList(objectFields));
+        objectDataTable.refresh();
     }
 } 

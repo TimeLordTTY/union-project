@@ -358,4 +358,203 @@ public class ExcelTemplateGenerator {
         
         return styles;
     }
+
+    /**
+     * 创建Excel模板
+     * @param outputPath 输出路径
+     */
+    public static void createExcelTemplate(String outputPath) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("订单模板");
+            
+            // 设置列宽
+            sheet.setColumnWidth(0, 20 * 256);
+            sheet.setColumnWidth(1, 20 * 256);
+            sheet.setColumnWidth(2, 15 * 256);
+            sheet.setColumnWidth(3, 15 * 256);
+            
+            // 创建标题行
+            Row titleRow = sheet.createRow(0);
+            CellStyle titleStyle = createTitleStyle(workbook);
+            
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("订单信息");
+            titleCell.setCellStyle(titleStyle);
+            
+            // 合并标题单元格
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));
+            
+            // 创建客户信息
+            Row customerRow1 = sheet.createRow(2);
+            Row customerRow2 = sheet.createRow(3);
+            Row customerRow3 = sheet.createRow(4);
+            
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle normalStyle = createNormalStyle(workbook);
+            
+            // 客户名称
+            Cell customerLabelCell = customerRow1.createCell(0);
+            customerLabelCell.setCellValue("客户名称:");
+            customerLabelCell.setCellStyle(headerStyle);
+            
+            Cell customerValueCell = customerRow1.createCell(1);
+            customerValueCell.setCellValue("${customerName}");
+            customerValueCell.setCellStyle(normalStyle);
+            
+            // 联系人
+            Cell contactLabelCell = customerRow2.createCell(0);
+            contactLabelCell.setCellValue("联系人:");
+            contactLabelCell.setCellStyle(headerStyle);
+            
+            Cell contactValueCell = customerRow2.createCell(1);
+            contactValueCell.setCellValue("${contactPerson}");
+            contactValueCell.setCellStyle(normalStyle);
+            
+            // 联系电话
+            Cell phoneLabelCell = customerRow3.createCell(0);
+            phoneLabelCell.setCellValue("联系电话:");
+            phoneLabelCell.setCellStyle(headerStyle);
+            
+            Cell phoneValueCell = customerRow3.createCell(1);
+            phoneValueCell.setCellValue("${contactPhone}");
+            phoneValueCell.setCellStyle(normalStyle);
+            
+            // 日期
+            Cell dateLabelCell = customerRow1.createCell(2);
+            dateLabelCell.setCellValue("日期:");
+            dateLabelCell.setCellStyle(headerStyle);
+            
+            Cell dateValueCell = customerRow1.createCell(3);
+            dateValueCell.setCellValue("${orderDate}");
+            dateValueCell.setCellStyle(normalStyle);
+            
+            // 订单号
+            Cell orderNoLabelCell = customerRow2.createCell(2);
+            orderNoLabelCell.setCellValue("订单号:");
+            orderNoLabelCell.setCellStyle(headerStyle);
+            
+            Cell orderNoValueCell = customerRow2.createCell(3);
+            orderNoValueCell.setCellValue("${orderNumber}");
+            orderNoValueCell.setCellStyle(normalStyle);
+            
+            // 创建订单表头
+            Row headerRow = sheet.createRow(6);
+            
+            Cell productHeaderCell = headerRow.createCell(0);
+            productHeaderCell.setCellValue("产品名称");
+            productHeaderCell.setCellStyle(headerStyle);
+            
+            Cell quantityHeaderCell = headerRow.createCell(1);
+            quantityHeaderCell.setCellValue("数量");
+            quantityHeaderCell.setCellStyle(headerStyle);
+            
+            Cell priceHeaderCell = headerRow.createCell(2);
+            priceHeaderCell.setCellValue("单价");
+            priceHeaderCell.setCellStyle(headerStyle);
+            
+            Cell totalHeaderCell = headerRow.createCell(3);
+            totalHeaderCell.setCellValue("总价");
+            totalHeaderCell.setCellStyle(headerStyle);
+            
+            // 创建订单数据行示例
+            Row dataRow = sheet.createRow(7);
+            
+            Cell productCell = dataRow.createCell(0);
+            productCell.setCellValue("${products.name}");
+            productCell.setCellStyle(normalStyle);
+            
+            Cell quantityCell = dataRow.createCell(1);
+            quantityCell.setCellValue("${products.quantity}");
+            quantityCell.setCellStyle(normalStyle);
+            
+            Cell priceCell = dataRow.createCell(2);
+            priceCell.setCellValue("${products.price}");
+            priceCell.setCellStyle(normalStyle);
+            
+            Cell totalCell = dataRow.createCell(3);
+            totalCell.setCellValue("${products.total}");
+            totalCell.setCellStyle(normalStyle);
+            
+            // 创建总计行
+            Row totalRow = sheet.createRow(9);
+            
+            Cell totalLabelCell = totalRow.createCell(2);
+            totalLabelCell.setCellValue("总计:");
+            totalLabelCell.setCellStyle(headerStyle);
+            
+            Cell totalValueCell = totalRow.createCell(3);
+            totalValueCell.setCellValue("${totalAmount}");
+            totalValueCell.setCellStyle(headerStyle);
+            
+            // 保存工作簿
+            try (FileOutputStream fileOut = new FileOutputStream(outputPath)) {
+                workbook.write(fileOut);
+            }
+            
+            System.out.println("Excel模板创建成功: " + outputPath);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("创建Excel模板失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建标题样式
+     * @param workbook 工作簿
+     * @return 标题样式
+     */
+    private static CellStyle createTitleStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 16);
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return style;
+    }
+    
+    /**
+     * 创建表头样式
+     * @param workbook 工作簿
+     * @return 表头样式
+     */
+    private static CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return style;
+    }
+    
+    /**
+     * 创建普通单元格样式
+     * @param workbook 工作簿
+     * @return 普通单元格样式
+     */
+    private static CellStyle createNormalStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        return style;
+    }
 } 

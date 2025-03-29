@@ -12,6 +12,8 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.model.TemplateField;
@@ -300,5 +302,118 @@ public class DocxTemplateGenerator {
         XWPFRun run = paragraph.createRun();
         run.setText(text);
         run.setFontFamily("微软雅黑");
+    }
+
+    /**
+     * 向Word文档模板中添加占位符
+     */
+    public static void createWordTemplate(String outputPath) {
+        try (XWPFDocument document = new XWPFDocument()) {
+            
+            // 添加标题
+            XWPFParagraph title = document.createParagraph();
+            title.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun titleRun = title.createRun();
+            titleRun.setText("文档模板示例");
+            titleRun.setBold(true);
+            titleRun.setFontSize(20);
+            
+            // 添加客户信息部分
+            XWPFParagraph customerInfoTitle = document.createParagraph();
+            customerInfoTitle.setAlignment(ParagraphAlignment.LEFT);
+            XWPFRun customerTitleRun = customerInfoTitle.createRun();
+            customerTitleRun.setText("客户信息");
+            customerTitleRun.setBold(true);
+            customerTitleRun.setFontSize(14);
+            
+            // 创建客户信息表格
+            XWPFTable customerTable = document.createTable(3, 2);
+            setTableWidth(customerTable, "100%");
+            
+            // 设置表格内容
+            setCellValue(customerTable, 0, 0, "客户名称:");
+            setCellValue(customerTable, 0, 1, "${customerName}");
+            setCellValue(customerTable, 1, 0, "联系人:");
+            setCellValue(customerTable, 1, 1, "${contactPerson}");
+            setCellValue(customerTable, 2, 0, "联系电话:");
+            setCellValue(customerTable, 2, 1, "${contactPhone}");
+            
+            // 添加产品信息部分
+            XWPFParagraph productInfoTitle = document.createParagraph();
+            productInfoTitle.setAlignment(ParagraphAlignment.LEFT);
+            XWPFRun productTitleRun = productInfoTitle.createRun();
+            productTitleRun.setText("产品信息");
+            productTitleRun.setBold(true);
+            productTitleRun.setFontSize(14);
+            
+            // 创建产品信息表格
+            XWPFTable productTable = document.createTable(4, 4);
+            setTableWidth(productTable, "100%");
+            
+            // 设置产品表头
+            setCellValue(productTable, 0, 0, "产品名称");
+            setCellValue(productTable, 0, 1, "数量");
+            setCellValue(productTable, 0, 2, "单价");
+            setCellValue(productTable, 0, 3, "总价");
+            
+            // 添加列表数据占位符
+            setCellValue(productTable, 1, 0, "${products.name}");
+            setCellValue(productTable, 1, 1, "${products.quantity}");
+            setCellValue(productTable, 1, 2, "${products.price}");
+            setCellValue(productTable, 1, 3, "${products.total}");
+            
+            // 添加结束文字
+            XWPFParagraph endParagraph = document.createParagraph();
+            endParagraph.setAlignment(ParagraphAlignment.LEFT);
+            XWPFRun endRun = endParagraph.createRun();
+            endRun.setText("总金额: ${totalAmount}");
+            endRun.setFontSize(12);
+            
+            // 添加日期
+            XWPFParagraph dateParagraph = document.createParagraph();
+            dateParagraph.setAlignment(ParagraphAlignment.RIGHT);
+            XWPFRun dateRun = dateParagraph.createRun();
+            dateRun.setText("日期: ${currentDate}");
+            dateRun.setFontSize(12);
+            
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(outputPath)) {
+                document.write(out);
+            }
+            
+            System.out.println("Word模板创建成功: " + outputPath);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("创建Word模板失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 设置表格宽度
+     * @param table 表格对象
+     * @param width 宽度值（如"100%"）
+     */
+    private static void setTableWidth(XWPFTable table, String width) {
+        CTTblWidth tblWidth = table.getCTTbl().addNewTblPr().addNewTblW();
+        tblWidth.setW(BigInteger.valueOf(10000)); // 10000 = 100%
+        tblWidth.setType(STTblWidth.PCT);
+    }
+    
+    /**
+     * 设置单元格内容
+     * @param table 表格对象
+     * @param row 行索引
+     * @param col 列索引
+     * @param text 文本内容
+     */
+    private static void setCellValue(XWPFTable table, int row, int col, String text) {
+        XWPFTableCell cell = table.getRow(row).getCell(col);
+        XWPFParagraph paragraph = cell.getParagraphArray(0);
+        if (paragraph == null) {
+            paragraph = cell.addParagraph();
+        }
+        XWPFRun run = paragraph.createRun();
+        run.setText(text);
     }
 } 

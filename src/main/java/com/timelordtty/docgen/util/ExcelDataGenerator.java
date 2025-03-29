@@ -1,6 +1,10 @@
 package com.timelordtty.docgen.util;
 
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -123,6 +127,109 @@ public class ExcelDataGenerator {
         } catch (Exception e) {
             AppLogger.error("生成Excel测试数据失败: " + e.getMessage(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 从表头定义中提取字段
+     * @param headerDefinitions 表头定义
+     * @return 字段列表
+     */
+    private List<Field> extractFieldsFromHeaders(List<String> headerDefinitions) {
+        List<Field> fields = new ArrayList<>();
+        
+        // 正则表达式用于匹配${字段名}格式
+        Pattern pattern = Pattern.compile("\\$\\{([^{}]+)\\}");
+        
+        for (String header : headerDefinitions) {
+            Matcher matcher = pattern.matcher(header);
+            if (matcher.find()) {
+                String fieldName = matcher.group(1);
+                fields.add(new Field(fieldName, header));
+            } else {
+                // 如果没有占位符，就用原始标题作为字段名和标题
+                fields.add(new Field(header, header));
+            }
+        }
+        
+        return fields;
+    }
+
+    /**
+     * 创建简单的Excel数据文件作为示例
+     * @param outputPath 输出路径
+     */
+    public static void createSampleData(String outputPath) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("示例数据");
+            
+            // 设置列宽
+            sheet.setColumnWidth(0, 20 * 256);
+            sheet.setColumnWidth(1, 20 * 256);
+            sheet.setColumnWidth(2, 15 * 256);
+            sheet.setColumnWidth(3, 15 * 256);
+            
+            // 创建样式
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            
+            // 创建表头
+            Row headerRow = sheet.createRow(0);
+            String[] headers = new String[] {"客户名称", "联系人", "产品名称", "数量"};
+            
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // 创建数据行
+            String[][] data = new String[][] {
+                {"公司A", "张三", "产品1", "10"},
+                {"公司B", "李四", "产品2", "20"},
+                {"公司C", "王五", "产品3", "30"}
+            };
+            
+            for (int i = 0; i < data.length; i++) {
+                Row row = sheet.createRow(i + 1);
+                for (int j = 0; j < data[i].length; j++) {
+                    row.createCell(j).setCellValue(data[i][j]);
+                }
+            }
+            
+            // 保存工作簿
+            try (FileOutputStream fileOut = new FileOutputStream(outputPath)) {
+                workbook.write(fileOut);
+            }
+            
+            System.out.println("示例数据文件创建成功: " + outputPath);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("创建示例数据文件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 字段类，用于保存字段名和表头
+     */
+    private static class Field {
+        private String name;      // 字段名
+        private String header;    // 表头
+        
+        public Field(String name, String header) {
+            this.name = name;
+            this.header = header;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public String getHeader() {
+            return header;
         }
     }
 } 
