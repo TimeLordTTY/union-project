@@ -3,28 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>模板与文档生成工具</title>
+    <title>模板与文档生成工具 - 美化版</title>
     <style>
-        /* Reusing styles from the original doc.html */
         :root {
+            --pink-primary: #E91E63;
             --pink-light: #FFD0E0;
-            --pink-text: #E91E63;
-            --primary-color: #E91E63; /* Main interaction color */
-            --secondary-color: #FFD0E0; /* Lighter pink for backgrounds/tags */
-            --border-color: #FFB6C1; /* Light pink border */
+            --pink-lighter: #FFF0F5;
+            --pink-border: #FFB6C1;
+            --gold-header: #EAAA00; /* Existing header color */
             --text-color: #333;
-            --bg-color: #FFF5F8; /* Very light pink background */
-            --hover-color: #D81B60; /* Darker pink for hover */
-            --placeholder-bg: rgba(233, 30, 99, 0.1);
-            --placeholder-border: #E91E63;
-            --button-text-color: #E91E63;
-            --button-bg-color: #FFF0F5; /* Light pinkish for buttons */
-            --button-border-color: #FFB6C1;
-            --header-bg: #EAAA00; /* Keeping original header color for now */
+            --text-light: #555;
+            --text-placeholder: #999;
+            --bg-color: #fdf6f8; /* Even lighter pinkish background */
+            --bg-alt: #ffffff; /* White for contrast */
+            --border-color: #eee; /* Lighter general border */
+            --border-focus: var(--pink-primary);
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --icon-color: var(--pink-primary);
+            --delete-color: #f44336;
+            --add-color: #4CAF50;
+
+            --font-main: "Microsoft YaHei", "微软雅黑", Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
         }
 
         body {
-            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            font-family: var(--font-main);
             margin: 0;
             padding: 0;
             background-color: var(--bg-color);
@@ -32,409 +35,498 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            font-size: 14px; /* Base font size */
         }
 
+        /* Header */
         .header {
-            background-color: var(--header-bg);
+            background-color: var(--gold-header);
             color: white;
-            padding: 10px 15px; /* Slightly smaller header */
+            padding: 12px 25px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            flex-shrink: 0; /* Prevent header from shrinking */
+            box-shadow: 0 2px 5px var(--shadow-color);
+            flex-shrink: 0;
+            z-index: 10; /* Ensure header is on top */
         }
          .header h1 {
              margin: 0;
-             font-size: 1.5em;
+             font-size: 1.6em;
+             font-weight: 600;
          }
 
+        /* Main Container */
         .main-container {
-            width: 98%; /* More width */
-            margin: 15px auto;
+            width: 95%; /* Use more screen width */
+            max-width: 1600px; /* Max width for very large screens */
+            margin: 20px auto;
             display: flex;
             flex-direction: column;
-            flex-grow: 1; /* Allow container to grow */
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            padding: 15px;
-            gap: 15px; /* Spacing between sections */
+            flex-grow: 1;
+            background-color: var(--bg-alt);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden; /* Prevent content spilling */
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--pink-primary);
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--pink-light);
         }
 
         /* Top Controls Area */
         .top-controls {
             display: flex;
             align-items: center;
-            gap: 15px; /* Spacing between control groups */
+            gap: 15px;
             padding-bottom: 15px;
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
         .top-controls label {
             margin-right: 5px;
-            font-weight: bold;
+            font-weight: 600;
+            color: var(--text-light);
         }
         .top-controls select, .top-controls button {
-            padding: 6px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: var(--button-bg-color);
-            color: var(--button-text-color);
+            padding: 8px 14px;
+            border: 1px solid var(--pink-border);
+            border-radius: 5px;
+            background-color: var(--bg-alt);
+            color: var(--pink-primary);
             cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
+            transition: all 0.2s ease-in-out;
+            font-size: 0.95em;
         }
         .top-controls select {
-             min-width: 120px;
+             min-width: 150px;
+             appearance: none; /* Custom dropdown arrow potentially */
+             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23E91E63'%3E%3Cpath fill-rule='evenodd' d='M8 11.293l-4.646-4.647a.5.5 0 0 1 .708-.708L8 9.879l4.939-4.94a.5.5 0 0 1 .707.708L8 11.293z'/%3E%3C/svg%3E"); /* Basic SVG arrow */
+             background-repeat: no-repeat;
+             background-position: right 10px center;
+             background-size: 16px;
+             padding-right: 30px; /* Space for arrow */
         }
         .top-controls button:hover {
-            background-color: var(--primary-color);
-            color: white;
+            background-color: var(--pink-lighter);
+            border-color: var(--pink-primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        /* Hidden file input for template selection */
-        #template-file-input {
-            display: none;
+        .top-controls button:active {
+             background-color: var(--pink-light);
         }
+         .top-controls button .icon { /* Style for icon placeholders */
+             margin-right: 6px;
+             font-weight: bold;
+         }
+        #template-file-input, #import-excel-input { display: none; }
 
         /* Middle Area Layout */
         .middle-area {
             display: flex;
-            gap: 15px;
-            flex-grow: 1; /* Allow middle area to take up space */
-            min-height: 300px; /* Ensure minimum height */
+            gap: 20px;
+            flex-grow: 1;
+            overflow: hidden; /* Important for contained scrolling */
         }
-
-        /* Left Middle: Field Management & List */
-        .field-management-area {
-            flex: 2; /* Give more space to field management */
+        .left-pane, .right-pane {
+            flex: 1; /* Start with equal width, adjust flex values if needed */
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
+            gap: 15px;
             padding: 15px;
-            overflow: hidden; /* Prevent content overflow */
+            background-color: var(--bg-color);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            overflow: hidden; /* Panes manage their own overflow */
         }
+         /* Adjust flex-basis or flex-grow if specific ratios are desired */
+         .left-pane { flex-basis: 45%; }
+         .right-pane { flex-basis: 55%; }
+
+        /* Field Management Controls */
         .field-management-controls {
-            flex-shrink: 0; /* Don't shrink controls */
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 5px;
         }
         .field-management-controls .input-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
         .field-management-controls label {
-            width: 70px; /* Fixed label width */
+            width: 75px;
             text-align: right;
             font-size: 0.9em;
+            color: var(--text-light);
         }
         .field-management-controls input[type="text"] {
             flex-grow: 1;
-            padding: 6px;
-            border: 1px solid var(--border-color);
+            padding: 8px 10px;
+            border: 1px solid var(--pink-border);
             border-radius: 4px;
+            font-size: 0.95em;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
+         .field-management-controls input[type="text"]:focus {
+              outline: none;
+              border-color: var(--border-focus);
+              box-shadow: 0 0 0 2px var(--pink-lighter);
+         }
         .field-management-controls button {
-            padding: 6px 10px;
-             white-space: nowrap; /* Prevent button text wrapping */
+            padding: 7px 12px;
+            white-space: nowrap;
+            font-size: 0.9em;
         }
 
-        .field-list-display {
-            flex-grow: 1; /* Allow list to take remaining space */
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            overflow-y: auto; /* Scroll if content overflows */
-            padding-right: 5px; /* Space for scrollbar */
+        /* Field List Display */
+        .field-list-display-area {
+            flex-grow: 1;
+            overflow-y: auto; /* Scroll this area */
+            padding-right: 8px; /* Scrollbar space */
         }
-        .object-field-list, .list-field-area {
-             border: 1px dashed var(--border-color);
-             border-radius: 4px;
-             padding: 10px;
+        .object-field-list, .list-field-definitions {
+             margin-bottom: 15px;
         }
-        .object-field-list h4, .list-field-area h4 {
-             margin-top: 0;
-             margin-bottom: 10px;
-             color: var(--primary-color);
-             font-size: 1em;
-             border-bottom: 1px solid var(--secondary-color);
+        .field-list-header { /* Header within scrollable area */
+             font-size: 1.05em;
+             font-weight: 600;
+             color: var(--pink-primary);
+             margin: 0 0 10px 0;
              padding-bottom: 5px;
+             border-bottom: 1px solid var(--pink-light);
         }
-        .field-list-item, .list-detail-row {
+         .field-list-header small {
+              font-weight: normal;
+              font-size: 0.85em;
+              color: var(--text-light);
+         }
+
+        /* Object Field List Items */
+        .field-list-item {
              display: flex;
              align-items: center;
-             padding: 4px 0;
-             font-size: 0.9em;
-             gap: 10px; /* Space between columns */
+             padding: 6px 4px;
+             font-size: 0.95em;
+             gap: 15px; /* More space */
+             border-bottom: 1px solid var(--border-color);
+             cursor: pointer;
+             transition: background-color 0.15s;
         }
-        /* Style for the 3 columns in object list */
-        .field-list-item span:nth-child(1) { flex: 2; font-weight: bold; } /* Field Name */
-        .field-list-item span:nth-child(2) { flex: 3; color: #666; font-family: monospace;} /* Placeholder */
-        .field-list-item span:nth-child(3) button { /* Delete Button */
-            background: none;
-            border: none;
-            color: #ff4d4d;
-            cursor: pointer;
-            font-weight: bold;
-            padding: 0 5px;
-            font-size: 1.1em;
-            line-height: 1;
-        }
-        .field-list-item span:nth-child(3) button:hover {
-             color: #cc0000;
-        }
-        .field-list-item {
-             border-bottom: 1px dotted var(--border-color);
-        }
-         .field-list-item:last-child {
-             border-bottom: none;
-        }
+        .field-list-item:last-child { border-bottom: none; }
+        .field-list-item:hover { background-color: var(--pink-lighter); }
 
-        /* Complex List Field Structure */
-        .list-container {
+        .field-list-item .field-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .field-list-item .field-placeholder { flex: 2; color: var(--text-light); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9em;}
+        .field-list-item .field-delete-btn {
+            background: none; border: none; color: var(--delete-color); cursor: pointer;
+            font-weight: bold; padding: 2px 5px; font-size: 1.2em; line-height: 1;
+            margin-left: auto; /* Push delete button to the right */
+            opacity: 0.7;
+             transition: opacity 0.2s;
+        }
+        .field-list-item:hover .field-delete-btn { opacity: 1; }
+        .field-list-item .field-delete-btn:hover { color: darkred; }
+
+        /* List Definition Area */
+        .list-definition-block {
             margin-bottom: 15px;
-        }
-        .list-detail-row span:nth-child(1) { /* List Name */
-            flex: 1;
-            font-weight: bold;
-            /* CSS for rowspan simulation might be needed if not using table */
-            align-self: flex-start; /* Align top for visual merge */
-            padding-top: 2px;
-        }
-        .list-detail-row input[type="text"] { /* List Object Name Input */
-             flex: 3;
-             padding: 4px;
-             font-size: 0.9em;
-             border: 1px solid var(--border-color);
-             border-radius: 3px;
-        }
-        .list-detail-row button { /* Add/Delete buttons */
-            background: none;
-            border: 1px solid var(--border-color);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-            line-height: 1;
-            padding: 0;
-        }
-        .list-detail-row .add-list-object-btn { color: #4CAF50; }
-        .list-detail-row .delete-list-object-btn { color: #ff4d4d; }
-        .list-detail-row .add-list-object-btn:hover { background-color: #e8f5e9; }
-        .list-detail-row .delete-list-object-btn:hover { background-color: #ffebee; }
-
-        /* Right Middle: Data Filling */
-        .data-filling-area {
-            flex: 3; /* Give more space to data filling */
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            padding: 10px;
+            background-color: var(--bg-alt);
             border: 1px solid var(--border-color);
             border-radius: 5px;
-            padding: 15px;
-            overflow-y: auto; /* Scroll if needed */
+        }
+        .list-object-row {
+             display: flex;
+             align-items: center;
+             gap: 8px;
+             padding: 5px 0;
+             position: relative; /* For potential absolute positioning if needed */
+        }
+         .list-object-row:not(:last-child) {
+              border-bottom: 1px dotted var(--pink-border);
+         }
+
+        .list-object-row .list-name-label {
+            flex: 0 0 100px; /* Fixed width for list name */
+            font-weight: 600;
+            color: var(--pink-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 0; /* Hide by default, show only for first */
+            align-self: flex-start;
+            padding-top: 8px; /* Align with input */
+            transition: opacity 0.2s;
+        }
+        .list-object-row.is-first-row .list-name-label {
+             opacity: 1; /* Show for first row */
+        }
+
+        .list-object-row input[type="text"] { /* List Object Name Input */
+             flex: 1;
+             padding: 7px 9px;
+             font-size: 0.9em;
+             border: 1px solid var(--pink-border);
+             border-radius: 4px;
+        }
+         .list-object-row input[type="text"]:focus {
+              outline: none;
+              border-color: var(--border-focus);
+              box-shadow: 0 0 0 2px var(--pink-lighter);
+         }
+        .list-object-row .list-action-btn {
+            background: none; border: none; border-radius: 50%;
+            width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: bold; line-height: 1; padding: 0; font-size: 1.2em;
+            transition: background-color 0.2s;
+        }
+        .list-object-row .add-list-object-btn { color: var(--add-color); }
+        .list-object-row .delete-list-object-btn { color: var(--delete-color); }
+        .list-object-row .add-list-object-btn:hover { background-color: #e8f5e9; }
+        .list-object-row .delete-list-object-btn:hover { background-color: #ffebee; }
+
+        /* Data Filling Area */
+        .data-filling-area {
+            flex-grow: 1;
+            overflow-y: auto;
+             padding-right: 8px; /* Scrollbar space */
         }
         .object-filling-list, .list-filling-tables {
-            border: 1px dashed var(--border-color);
-            border-radius: 4px;
-            padding: 10px;
+            margin-bottom: 15px;
         }
-        .object-filling-list h4, .list-filling-tables h4 {
-             margin-top: 0;
-             margin-bottom: 10px;
-             color: var(--primary-color);
-             font-size: 1em;
-             border-bottom: 1px solid var(--secondary-color);
-             padding-bottom: 5px;
-        }
+
+        /* Object Filling Items */
         .object-filling-item {
             display: flex;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             gap: 10px;
         }
         .object-filling-item label {
-            width: 150px; /* Adjust as needed */
+            width: 140px; /* Adjust as needed */
             text-align: right;
-            font-weight: bold;
+            font-weight: 600;
             font-size: 0.9em;
+            color: var(--text-light);
             white-space: nowrap;
         }
         .object-filling-item input[type="text"] {
             flex-grow: 1;
-            padding: 6px;
-            border: 1px solid var(--border-color);
+            padding: 8px 10px;
+            border: 1px solid var(--pink-border);
             border-radius: 4px;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
+         .object-filling-item input[type="text"]:focus {
+              outline: none;
+              border-color: var(--border-focus);
+              box-shadow: 0 0 0 2px var(--pink-lighter);
+         }
 
-        /* List Filling Table Structure */
-        .list-filling-table-container {
+        /* List Filling Table */
+        .list-data-table-block {
              margin-bottom: 20px;
+             padding: 15px;
+             background-color: var(--bg-alt);
+             border: 1px solid var(--border-color);
+             border-radius: 5px;
         }
-        .list-filling-table-container h5 { /* List Name as header */
-            margin: 0 0 5px 0;
-            font-size: 1em;
+        .list-data-table-block .list-data-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
-        .list-filling-table {
+        .list-data-table-block h5 {
+            margin: 0;
+            font-size: 1.05em;
+            color: var(--pink-primary);
+        }
+        .list-data-table-block .add-list-data-row-btn {
+             padding: 5px 10px;
+             font-size: 0.9em;
+        }
+        .list-data-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate; /* Use separate for rounded corners */
+            border-spacing: 0;
             font-size: 0.9em;
+            border: 1px solid var(--pink-border);
+            border-radius: 4px;
+            overflow: hidden; /* Clip content to rounded border */
         }
-        .list-filling-table th, .list-filling-table td {
-            border: 1px solid var(--border-color);
-            padding: 6px;
+        .list-data-table th, .list-data-table td {
+            border-bottom: 1px solid var(--pink-border);
+             border-right: 1px solid var(--pink-border);
+            padding: 8px 10px;
             text-align: left;
+            vertical-align: middle;
         }
-        .list-filling-table th {
-            background-color: var(--secondary-color);
-            color: var(--primary-color);
-            font-weight: bold;
+         .list-data-table th:last-child, .list-data-table td:last-child {
+             border-right: none;
+         }
+         .list-data-table tr:last-child td {
+              border-bottom: none;
+         }
+
+        .list-data-table th {
+            background-color: var(--pink-lighter);
+            color: var(--pink-primary);
+            font-weight: 600;
+            white-space: nowrap;
         }
-        .list-filling-table td input[type="text"] {
-            width: 95%; /* Fill cell */
-            padding: 4px;
-            border: 1px solid #ddd;
+        .list-data-table td input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid transparent; /* Transparent border */
             border-radius: 3px;
             box-sizing: border-box;
+            background-color: transparent;
+             transition: border-color 0.2s, background-color 0.2s;
         }
-        .list-filling-table td input[type="text"]:focus {
-             border-color: var(--primary-color);
+        .list-data-table td input[type="text"]:focus {
              outline: none;
-        }
-        .add-list-data-row-btn {
-             margin-top: 5px;
-             padding: 4px 8px;
-             font-size: 0.8em;
-             float: right; /* Position add button */
+             border-color: var(--border-focus);
+             background-color: white;
+             box-shadow: 0 0 0 1px var(--border-focus);
         }
 
         /* Bottom Area Layout */
         .bottom-area {
             display: flex;
-            gap: 15px;
-            flex-grow: 2; /* Allow bottom area to take significant space */
-            min-height: 300px; /* Ensure minimum height */
+            gap: 20px;
+            flex-grow: 1; /* Let bottom grow more if needed */
+            min-height: 250px; /* Adjust min height */
+            overflow: hidden;
         }
-
-        /* Bottom Left: Template Editor */
-        .template-editor-area {
+        .editor-pane, .preview-pane {
             flex: 1;
             display: flex;
             flex-direction: column;
+            background-color: var(--bg-alt);
             border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 15px;
-            overflow: hidden; /* Manage overflow */
-        }
-         .template-editor-area h4 {
-             margin-top: 0;
-             margin-bottom: 10px;
-             color: var(--primary-color);
-             font-size: 1em;
-             flex-shrink: 0;
-         }
-        .editor-container {
-            flex-grow: 1; /* Editor takes remaining space */
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            overflow-y: auto; /* Scroll editor content */
-            padding: 10px;
-            line-height: 1.5;
-            background-color: #fff; /* White background for editor */
-        }
-        .editor-container[contenteditable="true"]:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-        /* Style for placeholders within the editor */
-        .editor-placeholder {
-            background-color: var(--placeholder-bg);
-            border: 1px dashed var(--placeholder-border);
-            padding: 1px 3px;
-            border-radius: 3px;
-            font-family: monospace;
-            cursor: default; /* Indicate it's special text */
-        }
-
-        /* Bottom Right: Real-time Preview */
-        .preview-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
+            border-radius: 6px;
             padding: 15px;
             overflow: hidden;
         }
-         .preview-area h4 {
-             margin-top: 0;
-             margin-bottom: 10px;
-             color: var(--primary-color);
-             font-size: 1em;
+        .editor-pane .section-header, .preview-pane .section-header {
              flex-shrink: 0;
+        }
+         .editor-pane .header-note {
+              font-weight: normal;
+              font-size: 0.85em;
+              color: var(--text-light);
+              margin-left: 8px;
          }
-        .preview-container {
+
+        .editor-content, .preview-content {
             flex-grow: 1;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            overflow-y: auto;
-            padding: 10px;
-            background-color: #f8f8f8; /* Slightly different background for preview */
-            line-height: 1.5;
+            overflow: auto; /* Scroll content */
+            padding: 12px;
+            line-height: 1.6;
+            background-color: white;
+             font-size: 0.95em; /* Slightly larger editor font */
         }
-         /* Specific styles for previewed content if needed */
-        .preview-container table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
+        .editor-content[contenteditable="true"] {
+             outline: none;
         }
-        .preview-container th, .preview-container td {
-            border: 1px solid #ccc;
-            padding: 6px;
-            text-align: left;
-        }
-        .preview-container th {
-             background-color: #eee;
-        }
+         .editor-content[contenteditable="true"]:focus-within { /* Focus style on container */
+             border-color: var(--border-focus);
+             box-shadow: 0 0 0 2px var(--pink-lighter);
+         }
+         .preview-content {
+              background-color: #f9f9f9; /* Slightly off-white preview */
+         }
 
+        /* Editor Placeholder Style */
+        .editor-placeholder {
+            background-color: var(--placeholder-bg);
+            border: 1px dashed var(--placeholder-border);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            cursor: default;
+            color: var(--pink-primary);
+            display: inline-block; /* Ensure background covers text */
+        }
+        /* Excel Placeholders */
+        .excel-placeholder-view {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             text-align: center;
+             color: var(--text-placeholder);
+             font-style: italic;
+             height: 100%;
+        }
 
         /* Bottom Button Bar */
         .bottom-buttons {
             display: flex;
-            justify-content: space-between; /* Space out button groups */
+            justify-content: space-between;
             padding-top: 15px;
             border-top: 1px solid var(--border-color);
             flex-shrink: 0;
+            background-color: var(--bg-alt); /* Match main background */
+            margin: 0 -20px -15px -20px; /* Extend to container edges */
+            padding: 15px 20px;
+            border-radius: 0 0 8px 8px; /* Match container rounding */
         }
-        .button-group {
-             display: flex;
-             gap: 10px;
-        }
+        .button-group { display: flex; gap: 12px; }
+
         .bottom-buttons button {
-            padding: 8px 18px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: var(--button-bg-color);
-            color: var(--button-text-color);
+            padding: 9px 20px;
+            border: 1px solid var(--pink-border);
+            border-radius: 5px;
+            background-color: var(--bg-alt);
+            color: var(--pink-primary);
             cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s, color 0.3s;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.2s ease-in-out;
         }
+        .bottom-buttons button .icon { margin-right: 6px; font-weight: bold;}
         .bottom-buttons button:hover {
-            background-color: var(--primary-color);
-            color: white;
+            background-color: var(--pink-lighter);
+            border-color: var(--pink-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        .bottom-buttons .primary-action { /* Distinct style for main actions */
-            background-color: var(--primary-color);
+         .bottom-buttons button:active {
+              transform: translateY(0);
+              box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+              background-color: var(--pink-light);
+         }
+
+        .bottom-buttons .primary-action { /* Generate Document */
+            background-color: var(--pink-primary);
             color: white;
+            border-color: var(--pink-primary);
         }
         .bottom-buttons .primary-action:hover {
             background-color: var(--hover-color);
+            border-color: var(--hover-color);
         }
+         .bottom-buttons .primary-action:active {
+              background-color: #b8154d; /* Slightly darker active */
+         }
+
+        /* Scrollbar styling (optional, WebKit specific) */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px;}
+        ::-webkit-scrollbar-thumb { background: var(--pink-border); border-radius: 4px;}
+        ::-webkit-scrollbar-thumb:hover { background: var(--pink-light); }
 
     </style>
 </head>
@@ -452,144 +544,139 @@
                 <option value="word">Word (.docx)</option>
                 <option value="excel">Excel (.xlsx)</option>
             </select>
-            <button id="select-template-btn" onclick="selectTemplateFile()">选择模板</button>
+            <button id="select-template-btn" onclick="selectTemplateFile()">
+                <span class="icon">📁</span>选择模板
+            </button>
             <input type="file" id="template-file-input" accept=".docx,.xlsx" onchange="handleTemplateFileSelected(event)">
 
-            <div style="margin-left: auto;"> <!-- Push buttons to the right -->
-                 <button id="export-fields-btn" onclick="exportFieldsToExcel()">字段导出</button>
-                 <button id="import-data-btn" onclick="importDataFromExcel()">Excel数据导入</button>
-                 <input type="file" id="import-excel-input" accept=".xlsx,.xls" style="display: none;" onchange="handleExcelDataImport(event)">
-            </div>
+            <!-- Spacer -->
+            <div style="flex-grow: 1;"></div>
+
+            <button id="export-fields-btn" onclick="exportFieldsToExcel()">
+                <span class="icon">↓</span>字段导出
+            </button>
+            <button id="import-data-btn" onclick="importDataFromExcel()">
+                <span class="icon">↑</span>Excel数据导入
+            </button>
+            <input type="file" id="import-excel-input" accept=".xlsx,.xls" onchange="handleExcelDataImport(event)">
         </div>
 
-        <!-- 2. Middle Area (Field Management & Data Filling) -->
+        <!-- 2. Middle Area (Split) -->
         <div class="middle-area">
-            <!-- 2a. Left: Field Management -->
-            <div class="field-management-area">
+            <!-- 2a. Left Pane -->
+            <div class="left-pane">
+                <!-- Field Management Controls -->
                 <div class="field-management-controls">
                     <div class="input-row">
                         <label for="object-field-input">对象字段:</label>
                         <input type="text" id="object-field-input" placeholder="例如: customerName">
-                        <button onclick="addObjectField()">添加</button>
+                        <button onclick="addObjectField()"><span class="icon">+</span>添加</button>
                     </div>
                     <div class="input-row">
                         <label for="list-name-input">列表名称:</label>
                         <input type="text" id="list-name-input" placeholder="例如: products">
-                        <button onclick="addListName()">添加</button>
+                        <button onclick="addListName()"><span class="icon">+</span>添加</button>
                     </div>
                 </div>
 
-                <div class="field-list-display">
-                    <div class="object-field-list" id="object-field-list-container">
-                         <h4>对象字段列表 <small>(双击插入)</small></h4>
-                         <!-- Object fields will be added here dynamically -->
-                         <!-- Example:
-                         <div class="field-list-item" ondblclick="insertPlaceholder('customerName')">
-                            <span>customerName</span>
-                            <span>{{customerName}}</span>
-                            <span><button onclick="removeObjectField(this, 'customerName')">X</button></span>
-                         </div>
-                         -->
+                <!-- Field List Display Scrollable Area -->
+                <div class="field-list-display-area">
+                    <!-- Object Fields -->
+                    <div class="object-field-list">
+                        <h4 class="field-list-header">对象字段列表 <small>(双击插入)</small></h4>
+                        <div id="object-field-list-container">
+                            <!-- JS adds .field-list-item here -->
+                            <div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无对象字段</div>
+                        </div>
                     </div>
-                    <div class="list-field-area" id="list-field-list-container">
-                         <h4>列表名称与对象 <small>(双击列表对象插入)</small></h4>
-                         <!-- List containers will be added here dynamically -->
-                         <!-- Example for ONE list named 'products':
-                         <div class="list-container" data-list-name="products">
-                            <div class="list-detail-row">
-                                <span>products</span>
-                                <input type="text" placeholder="列表对象名, e.g., productName" value="">
-                                <button class="add-list-object-btn" onclick="addListObjectRow(this)">+</button>
-                                <button class="delete-list-object-btn" onclick="removeListObjectRow(this)">X</button>
-                            </div>
-                         </div>
-                         -->
+
+                    <!-- List Definitions -->
+                    <div class="list-field-definitions">
+                        <h4 class="field-list-header">列表名称与对象 <small>(双击列表对象插入)</small></h4>
+                        <div id="list-field-list-container">
+                             <!-- JS adds .list-definition-block here -->
+                             <div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无列表</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </div><!-- End Left Pane -->
 
-            <!-- 2b. Right: Data Filling -->
-            <div class="data-filling-area">
-                 <div class="object-filling-list" id="object-filling-container">
-                     <h4>对象字段填充</h4>
-                     <!-- Object field inputs will be added here dynamically -->
-                     <!-- Example:
-                     <div class="object-filling-item">
-                         <label for="data-fill-customerName">customerName:</label>
-                         <input type="text" id="data-fill-customerName" oninput="updatePreview()">
-                     </div>
-                      -->
-                 </div>
-                 <div class="list-filling-tables" id="list-filling-container">
-                     <h4>列表数据填充</h4>
-                     <!-- List data tables will be added here dynamically -->
-                     <!-- Example for ONE list named 'products' with objects 'productName', 'quantity':
-                     <div class="list-filling-table-container" data-list-name="products">
-                        <h5>列表: products</h5>
-                        <table class="list-filling-table">
-                            <thead>
-                                <tr>
-                                    <th>productName</th>
-                                    <th>quantity</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                     <td><input type="text" data-list="products" data-row="0" data-col="productName" oninput="updatePreview()"></td>
-                                     <td><input type="text" data-list="products" data-row="0" data-col="quantity" oninput="updatePreview()"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <button class="add-list-data-row-btn action-button" onclick="addListDataRow('products')">+</button>
-                     </div>
-                     -->
-                 </div>
-            </div>
-        </div>
+            <!-- 2b. Right Pane -->
+            <div class="right-pane">
+                 <!-- Data Filling Scrollable Area -->
+                <div class="data-filling-area">
+                     <!-- Object Field Filling -->
+                    <div class="object-filling-list">
+                         <h4 class="section-header">对象字段填充</h4>
+                         <div id="object-filling-container">
+                             <!-- JS adds .object-filling-item here -->
+                             <div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无对象字段</div>
+                         </div>
+                    </div>
 
-        <!-- 3. Bottom Area (Editor & Preview) -->
+                     <!-- List Data Filling -->
+                    <div class="list-filling-tables">
+                         <h4 class="section-header">列表数据填充</h4>
+                         <div id="list-filling-container">
+                              <!-- JS adds .list-data-table-block here -->
+                              <div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无列表</div>
+                         </div>
+                    </div>
+                </div>
+            </div><!-- End Right Pane -->
+        </div><!-- End Middle Area -->
+
+        <!-- 3. Bottom Area (Split) -->
         <div class="bottom-area">
-            <!-- 3a. Left: Template Editor -->
-            <div class="template-editor-area">
-                <h4>模板编辑区域 <span id="loaded-template-name" style="font-weight:normal; color: #666;"></span></h4>
-                <div id="template-editor-content" class="editor-container" contenteditable="true" oninput="handleEditorInput()">
-                    <!-- Template content will be loaded or typed here -->
-                    <p>请先通过“选择模板”按钮加载模板，或在此处开始编辑。</p>
+            <!-- 3a. Editor Pane -->
+            <div class="editor-pane">
+                <h4 class="section-header">
+                    模板编辑区域
+                    <span id="loaded-template-name" class="header-note"></span>
+                </h4>
+                <!-- Stack for Word/Excel Editor Views -->
+                <div style="flex-grow: 1; position: relative;"> <!-- Container for stack -->
+                    <div id="template-editor-content" class="editor-content" contenteditable="true" oninput="handleEditorInput()">
+                        <p style="color: var(--text-placeholder);">请先通过“选择模板”按钮加载模板，或在此处开始编辑。</p>
+                    </div>
+                    <div id="excel-editor-placeholder" class="excel-placeholder-view editor-content" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+                        Excel模板编辑区 (功能需特定库支持)
+                    </div>
                 </div>
-                 <!-- Placeholder for a potential Excel-like editor (hidden by default) -->
-                 <div id="excel-editor-placeholder" class="editor-container" style="display: none;">
-                     Excel模板编辑功能需要特定库支持，当前为占位符。
-                 </div>
-            </div>
+            </div><!-- End Editor Pane -->
 
-            <!-- 3b. Right: Real-time Preview -->
-            <div class="preview-area">
-                 <h4>实时预览区域</h4>
-                 <div id="preview-content" class="preview-container">
-                     <!-- Preview content will be rendered here -->
-                     预览将根据模板和填充的数据实时更新。
-                 </div>
-                 <!-- Placeholder for a potential Excel-like preview (hidden by default) -->
-                  <div id="excel-preview-placeholder" class="preview-container" style="display: none;">
-                      Excel预览功能需要特定库支持，当前为占位符。
-                  </div>
-            </div>
-        </div>
+            <!-- 3b. Preview Pane -->
+            <div class="preview-pane">
+                <h4 class="section-header">实时预览区域</h4>
+                 <!-- Stack for Word/Excel Preview Views -->
+                 <div style="flex-grow: 1; position: relative;"> <!-- Container for stack -->
+                    <div id="preview-content" class="preview-content">
+                       <p style="color: var(--text-placeholder);">预览将根据模板和填充数据实时更新。</p>
+                    </div>
+                    <div id="excel-preview-placeholder" class="excel-placeholder-view preview-content" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+                       Excel预览区 (功能需特定库支持)
+                    </div>
+                </div>
+            </div><!-- End Preview Pane -->
+        </div><!-- End Bottom Area -->
 
         <!-- 4. Bottom Buttons -->
         <div class="bottom-buttons">
             <div class="button-group">
-                 <button id="save-template-btn" onclick="saveTemplate()">保存模板</button>
-                 <button id="generate-template-btn" onclick="generateNewTemplate()">生成模板(另存)</button>
+                 <button id="save-template-btn" onclick="saveTemplate()"><span class="icon">💾</span>保存模板</button>
+                 <button id="generate-template-btn" onclick="generateNewTemplate()"><span class="icon">✨</span>生成模板(另存)</button>
             </div>
              <div class="button-group">
-                 <button id="generate-document-btn" class="primary-action" onclick="generateDocument()">生成文档</button>
+                 <button id="generate-document-btn" class="primary-action" onclick="generateDocument()"><span class="icon">📄</span>生成文档</button>
              </div>
         </div>
 
-    </div>
+    </div><!-- End Main Container -->
 
     <script>
+        // --- PASTE JavaScript from previous 'doc_gemini.html' HERE ---
+        // (Make sure IDs used in JS match the IDs in this HTML)
+
         // --- Global State (Example Placeholders) ---
         let currentTemplateType = 'word'; // 'word' or 'excel'
         let currentTemplateContent = ''; // Store raw template content
@@ -612,7 +699,6 @@
         const templateEditorContent = document.getElementById('template-editor-content');
         const previewContent = document.getElementById('preview-content');
         const loadedTemplateNameEl = document.getElementById('loaded-template-name');
-        // Excel related placeholders (if needed)
         const excelEditorPlaceholder = document.getElementById('excel-editor-placeholder');
         const excelPreviewPlaceholder = document.getElementById('excel-preview-placeholder');
 
@@ -622,107 +708,96 @@
         function handleTemplateTypeChange() {
             currentTemplateType = templateTypeSelect.value;
             console.log("Template type changed to:", currentTemplateType);
-            // TODO: Update UI if necessary (e.g., switch editor/preview view)
-            // For now, just log
-             if (currentTemplateType === 'excel') {
-                 templateEditorContent.style.display = 'none';
-                 excelEditorPlaceholder.style.display = 'block';
-                 previewContent.style.display = 'none';
-                 excelPreviewPlaceholder.style.display = 'block';
-                 alert("Excel 模板编辑和预览需要特定库支持，当前界面为占位符。");
-             } else {
-                 templateEditorContent.style.display = 'block';
-                 excelEditorPlaceholder.style.display = 'none';
-                 previewContent.style.display = 'block';
-                 excelPreviewPlaceholder.style.display = 'none';
-             }
-             // Reset content when type changes?
-             templateEditorContent.innerHTML = '<p>模板类型已切换，请重新加载或编辑。</p>';
-             previewContent.innerHTML = '预览将根据模板和填充的数据实时更新。';
+             // Toggle Visibility of Editor/Preview areas
+             const isExcel = currentTemplateType === 'excel';
+             templateEditorContent.style.display = isExcel ? 'none' : 'block';
+             excelEditorPlaceholder.style.display = isExcel ? 'flex' : 'none'; // Use flex for centering
+             previewContent.style.display = isExcel ? 'none' : 'block';
+             excelPreviewPlaceholder.style.display = isExcel ? 'flex' : 'none';
 
+             if(isExcel) {
+                  alert("Excel 模板编辑和预览需要特定库支持，当前界面为占位符。");
+             }
+
+             // Reset content when type changes
+             templateEditorContent.innerHTML = '<p style="color: var(--text-placeholder);">模板类型已切换，请重新加载或编辑。</p>';
+             previewContent.innerHTML = '<p style="color: var(--text-placeholder);">预览将根据模板和填充的数据实时更新。</p>';
+             loadedTemplateNameEl.textContent = ''; // Clear loaded template name
+             loadedTemplatePath = null;
         }
 
         function selectTemplateFile() {
             templateFileInput.accept = currentTemplateType === 'word' ? '.docx' : '.xlsx';
-            templateFileInput.click(); // Trigger the hidden file input
+            templateFileInput.click();
         }
 
         function handleTemplateFileSelected(event) {
             const file = event.target.files[0];
             if (!file) return;
             console.log("Template file selected:", file.name);
-            loadedTemplatePath = file; // Store file handle/path if needed for saving
+            loadedTemplatePath = file;
             loadedTemplateNameEl.textContent = `- ${file.name}`;
 
-            // --- Actual File Reading/Parsing Needed Here ---
-            // Example: Use FileReader API for text-based or libraries for docx/xlsx
-            // For DOCX: Mammoth.js or PizZip+Docxtemplater (browser) or server-side
-            // For XLSX: SheetJS (js-xlsx)
             alert(`模板文件 "${file.name}" 已选择。\n实际的文件内容加载和解析需要专门的库。\n编辑器将显示模拟内容。`);
 
             // Simulate loading content into editor
             if (currentTemplateType === 'word') {
-                templateEditorContent.innerHTML = `<h1>模拟加载: ${file.name}</h1><p>这是从 <b>${file.name}</b> 加载的模拟内容。</p><p>包含占位符: {{exampleField}} 和 {{anotherField}}</p>`;
-                 currentTemplateContent = templateEditorContent.innerHTML; // Store for preview
+                templateEditorContent.innerHTML = `<h1>模拟加载: ${file.name}</h1><p>这是从 <b>${file.name}</b> 加载的模拟内容。</p><p>包含占位符: <span class="editor-placeholder">{{exampleField}}</span> 和 <span class="editor-placeholder">{{anotherField}}</span></p>`;
+                 currentTemplateContent = templateEditorContent.innerHTML;
             } else {
-                 // Handle Excel loading simulation
-                 templateEditorContent.style.display = 'none';
-                 excelEditorPlaceholder.style.display = 'block';
-                 excelEditorPlaceholder.innerHTML = `Excel 模板 "${file.name}" 已加载 (模拟)。实际编辑需要库支持。`;
-                 currentTemplateContent = `Excel: ${file.name}`; // Placeholder
+                 excelEditorPlaceholder.innerHTML = `Excel 模板 "${file.name}" 已加载 (模拟)。`;
+                 currentTemplateContent = `Excel: ${file.name}`;
             }
 
-            // Clear the input value to allow selecting the same file again
             event.target.value = null;
-            updatePreview(); // Update preview after loading
+            updatePreview();
         }
 
         function exportFieldsToExcel() {
              console.log("Exporting fields to Excel...");
-             // --- Logic to gather fields from objectFields and listFields ---
-             // --- Use SheetJS or similar library to create and download Excel ---
              alert("字段导出功能需要实现。\n将收集当前定义的对象字段和列表字段，并生成匹配数据填充区域结构的Excel模板。");
+             // --- Needs SheetJS etc. ---
         }
 
         function importDataFromExcel() {
-            importExcelInput.click(); // Trigger hidden file input for data import
+            importExcelInput.click();
         }
 
         function handleExcelDataImport(event) {
              const file = event.target.files[0];
              if (!file) return;
              console.log("Importing data from Excel:", file.name);
-             // --- Use SheetJS or similar library to read Excel data ---
-             // --- Parse data and populate the input fields in the Data Filling area ---
              alert(`Excel 数据文件 "${file.name}" 已选择。\n实际的数据解析和填充需要库支持。`);
-             event.target.value = null; // Clear input
-             // Potentially call updatePreview() after data is filled (simulation)
+             event.target.value = null;
+             // --- Needs SheetJS etc. ---
+             // --- Simulate data filling & update preview ---
+             // objectData['exampleField'] = '来自Excel的值';
+             // renderObjectFillingList(); // Re-render to show imported data
+             // updatePreview();
         }
 
         function addObjectField() {
             const fieldName = objectFieldInputEl.value.trim();
             if (!fieldName || objectFields.some(f => f.name === fieldName)) {
-                alert("请输入有效的、唯一的对象字段名称。");
-                return;
+                alert("请输入有效的、唯一的对象字段名称。"); return;
             }
-             if (!/^[a-zA-Z0-9_]+$/.test(fieldName)) {
-                 alert("字段名称只能包含字母、数字和下划线。");
-                 return;
+             if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(fieldName)) { // Start with letter or _, then alphanumeric/underscore
+                 alert("字段名称必须以字母或下划线开头，且只能包含字母、数字和下划线。"); return;
              }
 
             const placeholder = `{{${fieldName}}}`;
             objectFields.push({ name: fieldName, placeholder: placeholder });
-            objectFieldInputEl.value = ''; // Clear input
+            objectFieldInputEl.value = '';
 
             renderObjectFieldList();
             renderObjectFillingList();
-            updatePreview(); // Update preview as fields change
+            updatePreview();
             console.log("Added object field:", fieldName);
         }
 
          function removeObjectField(buttonElement, fieldName) {
             objectFields = objectFields.filter(f => f.name !== fieldName);
-            delete objectData[fieldName]; // Remove corresponding data
+            delete objectData[fieldName];
 
             renderObjectFieldList();
             renderObjectFillingList();
@@ -733,16 +808,14 @@
         function addListName() {
             const listName = listNameInputEl.value.trim();
              if (!listName || listFields.hasOwnProperty(listName)) {
-                 alert("请输入有效的、唯一的列表名称。");
-                 return;
+                 alert("请输入有效的、唯一的列表名称。"); return;
              }
-            if (!/^[a-zA-Z0-9_]+$/.test(listName)) {
-                 alert("列表名称只能包含字母、数字和下划线。");
-                 return;
+            if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(listName)) {
+                 alert("列表名称必须以字母或下划线开头，且只能包含字母、数字和下划线。"); return;
              }
 
             listFields[listName] = []; // Initialize with empty object list
-            listData[listName] = []; // Initialize data for this list
+            listData[listName] = [];
             listNameInputEl.value = '';
 
             renderListFieldArea();
@@ -751,41 +824,40 @@
             console.log("Added list name:", listName);
         }
 
-        // --- Rendering Functions (Crucial for Dynamic UI) ---
+        // --- Rendering Functions ---
 
         function renderObjectFieldList() {
-            // Clear existing list first, except the header
-            const header = objectFieldListContainer.querySelector('h4');
-            objectFieldListContainer.innerHTML = '';
-            if (header) objectFieldListContainer.appendChild(header);
-
+            objectFieldListContainer.innerHTML = ''; // Clear previous items
+            if (objectFields.length === 0) {
+                objectFieldListContainer.innerHTML = '<div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无对象字段</div>';
+                return;
+            }
             objectFields.forEach(field => {
                 const item = document.createElement('div');
                 item.className = 'field-list-item';
-                item.ondblclick = () => insertPlaceholder(field.name);
+                item.ondblclick = () => insertPlaceholder(field.name, true); // Pass true for object field
                 item.innerHTML = `
-                    <span>${field.name}</span>
-                    <span>${field.placeholder}</span>
-                    <span><button onclick="removeObjectField(this, '${field.name}')">X</button></span>
+                    <span class="field-name" title="${field.name}">${field.name}</span>
+                    <span class="field-placeholder" title="${field.placeholder}">${field.placeholder}</span>
+                    <button class="field-delete-btn" onclick="removeObjectField(this, '${field.name}')" title="删除字段">✕</button>
                 `;
                 objectFieldListContainer.appendChild(item);
             });
         }
 
         function renderListFieldArea() {
-            // Clear existing list first, except the header
-            const header = listFieldListContainer.querySelector('h4');
             listFieldListContainer.innerHTML = '';
-             if (header) listFieldListContainer.appendChild(header);
-
+             if (Object.keys(listFields).length === 0) {
+                listFieldListContainer.innerHTML = '<div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无列表</div>';
+                 return;
+            }
             for (const listName in listFields) {
                 const listContainer = document.createElement('div');
-                listContainer.className = 'list-container';
+                listContainer.className = 'list-definition-block';
                 listContainer.dataset.listName = listName;
 
                 const listObjects = listFields[listName];
                 if (listObjects.length === 0) {
-                     // Initial row when list is first added
                      listContainer.innerHTML += createListObjectRowHTML(listName, '', 0, true);
                 } else {
                      listObjects.forEach((objName, index) => {
@@ -797,31 +869,33 @@
         }
 
         function createListObjectRowHTML(listName, objectName, index, isFirstRow) {
-             // Rowspan simulation: only show list name on the first row conceptually
-             const listNameHTML = isFirstRow ? `<span>${listName}</span>` : `<span></span>`; // Placeholder for alignment
+             const rowClass = isFirstRow ? 'list-object-row is-first-row' : 'list-object-row';
+             // Double click on input to insert placeholder {{listName.objectName}}
+             const ondblclickAttr = objectName ? `ondblclick="insertListObjectPlaceholder('${listName}', '${objectName}')"` : '';
+
              return `
-                <div class="list-detail-row" data-list-name="${listName}" data-index="${index}">
-                    ${listNameHTML}
-                    <input type="text" placeholder="列表对象名, e.g., productName" value="${objectName || ''}" onchange="updateListObjectName('${listName}', ${index}, this.value)">
-                    <button class="add-list-object-btn" onclick="addListObjectRow(this)">+</button>
-                    <button class="delete-list-object-btn" onclick="removeListObjectRow(this, '${listName}', ${index})">X</button>
+                <div class="${rowClass}" data-list-name="${listName}" data-index="${index}">
+                    <span class="list-name-label">${listName}</span>
+                    <input type="text" placeholder="列表内对象名, e.g., name" value="${objectName || ''}"
+                           onchange="updateListObjectName('${listName}', ${index}, this.value)" ${ondblclickAttr} title="输入对象名 (双击插入占位符)">
+                    <button class="add-list-object-btn list-action-btn" onclick="addListObjectRow(this)" title="添加下方对象行">+</button>
+                    <button class="delete-list-object-btn list-action-btn" onclick="removeListObjectRow(this, '${listName}', ${index})" title="删除此对象行">✕</button>
                 </div>
              `;
         }
 
-
         function renderObjectFillingList() {
-             // Clear existing list first, except the header
-             const header = objectFillingContainer.querySelector('h4');
              objectFillingContainer.innerHTML = '';
-             if (header) objectFillingContainer.appendChild(header);
-
+             if (objectFields.length === 0) {
+                 objectFillingContainer.innerHTML = '<div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无对象字段</div>';
+                 return;
+             }
              objectFields.forEach(field => {
                  const item = document.createElement('div');
                  item.className = 'object-filling-item';
                  const dataId = `data-fill-${field.name}`;
                  item.innerHTML = `
-                     <label for="${dataId}">${field.name}:</label>
+                     <label for="${dataId}" title="${field.name}">${field.name}:</label>
                      <input type="text" id="${dataId}" value="${objectData[field.name] || ''}" oninput="updateObjectData('${field.name}', this.value); updatePreview();">
                  `;
                  objectFillingContainer.appendChild(item);
@@ -829,57 +903,62 @@
         }
 
         function renderListFillingTables() {
-            // Clear existing list first, except the header
-            const header = listFillingContainer.querySelector('h4');
             listFillingContainer.innerHTML = '';
-            if (header) listFillingContainer.appendChild(header);
-
+             if (Object.keys(listFields).length === 0) {
+                listFillingContainer.innerHTML = '<div style="text-align: center; color: var(--text-placeholder); padding: 10px 0;">暂无列表</div>';
+                 return;
+            }
             for (const listName in listFields) {
-                 const listObjects = listFields[listName];
-                 if(listObjects.length === 0) continue; // Don't render table if no objects defined
+                 const listObjects = listFields[listName].filter(name => name.trim() !== ''); // Filter out empty object names
+                 if (listObjects.length === 0) {
+                    // Optionally show a message if a list is defined but has no object names yet
+                    const emptyListMsg = document.createElement('div');
+                    emptyListMsg.className = 'list-data-table-block';
+                    emptyListMsg.innerHTML = `<h5>列表: ${listName}</h5><p style="color: var(--text-placeholder); font-size: 0.9em;">请先在左侧为列表 "${listName}" 添加至少一个对象名称。</p>`;
+                    listFillingContainer.appendChild(emptyListMsg);
+                    continue;
+                 };
 
                  const tableContainer = document.createElement('div');
-                 tableContainer.className = 'list-filling-table-container';
+                 tableContainer.className = 'list-data-table-block';
                  tableContainer.dataset.listName = listName;
 
-                 let tableHTML = `<h5>列表: ${listName}</h5>
-                                 <table class="list-filling-table">
+                 let tableHTML = `<div class="list-data-header">
+                                    <h5>列表: ${listName}</h5>
+                                    <button class="add-list-data-row-btn action-button" onclick="addListDataRow('${listName}')" title="添加一行数据">+ 添加行</button>
+                                  </div>
+                                 <table class="list-data-table">
                                     <thead><tr>`;
                  listObjects.forEach(objName => {
-                     tableHTML += `<th>${objName}</th>`;
+                     tableHTML += `<th title="${objName}">${objName}</th>`;
                  });
                  tableHTML += `</tr></thead><tbody>`;
 
                  const currentListData = listData[listName] || [];
                  if (currentListData.length === 0) {
-                     // Add one empty row by default if no data exists yet
-                     tableHTML += '<tr>';
-                     listObjects.forEach(objName => {
-                        tableHTML += `<td><input type="text" data-list="${listName}" data-row="0" data-col="${objName}" oninput="updateListData('${listName}', 0, '${objName}', this.value); updatePreview();"></td>`;
-                     });
-                     tableHTML += '</tr>';
-                      // Ensure data structure exists even for the default empty row
-                     if (!listData[listName] || listData[listName].length === 0) {
-                         listData[listName] = [{}];
-                     }
+                     // Add one empty row if no data
+                     tableHTML += createListDataRowHTML(listName, listObjects, 0);
+                     listData[listName] = [{}]; // Ensure data structure
                  } else {
                      currentListData.forEach((row, rowIndex) => {
-                         tableHTML += '<tr>';
-                         listObjects.forEach(objName => {
-                             tableHTML += `<td><input type="text" data-list="${listName}" data-row="${rowIndex}" data-col="${objName}" value="${row[objName] || ''}" oninput="updateListData('${listName}', ${rowIndex}, '${objName}', this.value); updatePreview();"></td>`;
-                         });
-                         tableHTML += '</tr>';
+                         tableHTML += createListDataRowHTML(listName, listObjects, rowIndex, row);
                      });
                  }
-
-                 tableHTML += `</tbody></table>
-                              <button class="add-list-data-row-btn action-button" onclick="addListDataRow('${listName}')">+</button>`;
-
+                 tableHTML += `</tbody></table>`;
                  tableContainer.innerHTML = tableHTML;
                  listFillingContainer.appendChild(tableContainer);
              }
         }
 
+        function createListDataRowHTML(listName, listObjects, rowIndex, rowData = {}) {
+             let rowHTML = '<tr>';
+             listObjects.forEach(objName => {
+                 const value = rowData[objName] || '';
+                 rowHTML += `<td><input type="text" data-list="${listName}" data-row="${rowIndex}" data-col="${objName}" value="${value}" oninput="updateListData('${listName}', ${rowIndex}, '${objName}', this.value); updatePreview();"></td>`;
+             });
+             rowHTML += '</tr>';
+             return rowHTML;
+        }
 
         // --- Data Update Functions ---
         function updateObjectData(fieldName, value) {
@@ -888,393 +967,370 @@
 
         function updateListData(listName, rowIndex, colName, value) {
             if (!listData[listName]) listData[listName] = [];
-            while (listData[listName].length <= rowIndex) {
-                listData[listName].push({}); // Ensure row object exists
-            }
+            while (listData[listName].length <= rowIndex) { listData[listName].push({}); }
             listData[listName][rowIndex][colName] = value;
         }
 
         function updateListObjectName(listName, index, newName) {
-            // Basic validation
-            if (!/^[a-zA-Z0-9_]+$/.test(newName) && newName !== '') {
-                 alert("列表对象名称只能包含字母、数字和下划线。");
-                 // Re-render to potentially reset the input value or handle differently
-                 renderListFieldArea();
+            newName = newName.trim(); // Trim whitespace
+            const currentObjects = listFields[listName];
+            const oldName = currentObjects[index];
+
+            // Validate: Allow empty only if it's the only row being cleared
+            if (newName === '' && currentObjects.length > 1 && index === currentObjects.length - 1) {
+                // Allow clearing the last input if not the only one
+            } else if (newName === '' && currentObjects.length === 1) {
+                 // Allow clearing the only input
+            } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(newName)) {
+                 alert("列表对象名称必须以字母或下划线开头，且只能包含字母、数字和下划线。");
+                 renderListFieldArea(); // Re-render to reset
                  return;
-             }
-             // Check for duplicates within the same list
-             if (newName && listFields[listName].some((name, i) => name === newName && i !== index)) {
+            } else if (currentObjects.some((name, i) => name === newName && i !== index)) {
                   alert(`列表 "${listName}" 中已存在对象名称 "${newName}"。`);
                   renderListFieldArea(); // Re-render to reset
                   return;
-             }
+            }
 
-            const oldName = listFields[listName][index];
-            listFields[listName][index] = newName;
+            // Update the model
+            currentObjects[index] = newName;
 
-            // Update data keys if name changed
+            // Update data keys if name changed and was valid before
             if (oldName && oldName !== newName && listData[listName]) {
                 listData[listName].forEach(row => {
                      if(row.hasOwnProperty(oldName)) {
-                         row[newName] = row[oldName];
+                         // Only add new key if newName is valid
+                         if (newName) {
+                            row[newName] = row[oldName];
+                         }
                          delete row[oldName];
                      }
                  });
             }
 
-            console.log(`Updated list object name for ${listName}[${index}] from ${oldName} to ${newName}`);
-            // Re-render the filling table for this list as headers changed
-            renderListFillingTables();
+            console.log(`Updated list object name for ${listName}[${index}] to "${newName}"`);
+            renderListFillingTables(); // Re-render filling table headers/structure
             updatePreview();
         }
 
-        // --- List Manipulation Functions ---
 
+        // --- List Manipulation ---
         function addListObjectRow(buttonElement) {
-             const row = buttonElement.closest('.list-detail-row');
-             const container = buttonElement.closest('.list-container');
+             const row = buttonElement.closest('.list-object-row');
+             const container = buttonElement.closest('.list-definition-block');
              const listName = container.dataset.listName;
-             const newIndex = container.querySelectorAll('.list-detail-row').length;
+             const currentObjects = listFields[listName];
+             const currentIndex = parseInt(row.dataset.index, 10);
 
-             // Basic check: ensure previous input is not empty before adding new
-             const previousInput = row.querySelector('input[type="text"]');
-             if (!previousInput.value.trim()) {
-                 alert('请先为当前行输入列表对象名称。');
-                 return;
+             // Validate current row before adding new
+             const currentInput = row.querySelector('input[type="text"]');
+             const currentName = currentInput.value.trim();
+             if (!currentName) {
+                 alert('请先为当前行输入列表对象名称。'); return;
              }
-             // Basic check: Ensure the newName is valid
-             if (!/^[a-zA-Z0-9_]+$/.test(previousInput.value.trim())) {
-                 alert("列表对象名称只能包含字母、数字和下划线。");
-                 return;
+             if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(currentName)) {
+                 alert("列表对象名称必须以字母或下划线开头，且只能包含字母、数字和下划线。"); return;
              }
-             // Basic check: Ensure the newName is unique in this list
-             if (listFields[listName].includes(previousInput.value.trim())) {
-                 alert(`列表 "${listName}" 中已存在对象名称 "${previousInput.value.trim()}"。`);
-                 return;
+             if (currentObjects.some((name, i) => name === currentName && i !== currentIndex)) {
+                  alert(`列表 "${listName}" 中已存在对象名称 "${currentName}"。`); return;
              }
-
-
-             // Update data structure (implicitly done by onchange, but ensure it exists)
-             if (!listFields[listName][previousInput.dataset.index]) {
-                  listFields[listName][previousInput.dataset.index] = previousInput.value.trim();
+             // Ensure model is updated if changed just before clicking add
+             if (currentObjects[currentIndex] !== currentName) {
+                  updateListObjectName(listName, currentIndex, currentName);
+                  // Re-check objects after potential update
+                  if (currentObjects.some((name, i) => name === currentName && i !== currentIndex)) return; // Abort if still duplicate
              }
 
 
+             // Add new row visually
+             const newIndex = currentObjects.length;
              const newRowHTML = createListObjectRowHTML(listName, '', newIndex, false);
              row.insertAdjacentHTML('afterend', newRowHTML);
 
-             // Add placeholder for the new object in the data model IF the list already had data
-             // Usually handled when rendering the filling table, but good practice:
-              if(!listFields[listName][newIndex]) {
-                   listFields[listName].push(''); // Add empty placeholder for name
-              }
+             // Add empty placeholder to the model for the new row
+             currentObjects.push('');
 
              console.log(`Added new object row for list ${listName} at index ${newIndex}`);
-             // Re-render filling tables because structure changed
-             renderListFillingTables();
-             updatePreview(); // Update preview
+             // No need to re-render filling table yet, only when object name is confirmed
         }
 
         function removeListObjectRow(buttonElement, listName, index) {
-             const container = buttonElement.closest('.list-container');
-             const row = buttonElement.closest('.list-detail-row');
-             const listObjectToRemove = listFields[listName][index];
+             const container = buttonElement.closest('.list-definition-block');
+             const row = buttonElement.closest('.list-object-row');
+             const currentObjects = listFields[listName];
+             const objectNameToRemove = currentObjects[index];
 
-             if (container.querySelectorAll('.list-detail-row').length <= 1) {
-                 // Don't remove the last row, just clear its input
+             if (container.querySelectorAll('.list-object-row').length <= 1) {
+                 // Clear the only row
                  const input = row.querySelector('input[type="text"]');
                  input.value = '';
-                 listFields[listName][index] = ''; // Clear name in model
-                 console.log(`Cleared last object row for list ${listName} at index ${index}`);
-
+                 currentObjects[index] = '';
+                 console.log(`Cleared last object row for list ${listName}`);
              } else {
                  row.remove();
-                  // Remove from data model
-                  listFields[listName].splice(index, 1);
-                  console.log(`Removed object row for list ${listName} at index ${index}`);
-                  // Re-index subsequent rows' data attributes (important!)
-                  container.querySelectorAll('.list-detail-row').forEach((r, i) => {
-                       r.dataset.index = i;
-                       // Update onchange/onclick handlers with new index if needed
-                       const input = r.querySelector('input');
-                       input.onchange = () => updateListObjectName(listName, i, input.value);
-                       const delBtn = r.querySelector('.delete-list-object-btn');
-                       delBtn.onclick = () => removeListObjectRow(delBtn, listName, i);
-                  });
+                 currentObjects.splice(index, 1); // Remove from model
+                 console.log(`Removed object row ${index} for list ${listName}`);
+                 // Re-index subsequent rows in the DOM (important for correct indices)
+                 container.querySelectorAll('.list-object-row').forEach((r, i) => {
+                     r.dataset.index = i;
+                     const input = r.querySelector('input');
+                     input.onchange = () => updateListObjectName(listName, i, input.value);
+                     const delBtn = r.querySelector('.delete-list-object-btn');
+                     delBtn.onclick = () => removeListObjectRow(delBtn, listName, i);
+                     // Update first-row class for name label visibility
+                      if (i === 0) r.classList.add('is-first-row');
+                      else r.classList.remove('is-first-row');
+                 });
              }
 
-             // Remove corresponding data column
-             if (listObjectToRemove && listData[listName]) {
+             // Clean up data: remove column associated with the removed object name
+             if (objectNameToRemove && listData[listName]) {
                  listData[listName].forEach(rowData => {
-                      delete rowData[listObjectToRemove];
-                  });
-             }
-             // Re-render list field area if row removed to handle first row list name display
-             if (container.querySelectorAll('.list-detail-row').length > 0) {
-                  renderListFieldArea(); // May cause focus loss, alternative is more complex DOM manipulation
+                     delete rowData[objectNameToRemove];
+                 });
              }
 
-
-             // Re-render filling tables because structure changed
-             renderListFillingTables();
+             renderListFillingTables(); // Re-render filling table due to structure change
              updatePreview();
         }
 
         function addListDataRow(listName) {
-             const tableBody = listFillingContainer.querySelector(`.list-filling-table-container[data-list-name="${listName}"] tbody`);
+             const tableContainer = listFillingContainer.querySelector(`.list-data-table-block[data-list-name="${listName}"]`);
+             const tableBody = tableContainer?.querySelector('tbody');
              if (!tableBody) return;
 
-             const newRowIndex = tableBody.rows.length;
-             const newRow = tableBody.insertRow();
-             const listObjects = listFields[listName];
+             const listObjects = listFields[listName].filter(name => name.trim() !== '');
+             if (listObjects.length === 0) {
+                  alert(`列表 "${listName}" 没有定义有效的对象名称，无法添加数据行。`);
+                  return;
+             }
 
-             // Validation: Check if last row is completely empty before adding
+             const newRowIndex = tableBody.rows.length;
+
+             // Validation: Check last row emptiness
              if (newRowIndex > 0) {
-                 const lastRowInputs = tableBody.rows[newRowIndex - 1].querySelectorAll('input[type="text"]');
+                 const lastRow = tableBody.rows[newRowIndex - 1];
                  let lastRowIsEmpty = true;
-                 lastRowInputs.forEach(input => {
-                     if (input.value.trim() !== '') {
-                         lastRowIsEmpty = false;
-                     }
+                 lastRow.querySelectorAll('input[type="text"]').forEach(input => {
+                     if (input.value.trim() !== '') lastRowIsEmpty = false;
                  });
                  if (lastRowIsEmpty) {
-                      alert("请先填写上一行的数据，再添加新行。");
-                      tableBody.deleteRow(newRowIndex); // Remove the added empty row
-                      return;
+                      alert("请先填写上一行的数据，再添加新行。"); return;
                  }
              }
 
+             // Add new row to data model first
+             if (!listData[listName]) listData[listName] = [];
+             listData[listName].push({}); // Add empty object for the new row
 
-             listObjects.forEach(objName => {
-                 const cell = newRow.insertCell();
-                 const input = document.createElement('input');
-                 input.type = 'text';
-                 input.dataset.list = listName;
-                 input.dataset.row = newRowIndex;
-                 input.dataset.col = objName;
-                 input.oninput = () => {
-                     updateListData(listName, newRowIndex, objName, input.value);
-                     updatePreview();
-                 };
-                 cell.appendChild(input);
-             });
-
-              // Ensure data structure exists
-              if (!listData[listName]) listData[listName] = [];
-              while (listData[listName].length <= newRowIndex) {
-                 listData[listName].push({});
-              }
+             // Add new row visually
+             const newRowHTML = createListDataRowHTML(listName, listObjects, newRowIndex);
+             tableBody.insertAdjacentHTML('beforeend', newRowHTML);
 
              console.log(`Added data row ${newRowIndex} to list ${listName}`);
+             updatePreview(); // Update preview as data changed
         }
 
 
-        // --- Editor & Preview Functions ---
+        // --- Editor & Preview ---
 
-        function insertPlaceholder(fieldName) {
-             // Find the placeholder for the field name
-             const field = objectFields.find(f => f.name === fieldName) ||
-                           // Or check if it's a list object name (more complex check needed)
-                           findListObjectField(fieldName);
-
-             if (!field || !field.placeholder) {
-                  console.warn("Cannot find placeholder for:", fieldName);
-                  // Maybe it's a list object? Need to construct {{listName.objectName}}
-                  // This requires knowing which list the object belongs to if names aren't unique globally.
-                  // Simple approach: Assume it's just the name for now.
-                  // Let's stick to inserting only defined objectFields for now via double click.
-                  // For list objects, maybe a different insertion method?
-                  alert(`无法直接插入列表对象字段 "${fieldName}"。请在模板中手动输入 {{listName.${fieldName}}} 格式的占位符，或实现更复杂的插入逻辑。`);
-                  return;
-
+         function insertPlaceholder(fieldName, isObjectField = true) {
+             let placeholderText = '';
+             if (isObjectField) {
+                 const field = objectFields.find(f => f.name === fieldName);
+                 if (field) placeholderText = field.placeholder;
              }
-             const placeholderText = field.placeholder;
+             // Placeholder insertion logic remains largely the same as before...
+              if (!placeholderText) {
+                   console.warn("Cannot find placeholder for:", fieldName); return;
+              }
 
-             const editor = templateEditorContent; // Target the contenteditable div
+              insertTextIntoEditor(placeholderText, true); // Use helper function
+         }
+
+        function insertListObjectPlaceholder(listName, objectName) {
+            const placeholderText = `{{${listName}.${objectName}}}`; // Standard list object format
+            insertTextIntoEditor(placeholderText, true);
+        }
+
+        function insertTextIntoEditor(text, isPlaceholder = false) {
+             const editor = templateEditorContent;
+             editor.focus(); // Ensure editor has focus
+
              const selection = window.getSelection();
-             if (!selection.rangeCount) return; // No selection/cursor
-
+             if (!selection.rangeCount) return;
              const range = selection.getRangeAt(0);
 
-             // Check if the cursor/selection is within the editor
-             if (!editor.contains(range.commonAncestorContainer)) {
-                 // If not, maybe set cursor at the end? Or just return.
-                 // For simplicity, let's require the cursor to be inside.
-                 console.log("Cursor not inside editor.");
-                 return;
+             if (!editor.contains(range.commonAncestorContainer) && !(editor === range.commonAncestorContainer)) {
+                 console.log("Cursor not inside editor."); return;
              }
 
+             range.deleteContents(); // Remove selection
 
-             // Create a span for visual distinction (optional, but helps)
-             const placeholderNode = document.createElement('span');
-             placeholderNode.className = 'editor-placeholder'; // Style it
-             placeholderNode.textContent = placeholderText;
-             placeholderNode.contentEditable = 'false'; // Prevent editing inside placeholder
+             let nodeToInsert;
+             if (isPlaceholder) {
+                 const placeholderNode = document.createElement('span');
+                 placeholderNode.className = 'editor-placeholder';
+                 placeholderNode.textContent = text;
+                 placeholderNode.contentEditable = 'false';
+                 // Add zero-width spaces around for better cursor behavior (optional)
+                 // nodeToInsert = document.createDocumentFragment();
+                 // nodeToInsert.appendChild(document.createTextNode('\u200B'));
+                 // nodeToInsert.appendChild(placeholderNode);
+                 // nodeToInsert.appendChild(document.createTextNode('\u200B'));
+                 nodeToInsert = placeholderNode;
+             } else {
+                 nodeToInsert = document.createTextNode(text);
+             }
 
-             // Insert the node
-             range.deleteContents(); // Remove selected text if any
-             range.insertNode(placeholderNode);
+             range.insertNode(nodeToInsert);
 
              // Move cursor after the inserted node
-             range.setStartAfter(placeholderNode);
+             range.setStartAfter(nodeToInsert);
              range.collapse(true);
              selection.removeAllRanges();
              selection.addRange(range);
 
-             console.log("Inserted placeholder:", placeholderText);
-             // Trigger preview update after manual insertion
-             handleEditorInput();
-        }
-
-        function findListObjectField(objectName) {
-             // Helper to find if a name belongs to any list object
-             for (const listName in listFields) {
-                 if (listFields[listName].includes(objectName)) {
-                     // Construct a placeholder-like object for insertion logic if needed
-                     // Note: Standard insertion might just be the name, full placeholder requires context
-                     return { name: objectName, placeholder: `{{${listName}.${objectName}}}` }; // Example format
-                 }
-             }
-             return null;
+             console.log("Inserted:", text);
+             handleEditorInput(); // Trigger preview update
         }
 
 
         function handleEditorInput() {
-            // Called when contenteditable div content changes
             currentTemplateContent = templateEditorContent.innerHTML;
             updatePreview();
         }
 
         function updatePreview() {
-             if (currentTemplateType === 'excel') {
-                 previewContent.style.display = 'none';
-                 excelPreviewPlaceholder.style.display = 'block';
-                 excelPreviewPlaceholder.innerHTML = 'Excel 模板预览需要特定库支持。';
-                 return; // Skip preview for Excel for now
-             } else {
-                 previewContent.style.display = 'block';
-                 excelPreviewPlaceholder.style.display = 'none';
-             }
-
+            // --- Preview logic needs significant work for lists/loops ---
+             if (currentTemplateType === 'excel') { /* Handle Excel Preview */ return; }
 
              console.log("Updating preview...");
-             let previewHTML = currentTemplateContent; // Start with raw editor HTML
+             let previewHTML = currentTemplateContent;
 
-             // --- Placeholder Replacement Logic ---
-             // 1. Replace simple object field placeholders {{fieldName}}
+             // 1. Replace object fields {{fieldName}}
              objectFields.forEach(field => {
-                 const value = objectData[field.name] || ''; // Get data or empty string
-                 // Need robust regex to find placeholders, potentially ignoring those inside attributes
-                 // Simple text replace first (might break HTML if placeholders are in tags)
-                 // A more robust way involves DOM parsing or specific template engines.
+                 const value = escapeHtml(objectData[field.name] || ''); // Escape data
                  const placeholderRegex = new RegExp(escapeRegExp(field.placeholder), 'g');
                  previewHTML = previewHTML.replace(placeholderRegex, value);
              });
 
-             // 2. Replace list placeholders (more complex) - Requires template engine usually
-             // Example: Find loops like {#listName} ... {/listName}
-             // Inside loop, replace {{objectName}} or {{this.objectName}} with data from listData[listName]
-             // This basic implementation WON'T handle loops. We'll just replace {{listName.objectName}} for now.
-
+             // 2. --- VERY BASIC List Placeholder Handling ---
+             // This requires a proper templating engine (like Handlebars, Mustache, or a custom parser)
+             // to handle loops {#listName}...{/listName} and {{objectName}} inside.
+             // This SIMULATION will just show a placeholder.
              for (const listName in listFields) {
-                  const listObjects = listFields[listName];
-                  const currentListData = listData[listName] || [];
+                 const loopStartRegex = new RegExp(escapeRegExp(`{#${listName}}`), 'g');
+                 const loopEndRegex = new RegExp(escapeRegExp(`{/${listName}}`), 'g');
 
-                   // Simple placeholder replacement like {{listName.objectName}}
-                   listObjects.forEach(objName => {
-                        const placeholder = `{{${listName}.${objName}}}`;
-                        const placeholderRegex = new RegExp(escapeRegExp(placeholder), 'g');
-                        // This simple replace is WRONG for lists. It replaces ALL occurrences with the first(?) row's data.
-                        // We'll just put a note for now. A real implementation needs looping.
-                         if (currentListData.length > 0) {
-                             previewHTML = previewHTML.replace(placeholderRegex, `[${listName}.${objName} data from row 0: ${currentListData[0][objName] || ''}]`);
-                         } else {
-                             previewHTML = previewHTML.replace(placeholderRegex, `[${listName}.${objName} no data]`);
-                         }
-                   });
+                 // Find content between loop tags (if they exist)
+                 let loopContentMatch = previewHTML.match(new RegExp(escapeRegExp(`{#${listName}}`) + '(.*?)' + escapeRegExp(`{/${listName}}`), 's')); // 's' for dotall
+
+                 if (loopContentMatch) {
+                     let originalLoopBlock = loopContentMatch[0];
+                     let loopTemplate = loopContentMatch[1];
+                     let renderedLoop = '';
+                     const currentListData = listData[listName] || [];
+                     const listObjects = listFields[listName].filter(name => name.trim() !== '');
+
+                     currentListData.forEach(rowData => {
+                         let rowHTML = loopTemplate;
+                         listObjects.forEach(objName => {
+                              const value = escapeHtml(rowData[objName] || '');
+                              // Replace {{objName}} or {{this.objName}} etc. inside the loop template
+                              const objPlaceholderRegex = new RegExp(escapeRegExp(`{{${objName}}}`), 'g');
+                              // Add variations like {{this.objName}} if needed
+                              rowHTML = rowHTML.replace(objPlaceholderRegex, value);
+                         });
+                         renderedLoop += rowHTML;
+                     });
+                     // Replace the entire loop block with the rendered content
+                     previewHTML = previewHTML.replace(originalLoopBlock, renderedLoop);
+
+                 } else {
+                     // Fallback: Simple replacement for {{listName.objectName}} if no loop tags used (less common)
+                     const listObjects = listFields[listName].filter(name => name.trim() !== '');
+                     listObjects.forEach(objName => {
+                          const placeholder = `{{${listName}.${objName}}}`;
+                          const placeholderRegex = new RegExp(escapeRegExp(placeholder), 'g');
+                          previewHTML = previewHTML.replace(placeholderRegex, `[${listName}.${objName} data - use loop tags {#${listName}}...{/${listName}} in template]`);
+                     });
+                 }
              }
 
-              // Remove the editor-placeholder class spans from preview
-              previewHTML = previewHTML.replace(/<span class="editor-placeholder"[^>]*>(.*?)<\/span>/g, '$1');
-
+             // Remove editor-specific spans
+             previewHTML = previewHTML.replace(/<span class="editor-placeholder"[^>]*>(.*?)<\/span>/g, '$1');
+              // Replace zero-width spaces if added during insertion
+             // previewHTML = previewHTML.replace(/\u200B/g, '');
 
              previewContent.innerHTML = previewHTML;
         }
 
-        function escapeRegExp(string) {
-             // $& means the whole matched string
-             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        function escapeRegExp(string) { return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe; // Handle non-strings
+            return unsafe
+                 .replace(/&/g, "&")
+                 .replace(/</g, "<")
+                 .replace(/>/g, ">")
+                 .replace(/"/g, """)
+                 .replace(/'/g, "'");
         }
-
 
         // --- Bottom Button Actions ---
 
         function saveTemplate() {
-             if (!loadedTemplatePath) {
-                 alert("请先使用“选择模板”加载一个模板文件，才能覆盖保存。");
-                 return;
-             }
-             const contentToSave = templateEditorContent.innerHTML; // Or handle Excel data
+             if (!loadedTemplatePath) { alert("请先使用“选择模板”加载一个模板文件，才能覆盖保存。"); return; }
+             const contentToSave = templateEditorContent.innerHTML; // For Word; Need Excel data structure for Excel
              console.log("Saving template (overwrite):", loadedTemplatePath.name);
-             // --- Actual File Saving Logic Needed ---
-             // Browser cannot directly overwrite files. Needs server interaction,
-             // or use File System Access API (requires user permission).
-             // Simulate:
              alert(`模拟覆盖保存模板 "${loadedTemplatePath.name}"。\n实际操作需要 File System Access API 或服务器支持。`);
+             // --- Needs File System Access API or Server ---
         }
 
         function generateNewTemplate() {
-            const contentToSave = templateEditorContent.innerHTML; // Or handle Excel data
+            const contentToSave = templateEditorContent.innerHTML; // For Word; Need Excel data structure for Excel
             const timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            const defaultFileName = `模板_${currentTemplateType}_${timestamp}.${currentTemplateType === 'word' ? 'docx' : 'xlsx'}`;
+            const typeName = currentTemplateType === 'word' ? 'Word' : 'Excel';
+            const extension = currentTemplateType === 'word' ? 'docx' : 'xlsx';
+            const defaultFileName = `模板_${typeName}_${timestamp}.${extension}`;
             console.log("Generating new template:", defaultFileName);
-
-            // --- Actual File Saving Logic Needed (Download) ---
-             // Create a Blob and trigger download
-             try {
-                 // Note: Saving complex formats like docx/xlsx requires libraries to generate the correct binary data.
-                 // This example saves the RAW HTML content as a basic text/html file for demonstration.
-                 const blobType = currentTemplateType === 'word' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; // Correct MIME for Excel if generating real file
-                 const blob = new Blob([contentToSave], { type: 'text/html' }); // SAVING HTML FOR DEMO
-                 const link = document.createElement('a');
-                 link.href = URL.createObjectURL(blob);
-                 link.download = defaultFileName.replace(/\.docx|\.xlsx/, '.html'); // DEMO: save as html
-                 link.click();
-                 URL.revokeObjectURL(link.href);
-                 alert(`模拟生成新模板 "${link.download}"。\n注意：实际生成 DOCX/XLSX 需要专门库，当前仅保存编辑器HTML内容。`);
-             } catch (e) {
-                 console.error("Error generating template blob:", e);
-                 alert("生成模板文件时出错。");
-             }
+            alert(`模拟生成新模板 "${defaultFileName}"。\n注意：实际生成 DOCX/XLSX 需要专门库。`);
+             // --- Needs library to generate DOCX/XLSX and trigger download ---
+             // --- DEMO: Download raw HTML ---
+             // downloadBlob(contentToSave, defaultFileName.replace(extension, 'html'), 'text/html');
         }
 
         function generateDocument() {
-            const renderedContent = previewContent.innerHTML; // Get the rendered HTML
+            // Use the *processed* preview content for generation
+            const renderedContent = previewContent.innerHTML; // For Word; Need different logic for Excel
             const templateNameBase = loadedTemplatePath ? loadedTemplatePath.name.split('.').slice(0, -1).join('.') : '未命名模板';
             const timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-             const defaultFileName = `${templateNameBase}_文档_${timestamp}.${currentTemplateType === 'word' ? 'docx' : 'xlsx'}`; // Or maybe save preview as PDF/HTML?
+            const typeName = currentTemplateType === 'word' ? 'Word' : 'Excel';
+            const extension = currentTemplateType === 'word' ? 'docx' : 'xlsx'; // Or PDF?
+            const defaultFileName = `${templateNameBase}_文档_${timestamp}.${extension}`;
             console.log("Generating document:", defaultFileName);
+             alert(`模拟生成文档 "${defaultFileName}"。\n注意：实际生成 DOCX/XLSX/PDF 需要专门库。`);
+            // --- Needs library to generate DOCX/XLSX/PDF from processed data/template ---
+            // --- DEMO: Download preview HTML ---
+            // downloadBlob(`<html><head><meta charset="UTF-8"><title>文档预览</title></head><body>${renderedContent}</body></html>`, defaultFileName.replace(extension, 'html'), 'text/html');
+        }
 
-            // --- Actual Document Generation Logic Needed ---
-             // Similar to generateNewTemplate, but using the *preview* content.
-             // Saving as actual DOCX/XLSX requires libraries. Saving the preview HTML is simpler for demo.
+        // Helper for demo download
+        function downloadBlob(content, filename, contentType) {
              try {
-                 const blob = new Blob([`<html><head><meta charset="UTF-8"><title>${defaultFileName}</title></head><body>${renderedContent}</body></html>`], { type: 'text/html' });
+                 const blob = new Blob([content], { type: contentType });
                  const link = document.createElement('a');
                  link.href = URL.createObjectURL(blob);
-                 link.download = defaultFileName.replace(/\.docx|\.xlsx/, '.html'); // DEMO: save as html
+                 link.download = filename;
                  link.click();
                  URL.revokeObjectURL(link.href);
-                 alert(`模拟生成文档 "${link.download}"。\n注意：实际生成 DOCX/XLSX 需要专门库，当前仅保存预览HTML内容。`);
              } catch (e) {
-                  console.error("Error generating document blob:", e);
-                  alert("生成文档文件时出错。");
+                 console.error("Error triggering download:", e);
+                 alert("下载文件时出错。");
              }
         }
 
-        // --- Utility for Timestamp (requires including a library or simple formatting) ---
-        // Simple Date Formatting (Replace with library like Moment.js/Day.js if needed)
-        class SimpleDateFormat {
+        // Simple Date Formatting
+        class SimpleDateFormat { /* ... Same as previous ... */
             constructor(format) { this.formatStr = format; }
             format(date) {
                 const year = date.getFullYear();
@@ -1283,27 +1339,20 @@
                 const hours = date.getHours().toString().padStart(2, '0');
                 const minutes = date.getMinutes().toString().padStart(2, '0');
                 const seconds = date.getSeconds().toString().padStart(2, '0');
-                // Very basic replace, only handles this specific format
                 return this.formatStr
-                    .replace('yyyy', year)
-                    .replace('MM', month)
-                    .replace('dd', day)
-                    .replace('HH', hours)
-                    .replace('mm', minutes)
-                    .replace('ss', seconds);
+                    .replace('yyyy', year).replace('MM', month).replace('dd', day)
+                    .replace('HH', hours).replace('mm', minutes).replace('ss', seconds);
             }
         }
 
-
         // --- Initial Setup ---
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("Document Generator UI Initialized.");
-            // Initial rendering of empty lists/areas if needed
+            console.log("Document Generator UI Initialized (Aesthetic Version).");
             renderObjectFieldList();
             renderListFieldArea();
             renderObjectFillingList();
             renderListFillingTables();
-            handleTemplateTypeChange(); // Set initial editor/preview visibility
+            handleTemplateTypeChange(); // Set initial editor visibility
         });
 
     </script>
