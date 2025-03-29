@@ -104,10 +104,11 @@ public class ExcelTemplateGenerator {
             basicInfoHeader.setCellStyle(headerStyle);
             orderSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 4));
             
-            // 订单信息
-            createLabelValueRow(orderSheet, 2, "订单编号:", "${order.id}", cellStyle);
-            createLabelValueRow(orderSheet, 3, "订单日期:", "${today}", cellStyle);
-            createLabelValueRow(orderSheet, 4, "预计送达日期:", "${order.delivery_date}", cellStyle);
+            // 使用中文占位符替换原有英文占位符
+            // 创建订单信息表头
+            createLabelValueRow(orderSheet, 2, "订单编号:", "${订单.编号}", cellStyle);
+            createLabelValueRow(orderSheet, 3, "订单日期:", "${当前日期}", cellStyle);
+            createLabelValueRow(orderSheet, 4, "预计送达日期:", "${订单.送达日期}", cellStyle);
             
             // 客户信息部分
             Row customerInfoHeaderRow = orderSheet.createRow(5);
@@ -117,9 +118,9 @@ public class ExcelTemplateGenerator {
             customerInfoHeader.setCellStyle(headerStyle);
             orderSheet.addMergedRegion(new CellRangeAddress(5, 5, 0, 4));
             
-            createLabelValueRow(orderSheet, 6, "客户姓名:", "${client.name}", cellStyle);
-            createLabelValueRow(orderSheet, 7, "联系电话:", "${client.phone}", cellStyle);
-            createLabelValueRow(orderSheet, 8, "送货地址:", "${client.address}", cellStyle);
+            createLabelValueRow(orderSheet, 6, "客户姓名:", "${客户.姓名}", cellStyle);
+            createLabelValueRow(orderSheet, 7, "联系电话:", "${客户.电话}", cellStyle);
+            createLabelValueRow(orderSheet, 8, "送货地址:", "${客户.地址}", cellStyle);
             
             // 订单明细表头
             Row detailsHeaderRow = orderSheet.createRow(10);
@@ -142,11 +143,11 @@ public class ExcelTemplateGenerator {
             
             // 订单明细示例行（会在运行时动态替换）
             Row itemRow1 = orderSheet.createRow(12);
-            itemRow1.createCell(0).setCellValue("${order.items[0].index}");
-            itemRow1.createCell(1).setCellValue("${order.items[0].name}");
-            itemRow1.createCell(2).setCellValue("${order.items[0].quantity}");
-            itemRow1.createCell(3).setCellValue("${order.items[0].price}");
-            itemRow1.createCell(4).setCellValue("${order.items[0].subtotal}");
+            itemRow1.createCell(0).setCellValue("${订单.商品[0].序号}");
+            itemRow1.createCell(1).setCellValue("${订单.商品[0].名称}");
+            itemRow1.createCell(2).setCellValue("${订单.商品[0].数量}");
+            itemRow1.createCell(3).setCellValue("${订单.商品[0].单价}");
+            itemRow1.createCell(4).setCellValue("${订单.商品[0].小计}");
             
             for (int i = 0; i < 5; i++) {
                 itemRow1.getCell(i).setCellStyle(cellStyle);
@@ -161,7 +162,7 @@ public class ExcelTemplateGenerator {
             totalLabelCell.setCellStyle(headerStyle);
             
             Cell totalValueCell = totalRow.createCell(4);
-            totalValueCell.setCellValue("${order.total_amount}");
+            totalValueCell.setCellValue("${订单.总金额}");
             totalValueCell.setCellStyle(cellStyle);
             
             // 备注信息
@@ -174,7 +175,7 @@ public class ExcelTemplateGenerator {
             
             Row notesRow = orderSheet.createRow(17);
             Cell notesCell = notesRow.createCell(0);
-            notesCell.setCellValue("${notes}");
+            notesCell.setCellValue("${备注}");
             notesCell.setCellStyle(cellStyle);
             orderSheet.addMergedRegion(new CellRangeAddress(17, 17, 0, 4));
             
@@ -186,8 +187,8 @@ public class ExcelTemplateGenerator {
             companyHeader.setCellStyle(headerStyle);
             orderSheet.addMergedRegion(new CellRangeAddress(19, 19, 0, 4));
             
-            createLabelValueRow(orderSheet, 20, "公司名称:", "${company.name}", cellStyle);
-            createLabelValueRow(orderSheet, 21, "客服电话:", "${company.service_phone}", cellStyle);
+            createLabelValueRow(orderSheet, 20, "公司名称:", "${公司.名称}", cellStyle);
+            createLabelValueRow(orderSheet, 21, "客服电话:", "${公司.客服电话}", cellStyle);
             
             // 写入文件
             try (FileOutputStream fos = new FileOutputStream(outputPath)) {

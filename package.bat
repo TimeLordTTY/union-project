@@ -216,42 +216,11 @@ if %ERRORLEVEL% NEQ 0 (
     copy NUL "%TEMPLATES_DIR%\excel\简单订单模板.xlsx"
 )
 
-REM 创建JSON示例数据
-echo 创建JSON示例数据...
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.JsonPlaceholderProcessor "%TEMPLATES_DIR%\json\订单数据.json"
+echo 创建Excel测试数据...
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.ExcelDataGenerator "%TEMPLATES_DIR%\excel\测试数据.xlsx"
 if %ERRORLEVEL% NEQ 0 (
-    echo 警告: JSON示例数据创建失败，创建简单的JSON数据...
-    echo { > "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   "client": { >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "name": "张三", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "address": "北京市海淀区", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "phone": "13800138000" >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   }, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   "order": { >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "id": "ORD-2023-0001", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "delivery_date": "2023-12-31", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "items": [ >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo       { >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "name": "笔记本电脑", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "quantity": 1, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "price": 6999, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "subtotal": 6999 >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo       }, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo       { >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "name": "无线鼠标", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "quantity": 2, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "price": 99, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo         "subtotal": 198 >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo       } >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     ], >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "total_amount": 7197 >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   }, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   "company": { >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "name": "优秀科技有限公司", >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo     "service_phone": "400-800-8888" >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   }, >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo   "today": "2023-12-25" >> "%TEMPLATES_DIR%\json\简单订单数据.json"
-    echo } >> "%TEMPLATES_DIR%\json\简单订单数据.json"
+    echo 警告: Excel测试数据创建失败，创建简单的Excel文件
+    copy NUL "%TEMPLATES_DIR%\excel\简单测试数据.xlsx"
 )
 
 echo 检查模板目录中的文件...
@@ -263,14 +232,19 @@ echo ====================
 echo 8.1 验证关键依赖
 echo ====================
 echo 检查关键POI依赖是否存在...
-if not exist "%LIB_DIR%\poi-ooxml-5.2.3.jar" (
-    echo 警告: 未找到关键依赖 poi-ooxml-5.2.3.jar，正在尝试重新复制...
-    copy /Y "%PROJECT_ROOT%\target\dependency\poi-ooxml-5.2.3.jar" "%LIB_DIR%\"
+if not exist "%LIB_DIR%\poi-ooxml-5.2.2.jar" (
+    echo 警告: 未找到关键依赖 poi-ooxml-5.2.2.jar，正在尝试重新复制...
+    copy /Y "%PROJECT_ROOT%\target\dependency\poi-ooxml-5.2.2.jar" "%LIB_DIR%\"
 )
 
-if not exist "%LIB_DIR%\poi-ooxml-lite-5.2.3.jar" (
-    echo 警告: 未找到关键依赖 poi-ooxml-lite-5.2.3.jar，正在尝试重新复制...
-    copy /Y "%PROJECT_ROOT%\target\dependency\poi-ooxml-lite-5.2.3.jar" "%LIB_DIR%\"
+if not exist "%LIB_DIR%\poi-ooxml-lite-5.2.2.jar" (
+    echo 警告: 未找到关键依赖 poi-ooxml-lite-5.2.2.jar，正在尝试重新复制...
+    copy /Y "%PROJECT_ROOT%\target\dependency\poi-ooxml-lite-5.2.2.jar" "%LIB_DIR%\"
+)
+
+if not exist "%LIB_DIR%\poi-ooxml-schemas-4.1.2.jar" (
+    echo 警告: 未找到关键依赖 poi-ooxml-schemas-4.1.2.jar，正在尝试重新复制...
+    copy /Y "%PROJECT_ROOT%\target\dependency\poi-ooxml-schemas-4.1.2.jar" "%LIB_DIR%\"
 )
 
 if not exist "%LIB_DIR%\xmlbeans-5.1.1.jar" (
@@ -406,6 +380,15 @@ echo →💰 金额转换（有特别小彩蛋💖） >> "%APP_DIR%\~❤~宝宝�
 echo →📜 一键（三键）生成超专业文档（这个功能需要下个版本进行升级哦） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo →✎ 贴心错别字校正与文本替换（偷偷内置了一些不会生效的替换规则哦😘） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 💌💕 小文档生成器の专属使用指南 💕💌 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 宝宝~这个小工具可以帮你把Word模板和Excel模板变成超专业的文档哦~ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 使用方式超简单的，宝宝只需要三步就能变出美美的文档啦~ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ① 选择文档类型（Word还是Excel呢？随宝宝喜欢~） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ② 选择模板文件和数据文件（宝宝可以用我们准备好的模板哦，就在templates文件夹里~） >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo ③ 点击生成按钮，文档就会像变魔术一样出现啦！(≧▽≦) >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo. >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 🎀 小秘密：模板里面用${客户.姓名}这样的占位符，就可以自动替换成数据文件中的内容啦~ >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
+echo 🎀 偷偷告诉宝宝：我在每个模板里都藏了一个小小的爱心，宝宝找找看在哪里呢？💕 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 
 echo 💝✨💝✨💝 给宝宝的爱心小贴士 💝✨💝✨💝 >> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"
 echo ❤ 程序已打包完整环境，不用费心配置（宝宝只管用，技术问题交给我💖）>> "%APP_DIR%\~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt"

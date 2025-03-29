@@ -2,6 +2,7 @@ package com.timelordtty.docgen.util;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -9,6 +10,8 @@ import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
 
 import com.timelordtty.AppLogger;
 
@@ -44,13 +47,13 @@ public class DocxTemplateGenerator {
             XWPFParagraph companyParagraph = document.createParagraph();
             companyParagraph.setAlignment(ParagraphAlignment.RIGHT);
             XWPFRun companyRun = companyParagraph.createRun();
-            companyRun.setText("公司名称: ${company.name}");
+            companyRun.setText("公司名称: ${公司名称}");
             companyRun.setFontSize(12);
             companyRun.addBreak();
-            companyRun.setText("客服电话: ${company.service_phone}");
+            companyRun.setText("客服电话: ${公司客服电话}");
             companyRun.setFontSize(12);
             companyRun.addBreak();
-            companyRun.setText("日期: ${today}");
+            companyRun.setText("日期: ${当前日期}");
             companyRun.setFontSize(12);
             companyRun.addBreak();
             companyRun.addBreak();
@@ -62,12 +65,12 @@ public class DocxTemplateGenerator {
             clientRun.setBold(true);
             clientRun.setFontSize(12);
             clientRun.addBreak();
-            clientRun.setText("客户姓名: ${client.name}");
+            clientRun.setText("客户姓名: ${客户姓名}");
             clientRun.setBold(false);
             clientRun.addBreak();
-            clientRun.setText("联系电话: ${client.phone}");
+            clientRun.setText("联系电话: ${客户电话}");
             clientRun.addBreak();
-            clientRun.setText("送货地址: ${client.address}");
+            clientRun.setText("送货地址: ${客户地址}");
             clientRun.addBreak();
             clientRun.addBreak();
             
@@ -78,10 +81,10 @@ public class DocxTemplateGenerator {
             orderRun.setBold(true);
             orderRun.setFontSize(12);
             orderRun.addBreak();
-            orderRun.setText("订单编号: ${order.id}");
+            orderRun.setText("订单编号: ${订单编号}");
             orderRun.setBold(false);
             orderRun.addBreak();
-            orderRun.setText("预计送达日期: ${order.delivery_date}");
+            orderRun.setText("预计送达日期: ${订单送达日期}");
             orderRun.addBreak();
             orderRun.addBreak();
             
@@ -97,31 +100,64 @@ public class DocxTemplateGenerator {
             // 设置表头
             XWPFTableRow headerRow = table.getRow(0);
             headerRow.getCell(0).setText("序号");
-            headerRow.getCell(1).setText("商品名称");
+            headerRow.getCell(1).setText("名称");
             headerRow.getCell(2).setText("数量");
-            headerRow.getCell(3).setText("单价(元)");
-            headerRow.getCell(4).setText("小计(元)");
+            headerRow.getCell(3).setText("单价");
+            headerRow.getCell(4).setText("小计");
             
             // 添加示例行（将在运行时替换）
             XWPFTableRow dataRow = table.getRow(1);
-            dataRow.getCell(0).setText("${order.items[0].index}");
-            dataRow.getCell(1).setText("${order.items[0].name}");
-            dataRow.getCell(2).setText("${order.items[0].quantity}");
-            dataRow.getCell(3).setText("${order.items[0].price}");
-            dataRow.getCell(4).setText("${order.items[0].subtotal}");
+            dataRow.getCell(0).setText("${商品列表.序号}");
+            dataRow.getCell(1).setText("${商品列表.名称}");
+            dataRow.getCell(2).setText("${商品列表.数量}");
+            dataRow.getCell(3).setText("${商品列表.单价}");
+            dataRow.getCell(4).setText("${商品列表.小计}");
             
             // 添加合计行
             XWPFParagraph totalParagraph = document.createParagraph();
             totalParagraph.setAlignment(ParagraphAlignment.RIGHT);
             XWPFRun totalRun = totalParagraph.createRun();
-            totalRun.setText("总金额: ${order.total_amount} 元");
+            totalRun.setText("总金额: ${订单总金额} 元");
             totalRun.setBold(true);
             totalRun.setFontSize(12);
             totalRun.addBreak();
             totalRun.addBreak();
             
+            // 添加成交记录标题
+            XWPFParagraph dealTitleParagraph = document.createParagraph();
+            dealTitleParagraph.setAlignment(ParagraphAlignment.LEFT);
+            XWPFRun dealTitleRun = dealTitleParagraph.createRun();
+            dealTitleRun.setText("成交记录：");
+            dealTitleRun.setBold(true);
+            dealTitleRun.setFontSize(12);
+            dealTitleRun.addBreak();
+            
+            // 创建成交记录表格
+            XWPFTable dealTable = document.createTable(2, 4);
+            dealTable.setWidth("100%");
+            
+            // 设置成交记录表格样式
+            CTTblPr dealTblPr = dealTable.getCTTbl().getTblPr();
+            dealTblPr.getTblW().setType(STTblWidth.PCT);
+            dealTblPr.getTblW().setW(BigInteger.valueOf(5000));
+            
+            // 创建成交记录表格头部
+            XWPFTableRow dealHeaderRow = dealTable.getRow(0);
+            dealHeaderRow.getCell(0).setText("序号");
+            dealHeaderRow.getCell(1).setText("合约");
+            dealHeaderRow.getCell(2).setText("金额");
+            dealHeaderRow.getCell(3).setText("日期");
+            
+            // 添加成交记录示例行
+            XWPFTableRow dealDataRow = dealTable.getRow(1);
+            dealDataRow.getCell(0).setText("${成交列表.序号}");
+            dealDataRow.getCell(1).setText("${成交列表.合约}");
+            dealDataRow.getCell(2).setText("${成交列表.金额}");
+            dealDataRow.getCell(3).setText("${成交列表.日期}");
+            
             // 添加备注和签名区域
             XWPFParagraph notesParagraph = document.createParagraph();
+            notesParagraph.setAlignment(ParagraphAlignment.LEFT);
             XWPFRun notesRun = notesParagraph.createRun();
             notesRun.setText("备注事项:");
             notesRun.setBold(true);
@@ -132,7 +168,7 @@ public class DocxTemplateGenerator {
             notesRun.addBreak();
             notesRun.setText("2. 本订单自签收之日起7天内可办理退换货手续。");
             notesRun.addBreak();
-            notesRun.setText("3. ${notes}");
+            notesRun.setText("3. ${备注}");
             notesRun.addBreak();
             notesRun.addBreak();
             notesRun.addBreak();

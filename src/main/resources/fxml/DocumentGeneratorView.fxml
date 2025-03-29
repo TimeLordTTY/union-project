@@ -4,21 +4,16 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="600.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<BorderPane prefHeight="700.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
       fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
       stylesheets="@../css/styles.css">
    
@@ -37,7 +32,7 @@
    </top>
    
    <center>
-      <HBox spacing="10" style="-fx-padding: 10;">
+      <HBox spacing="10" style="-fx-padding: 10;" VBox.vgrow="ALWAYS">
          <!-- 左侧：模板编辑区域 -->
          <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0;">
             <!-- 字段添加部分 -->
@@ -99,7 +94,7 @@
                            text="浏览..." prefWidth="80.0" styleClass="action-button"/>
                 </HBox>
                 
-                <ScrollPane fitToWidth="true" prefHeight="100.0" style="-fx-background-color: transparent; -fx-border-color: -pink-light; -fx-border-radius: 3;">
+                <ScrollPane fitToWidth="true" prefHeight="150.0" style="-fx-background-color: transparent; -fx-border-color: -pink-light; -fx-border-radius: 3;">
                     <VBox fx:id="dataInputVBox" spacing="5" style="-fx-padding: 5;"/>
                 </ScrollPane>
             </VBox>
