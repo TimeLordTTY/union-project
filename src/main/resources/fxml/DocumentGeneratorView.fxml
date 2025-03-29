@@ -3,6 +3,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
+<?import java.lang.String?>
+<?import javafx.collections.*?>
 
 <VBox spacing="15" xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
@@ -13,92 +15,124 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     
+    <!-- 顶部操作区域 -->
     <HBox spacing="10" alignment="CENTER_LEFT">
+        <!-- 模板类型选择 -->
         <Label text="模板类型：" style="-fx-text-fill: -pink-text;"/>
-        <RadioButton fx:id="wordRadioButton" text="Word文档" selected="true" onAction="#handleTemplateTypeChange">
-            <toggleGroup>
-                <ToggleGroup fx:id="templateTypeGroup"/>
-            </toggleGroup>
-        </RadioButton>
-        <RadioButton fx:id="excelRadioButton" text="Excel表格" toggleGroup="$templateTypeGroup" onAction="#handleTemplateTypeChange"/>
+        <ComboBox fx:id="templateTypeComboBox" prefWidth="120">
+            <items>
+                <javafx.collections.FXCollections fx:factory="observableArrayList">
+                    <String fx:value="Word文档" />
+                    <String fx:value="Excel表格" />
+                </javafx.collections.FXCollections>
+            </items>
+        </ComboBox>
+        
+        <!-- 模板选择按钮 -->
+        <Button text="选择模板" onAction="#handleSelectTemplate" styleClass="action-button"/>
+        
+        <!-- 按钮组 -->
         <HBox HBox.hgrow="ALWAYS"/>
-        <Button text="上传模板" onAction="#handleUploadTemplate" styleClass="action-button"/>
+        <Button text="字段导出" onAction="#handleExportFields" styleClass="action-button"/>
+        <Button text="Excel数据导入" onAction="#handleImportDataExcel" styleClass="action-button"/>
     </HBox>
     
-    <VBox spacing="10">
-        <HBox spacing="10">
-            <VBox spacing="5" HBox.hgrow="ALWAYS" maxWidth="350">
-                <Label text="对象字段：" style="-fx-text-fill: -pink-text;"/>
+    <!-- 字段管理和数据区域 -->
+    <SplitPane VBox.vgrow="ALWAYS" orientation="HORIZONTAL" dividerPositions="0.5">
+        <!-- 左侧：字段管理区域 -->
+        <VBox spacing="10">
+            <!-- 字段列表管理区域 -->
+            <VBox spacing="10">
                 <HBox spacing="5">
-                    <TextField fx:id="objectFieldInput" HBox.hgrow="ALWAYS" promptText="输入对象字段（如：客户名称）" onAction="#handleAddObjectField"/>
+                    <Label text="对象字段：" style="-fx-text-fill: -pink-text;"/>
+                    <TextField fx:id="objectFieldInput" HBox.hgrow="ALWAYS" promptText="输入对象字段名称"/>
                     <Button text="添加" onAction="#handleAddObjectField" styleClass="action-button"/>
                 </HBox>
-            </VBox>
-        </HBox>
-        <HBox spacing="10">
-            <VBox spacing="5" HBox.hgrow="ALWAYS" maxWidth="350">
-                <Label text="列表字段：" style="-fx-text-fill: -pink-text;"/>
                 <HBox spacing="5">
-                    <TextField fx:id="listFieldInput" HBox.hgrow="ALWAYS" promptText="输入列表字段（如：订单列表）"/>
-                    <TextField fx:id="listItemFieldInput" HBox.hgrow="ALWAYS" promptText="输入列表项字段（如：商品名称）"/>
+                    <Label text="列表名称：" style="-fx-text-fill: -pink-text;"/>
+                    <TextField fx:id="listFieldInput" HBox.hgrow="ALWAYS" promptText="输入列表名称"/>
                     <Button text="添加" onAction="#handleAddListField" styleClass="action-button"/>
                 </HBox>
             </VBox>
-        </HBox>
-    </VBox>
-    
-    <SplitPane VBox.vgrow="ALWAYS" orientation="HORIZONTAL" dividerPositions="0.5">
-        <VBox spacing="5">
-            <SplitPane orientation="VERTICAL" dividerPositions="0.4" VBox.vgrow="ALWAYS">
-                <VBox spacing="5">
-                    <Label text="字段列表" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
-                    <ListView fx:id="fieldListView" VBox.vgrow="ALWAYS" onMouseClicked="#handleFieldListClick"/>
-                </VBox>
-                
-                <VBox spacing="5">
-                    <HBox spacing="5" alignment="CENTER_LEFT">
-                        <Label text="填充数据" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
-                        <HBox HBox.hgrow="ALWAYS"/>
-                        <Button text="导入Excel" onAction="#handleImportDataExcel" styleClass="action-button"/>
-                    </HBox>
-                    <TableView fx:id="dataTableView" VBox.vgrow="ALWAYS" editable="true">
-                        <!-- 动态添加列 -->
-                    </TableView>
-                </VBox>
-            </SplitPane>
             
-            <HBox spacing="10" alignment="CENTER_RIGHT">
+            <!-- 字段列表区域 -->
+            <Label text="字段列表" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            
+            <!-- 对象字段列表 -->
+            <TitledPane text="对象字段" expanded="true" collapsible="true">
+                <TableView fx:id="objectFieldsTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="objectFieldNameColumn" text="字段名称" prefWidth="120"/>
+                        <TableColumn fx:id="objectFieldPlaceholderColumn" text="占位符" prefWidth="150"/>
+                        <TableColumn fx:id="objectFieldDeleteColumn" text="操作" prefWidth="50"/>
+                    </columns>
+                </TableView>
+            </TitledPane>
+            
+            <!-- 列表字段区域 -->
+            <TitledPane text="列表字段" expanded="true" collapsible="true" VBox.vgrow="ALWAYS">
+                <VBox fx:id="listFieldsContainer" spacing="10">
+                    <!-- 列表字段会动态添加到这里 -->
+                </VBox>
+            </TitledPane>
+            
+            <!-- 模板编辑区域 -->
+            <Label text="模板编辑区" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <StackPane VBox.vgrow="ALWAYS">
+                <!-- Word模式编辑区 -->
+                <TextArea fx:id="wordEditor" styleClass="template-editor" wrapText="true" visible="true"/>
+                
+                <!-- Excel模式编辑区 -->
+                <TableView fx:id="excelEditor" visible="false" editable="true">
+                    <!-- 动态添加列 -->
+                </TableView>
+            </StackPane>
+            
+            <!-- 底部按钮区 -->
+            <HBox spacing="10" alignment="CENTER">
                 <Button text="保存模板" onAction="#handleSaveTemplate" styleClass="action-button"/>
                 <Button text="生成模板" onAction="#handleGenerateTemplate" styleClass="action-button"/>
             </HBox>
         </VBox>
         
-        <VBox spacing="5">
-            <SplitPane orientation="VERTICAL" dividerPositions="0.5" VBox.vgrow="ALWAYS">
-                <VBox spacing="5">
-                    <Label text="模板编辑区" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
-                    <StackPane VBox.vgrow="ALWAYS">
-                        <!-- Word模式编辑区 -->
-                        <TextArea fx:id="wordEditor" styleClass="template-editor" wrapText="true" visible="true"/>
-                        
-                        <!-- Excel模式编辑区 -->
-                        <TableView fx:id="excelEditor" visible="false" editable="true">
-                            <columns>
-                                <!-- 动态添加列 -->
-                            </columns>
-                        </TableView>
-                    </StackPane>
-                </VBox>
-                
-                <VBox spacing="5">
-                    <Label text="实时预览" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
-                    <TextArea fx:id="previewArea" VBox.vgrow="ALWAYS" editable="false" 
-                             styleClass="preview-area" wrapText="true"/>
-                </VBox>
-            </SplitPane>
+        <!-- 右侧：数据填充和预览区域 -->
+        <VBox spacing="10">
+            <!-- 字段填充区域 -->
+            <Label text="数据填充区域" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
             
-            <HBox spacing="10" alignment="CENTER_RIGHT">
-                <Button text="保存文档" onAction="#handleSaveDocument" styleClass="action-button"/>
+            <!-- 对象字段填充 -->
+            <TitledPane text="对象字段填充" expanded="true" collapsible="true">
+                <TableView fx:id="objectDataTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="objectFieldNameDataColumn" text="字段名称" prefWidth="120"/>
+                        <TableColumn fx:id="objectFieldValueColumn" text="填充值" prefWidth="200"/>
+                    </columns>
+                </TableView>
+            </TitledPane>
+            
+            <!-- 列表数据填充 -->
+            <TitledPane text="列表数据填充" expanded="true" collapsible="true" VBox.vgrow="ALWAYS">
+                <VBox fx:id="listDataContainer" spacing="10">
+                    <!-- 动态添加列表数据表格 -->
+                </VBox>
+            </TitledPane>
+            
+            <!-- 实时预览区域 -->
+            <Label text="实时预览" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+            <StackPane VBox.vgrow="ALWAYS">
+                <!-- Word预览区 -->
+                <TextArea fx:id="wordPreviewArea" VBox.vgrow="ALWAYS" editable="false" 
+                         styleClass="preview-area" wrapText="true" visible="true"/>
+                
+                <!-- Excel预览区 -->
+                <TableView fx:id="excelPreviewArea" visible="false">
+                    <!-- 动态添加列 -->
+                </TableView>
+            </StackPane>
+            
+            <!-- 底部按钮区 -->
+            <HBox spacing="10" alignment="CENTER">
+                <Button text="生成文档" onAction="#handleSaveDocument" styleClass="action-button"/>
             </HBox>
         </VBox>
     </SplitPane>

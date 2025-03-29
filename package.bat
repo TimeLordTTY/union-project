@@ -182,7 +182,7 @@ copy /Y "src\main\resources\api.properties" "%CONF_DIR%\"
 echo ====================
 echo 8. 创建模板文件
 echo ====================
-echo 创建Word文档模板、Excel模板和JSON示例数据...
+echo 创建Word文档模板、Excel模板和测试数据...
 
 echo 下载所有依赖到target/dependency目录...
 call "%MVN_CMD%" dependency:copy-dependencies -DoutputDirectory=target/dependency
@@ -226,7 +226,6 @@ if %ERRORLEVEL% NEQ 0 (
 echo 检查模板目录中的文件...
 dir "%TEMPLATES_DIR%\word"
 dir "%TEMPLATES_DIR%\excel"
-dir "%TEMPLATES_DIR%\json"
 
 echo ====================
 echo 8.1 验证关键依赖
@@ -423,7 +422,6 @@ echo 测试模板文件...
 echo 模板目录内容:
 dir "%TEMPLATES_DIR%\word"
 dir "%TEMPLATES_DIR%\excel"
-dir "%TEMPLATES_DIR%\json"
 
 echo 检查H2数据库依赖...
 if exist "%LIB_DIR%\h2-*.jar" (

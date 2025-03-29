@@ -1,12 +1,17 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.model.TemplateField;
@@ -23,22 +28,17 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.TabPane;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 
@@ -47,26 +47,38 @@ import javafx.stage.FileChooser.ExtensionFilter;
  */
 public class DocumentGeneratorController {
 
-    // FXML控件
-    @FXML private TabPane tabPane;
+    // FXML控件 - 顶部区域
+    @FXML private ComboBox<String> templateTypeComboBox;
     
-    // 模板编辑标签页
-    @FXML private RadioButton wordRadioButton;
-    @FXML private RadioButton excelRadioButton;
+    // 字段管理区域
     @FXML private TextField objectFieldInput;
     @FXML private TextField listFieldInput;
-    @FXML private TextField listItemFieldInput;
-    @FXML private ListView<TemplateField> fieldListView;
+    
+    // 字段列表区域
+    @FXML private TableView<TemplateField> objectFieldsTable;
+    @FXML private TableColumn<TemplateField, String> objectFieldNameColumn;
+    @FXML private TableColumn<TemplateField, String> objectFieldPlaceholderColumn;
+    @FXML private TableColumn<TemplateField, Void> objectFieldDeleteColumn;
+    @FXML private VBox listFieldsContainer;
+    
+    // 模板编辑区域
     @FXML private TextArea wordEditor;
     @FXML private TableView<ObservableList<String>> excelEditor;
-    @FXML private TextArea previewArea;
     
-    // 数据录入标签页
-    @FXML private ComboBox<String> templateComboBox;
-    @FXML private TableView<ObservableList<String>> dataTableView;
+    // 数据填充区域
+    @FXML private TableView<TemplateField> objectDataTable;
+    @FXML private TableColumn<TemplateField, String> objectFieldNameDataColumn;
+    @FXML private TableColumn<TemplateField, String> objectFieldValueColumn;
+    @FXML private VBox listDataContainer;
+    
+    // 预览区域
+    @FXML private TextArea wordPreviewArea;
+    @FXML private TableView<ObservableList<String>> excelPreviewArea;
     
     // 私有字段
     private ObservableList<TemplateField> fields = FXCollections.observableArrayList();
+    private ObservableList<TemplateField> objectFields = FXCollections.observableArrayList();
+    private Map<String, TableView<Map<String, String>>> listFieldTables = new HashMap<>();
     private WordTemplateService wordTemplateService;
     private ExcelTemplateService excelTemplateService;
     private boolean isWordMode = true;
@@ -89,9 +101,12 @@ public class DocumentGeneratorController {
         // 设置基础目录
         baseDir = System.getProperty("user.dir");
         
-        // 初始化字段列表视图
-        fieldListView.setItems(fields);
-        fieldListView.setCellFactory(param -> new FieldListCell());
+        // 初始化模板类型下拉框
+        templateTypeComboBox.getSelectionModel().select(0); // 默认选择Word
+        templateTypeComboBox.setOnAction(e -> handleTemplateTypeChange());
+        
+        // 初始化对象字段表格
+        setupObjectFieldsTable();
         
         // 设置WordEditor
         wordEditor.setWrapText(true);
@@ -99,8 +114,8 @@ public class DocumentGeneratorController {
         // 初始化Excel编辑器
         setupExcelEditor();
         
-        // 初始化数据表格
-        setupDataTableView();
+        // 初始化数据填充表格
+        setupObjectDataTable();
         
         // 创建必要的目录
         createDirectories();
@@ -130,6 +145,71 @@ public class DocumentGeneratorController {
                 AppLogger.error("无法创建目录: " + path);
             }
         }
+    }
+    
+    /**
+     * 设置对象字段表格
+     */
+    private void setupObjectFieldsTable() {
+        objectFieldsTable.setItems(objectFields);
+        
+        objectFieldNameColumn.setCellValueFactory(
+            cellData -> new SimpleStringProperty(cellData.getValue().getName()));
+            
+        objectFieldPlaceholderColumn.setCellValueFactory(
+            cellData -> new SimpleStringProperty(cellData.getValue().getPlaceholder()));
+            
+        objectFieldDeleteColumn.setCellFactory(param -> new TableCell<>() {
+            private final Button deleteButton = new Button("X");
+            
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                
+                setGraphic(deleteButton);
+                deleteButton.setOnAction(event -> {
+                    TemplateField field = getTableView().getItems().get(getIndex());
+                    deleteField(field);
+                });
+            }
+        });
+        
+        // 双击事件，插入占位符到编辑区
+        objectFieldsTable.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                TemplateField selectedField = objectFieldsTable.getSelectionModel().getSelectedItem();
+                if (selectedField != null) {
+                    insertPlaceholderToEditor(selectedField.getPlaceholder());
+                }
+            }
+        });
+    }
+    
+    /**
+     * 设置对象数据表格
+     */
+    private void setupObjectDataTable() {
+        objectDataTable.setItems(objectFields);
+        
+        objectFieldNameDataColumn.setCellValueFactory(
+            cellData -> new SimpleStringProperty(cellData.getValue().getName()));
+            
+        objectFieldValueColumn.setCellValueFactory(
+            cellData -> new SimpleStringProperty(fieldDataMap.getOrDefault(cellData.getValue().getName(), "")));
+            
+        objectFieldValueColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+        objectFieldValueColumn.setOnEditCommit(event -> {
+            String fieldName = event.getRowValue().getName();
+            fieldDataMap.put(fieldName, event.getNewValue());
+            updatePreview();
+        });
+        
+        objectDataTable.setEditable(true);
     }
     
     /**
@@ -181,36 +261,119 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 设置数据表格视图
+     * 处理模板类型变更
      */
-    private void setupDataTableView() {
-        // 设置可编辑
-        dataTableView.setEditable(true);
+    @FXML
+    private void handleTemplateTypeChange() {
+        String selectedType = templateTypeComboBox.getValue();
+        isWordMode = "Word文档".equals(selectedType);
         
-        // 添加右键菜单
-        ContextMenu contextMenu = new ContextMenu();
-        MenuItem addRowItem = new MenuItem("添加行");
-        addRowItem.setOnAction(e -> handleAddRow());
-        MenuItem deleteRowItem = new MenuItem("删除选中行");
-        deleteRowItem.setOnAction(e -> handleDeleteRow());
-        MenuItem copyRowItem = new MenuItem("复制行");
-        copyRowItem.setOnAction(e -> copyRow());
-        MenuItem pasteRowItem = new MenuItem("粘贴行");
-        pasteRowItem.setOnAction(e -> pasteRow());
+        // 更新编辑器可见性
+        wordEditor.setVisible(isWordMode);
+        excelEditor.setVisible(!isWordMode);
         
-        contextMenu.getItems().addAll(addRowItem, deleteRowItem, copyRowItem, pasteRowItem);
-        dataTableView.setContextMenu(contextMenu);
+        // 更新预览区域可见性
+        wordPreviewArea.setVisible(isWordMode);
+        excelPreviewArea.setVisible(!isWordMode);
+    }
+    
+    /**
+     * 处理选择模板
+     */
+    @FXML
+    private void handleSelectTemplate() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("选择模板文件");
         
-        // 添加键盘快捷键
-        dataTableView.setOnKeyPressed(event -> {
-            if (event.isControlDown() && event.getCode() == KeyCode.C) {
-                copyRow();
-            } else if (event.isControlDown() && event.getCode() == KeyCode.V) {
-                pasteRow();
-            } else if (event.getCode() == KeyCode.DELETE) {
-                handleDeleteRow();
+        // 设置过滤器
+        if (isWordMode) {
+            fileChooser.getExtensionFilters().add(
+                new ExtensionFilter("Word文档", "*.docx", "*.doc"));
+        } else {
+            fileChooser.getExtensionFilters().add(
+                new ExtensionFilter("Excel表格", "*.xlsx", "*.xls"));
+        }
+        
+        // 设置初始目录
+        String templateDir = baseDir + "/templates/" + (isWordMode ? "word" : "excel");
+        fileChooser.setInitialDirectory(new File(templateDir));
+        
+        // 显示文件选择器
+        File selectedFile = fileChooser.showOpenDialog(null);
+        if (selectedFile != null) {
+            loadTemplate(selectedFile);
+        }
+    }
+    
+    /**
+     * 加载模板
+     */
+    private void loadTemplate(File file) {
+        try {
+            currentTemplateFile = file;
+            
+            if (isWordMode) {
+                String content = wordTemplateService.readTemplate(file);
+                wordEditor.setText(content);
+                extractFields(content);
+            } else {
+                List<List<String>> data = excelTemplateService.readTemplate(file);
+                loadExcelData(data);
+                extractFieldsFromExcel(data);
             }
-        });
+            
+            updatePreview();
+        } catch (Exception e) {
+            showError("加载模板失败", "无法加载模板文件: " + e.getMessage());
+            AppLogger.error("加载模板失败", e);
+        }
+    }
+    
+    /**
+     * 处理字段导出
+     */
+    @FXML
+    private void handleExportFields() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("导出字段");
+        fileChooser.getExtensionFilters().add(
+            new ExtensionFilter("Excel表格", "*.xlsx"));
+        
+        // 设置初始文件名
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        fileChooser.setInitialFileName("模板字段_" + timestamp + ".xlsx");
+        
+        // 显示保存对话框
+        File file = fileChooser.showSaveDialog(null);
+        if (file != null) {
+            try {
+                // 导出字段到Excel
+                excelTemplateService.exportFieldsToExcel(file, objectFields, listFieldDataMap);
+                showInfo("导出成功", "字段已成功导出到: " + file.getName());
+            } catch (Exception e) {
+                showError("导出失败", "导出字段时发生错误: " + e.getMessage());
+                AppLogger.error("导出字段失败", e);
+            }
+        }
+    }
+    
+    /**
+     * 将占位符插入到编辑器
+     */
+    private void insertPlaceholderToEditor(String placeholder) {
+        if (isWordMode) {
+            wordEditor.insertText(wordEditor.getCaretPosition(), placeholder);
+        } else {
+            TablePosition pos = excelEditor.getFocusModel().getFocusedCell();
+            if (pos != null && pos.getRow() >= 0 && pos.getColumn() >= 0) {
+                ObservableList<String> row = excelEditor.getItems().get(pos.getRow());
+                while (row.size() <= pos.getColumn()) {
+                    row.add("");
+                }
+                row.set(pos.getColumn(), placeholder);
+                excelEditor.refresh();
+            }
+        }
     }
     
     /**
@@ -287,116 +450,175 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 复制选中的行
+     * 删除字段
      */
-    private void copyRow() {
-        ObservableList<String> selectedRow = dataTableView.getSelectionModel().getSelectedItem();
-        if (selectedRow != null) {
-            StringBuilder content = new StringBuilder();
-            for (String cell : selectedRow) {
-                content.append(cell).append("\t");
-            }
+    private void deleteField(TemplateField field) {
+        String fieldName = field.getName();
+        
+        // 从字段列表中移除
+        objectFields.remove(field);
+        
+        // 从数据映射中移除
+        fieldDataMap.remove(fieldName);
+        
+        // 如果是列表字段，还要移除相关的列表数据
+        if (field.isList()) {
+            listFieldDataMap.remove(fieldName);
             
-            ClipboardContent clipboardContent = new ClipboardContent();
-            clipboardContent.putString(content.toString().trim());
-            Clipboard.getSystemClipboard().setContent(clipboardContent);
-        }
-    }
-    
-    /**
-     * 粘贴行
-     */
-    private void pasteRow() {
-        String content = Clipboard.getSystemClipboard().getString();
-        if (content != null && !content.isEmpty()) {
-            String[] cells = content.split("\t");
-            ObservableList<String> newRow = FXCollections.observableArrayList(cells);
-            
-            // 确保有足够的列
-            for (int i = 0; i < dataTableView.getColumns().size(); i++) {
-                if (i >= newRow.size()) {
-                    newRow.add("");
+            // 还需要移除列表相关的子字段
+            List<TemplateField> fieldsToRemove = new ArrayList<>();
+            for (TemplateField f : objectFields) {
+                if (f.getName().startsWith(fieldName + ".")) {
+                    fieldsToRemove.add(f);
                 }
             }
+            objectFields.removeAll(fieldsToRemove);
+        }
+        
+        // 如果是列表项字段，还需要从列表项数据中移除
+        if (fieldName.contains(".")) {
+            String listName = fieldName.substring(0, fieldName.indexOf("."));
+            String itemField = fieldName.substring(fieldName.indexOf(".") + 1);
             
-            dataTableView.getItems().add(newRow);
-        }
-    }
-    
-    /**
-     * 处理模板类型变更
-     */
-    @FXML
-    private void handleTemplateTypeChange() {
-        isWordMode = wordRadioButton.isSelected();
-        
-        // 切换编辑器可见性
-        wordEditor.setVisible(isWordMode);
-        excelEditor.setVisible(!isWordMode);
-        
-        // 清空当前编辑内容
-        if (isWordMode) {
-            wordEditor.clear();
-        } else {
-            excelEditor.getItems().clear();
-            addExcelRow();
-        }
-        
-        AppLogger.info("模板类型切换为: " + (isWordMode ? "Word" : "Excel"));
-    }
-    
-    /**
-     * 处理上传模板
-     */
-    @FXML
-    private void handleUploadTemplate() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("选择模板文件");
-        
-        // 根据当前选择的模板类型设置默认目录
-        File defaultDir;
-        if (isWordMode) {
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("Word文档", "*.docx"));
-            defaultDir = new File(baseDir, "templates/word");
-        } else {
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel表格", "*.xlsx"));
-            defaultDir = new File(baseDir, "templates/excel");
-        }
-        
-        if (!defaultDir.exists()) {
-            defaultDir.mkdirs();
-        }
-        fileChooser.setInitialDirectory(defaultDir);
-        
-        File file = fileChooser.showOpenDialog(wordEditor.getScene().getWindow());
-        if (file != null) {
-            try {
-                currentTemplateFile = file;
-                
-                if (isWordMode) {
-                    String content = wordTemplateService.readDocxContent(file.getPath());
-                    wordEditor.setText(content);
-                    // 提取字段
-                    extractFields(content);
-                } else {
-                    List<List<String>> data = excelTemplateService.readExcelContent(file.getPath());
-                    loadExcelData(data);
-                    // 从Excel提取可能的字段
-                    extractFieldsFromExcel(data);
+            List<Map<String, String>> listItems = listFieldDataMap.get(listName);
+            if (listItems != null) {
+                for (Map<String, String> item : listItems) {
+                    item.remove(itemField);
                 }
-                
-                // 更新数据表格
-                updateDataTableView();
-                
-                // 更新预览
-                updatePreview();
-                
-                AppLogger.info("成功上传模板: " + file.getName());
-            } catch (Exception e) {
-                AppLogger.error("上传模板失败: " + e.getMessage(), e);
-                showError("上传失败", "无法读取所选文件: " + e.getMessage());
             }
         }
+        
+        // 更新预览
+        updatePreview();
+        
+        AppLogger.info("删除字段: " + fieldName);
+    }
+    
+    /**
+     * 更新预览
+     */
+    private void updatePreview() {
+        if (isWordMode) {
+            updateWordPreview();
+        } else {
+            updateExcelPreview();
+        }
+    }
+    
+    /**
+     * 更新Word预览
+     */
+    private void updateWordPreview() {
+        String templateText = wordEditor.getText();
+        if (templateText.isEmpty()) return;
+        
+        String previewText = templateText;
+        
+        // 替换对象字段
+        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+            String placeholder = "{{" + entry.getKey() + "}}";
+            previewText = previewText.replace(placeholder, entry.getValue());
+        }
+        
+        // 处理列表字段
+        for (Map.Entry<String, List<Map<String, String>>> listEntry : listFieldDataMap.entrySet()) {
+            String listFieldName = listEntry.getKey();
+            List<Map<String, String>> listItems = listEntry.getValue();
+            
+            // 找到列表开始和结束标记
+            String startMarker = "{{#" + listFieldName + "}}";
+            String endMarker = "{{/" + listFieldName + "}}";
+            
+            int startIndex = previewText.indexOf(startMarker);
+            int endIndex = previewText.indexOf(endMarker);
+            
+            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+                String listTemplate = previewText.substring(startIndex + startMarker.length(), endIndex);
+                StringBuilder listContent = new StringBuilder();
+                
+                for (Map<String, String> item : listItems) {
+                    String itemContent = listTemplate;
+                    for (Map.Entry<String, String> itemField : item.entrySet()) {
+                        String itemPlaceholder = "{{" + itemField.getKey() + "}}";
+                        itemContent = itemContent.replace(itemPlaceholder, itemField.getValue());
+                    }
+                    listContent.append(itemContent);
+                }
+                
+                // 替换整个列表部分
+                previewText = previewText.substring(0, startIndex) + listContent.toString() + previewText.substring(endIndex + endMarker.length());
+            }
+        }
+        
+        // 更新预览区域
+        wordPreviewArea.setText(previewText);
+    }
+    
+    /**
+     * 更新Excel预览
+     */
+    private void updateExcelPreview() {
+        // 清空现有预览表
+        excelPreviewArea.getItems().clear();
+        excelPreviewArea.getColumns().clear();
+        
+        // 复制Excel表格结构
+        for (TableColumn<ObservableList<String>, ?> column : excelEditor.getColumns()) {
+            TableColumn<ObservableList<String>, String> newColumn = new TableColumn<>(column.getText());
+            final int colIndex = excelPreviewArea.getColumns().size();
+            
+            newColumn.setCellValueFactory(param -> {
+                if (param.getValue().size() > colIndex) {
+                    return new SimpleStringProperty(param.getValue().get(colIndex));
+                }
+                return new SimpleStringProperty("");
+            });
+            
+            excelPreviewArea.getColumns().add(newColumn);
+        }
+        
+        // 复制并处理数据
+        for (ObservableList<String> oldRow : excelEditor.getItems()) {
+            ObservableList<String> newRow = FXCollections.observableArrayList();
+            
+            for (String cellText : oldRow) {
+                String processedText = cellText;
+                
+                // 替换对象字段占位符
+                for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+                    String placeholder = "{{" + entry.getKey() + "}}";
+                    if (processedText.contains(placeholder)) {
+                        processedText = processedText.replace(placeholder, entry.getValue());
+                    }
+                }
+                
+                newRow.add(processedText);
+            }
+            
+            excelPreviewArea.getItems().add(newRow);
+        }
+    }
+    
+    /**
+     * 显示错误对话框
+     */
+    private void showError(String title, String message) {
+        Alert alert = new Alert(AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    /**
+     * 显示信息对话框
+     */
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
     
     /**
@@ -404,7 +626,7 @@ public class DocumentGeneratorController {
      */
     private void extractFields(String content) {
         // 清空现有字段
-        fields.clear();
+        objectFields.clear();
         
         // 查找所有{{字段}}模式
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{\\{([^{}]+)\\}\\}");
@@ -416,11 +638,23 @@ public class DocumentGeneratorController {
             if (!fieldName.startsWith("#") && !fieldName.startsWith("/")) {
                 // 检查是否是列表字段
                 boolean isList = content.contains("{{#" + fieldName + "}}") && content.contains("{{/" + fieldName + "}}");
-                fields.add(new TemplateField(fieldName, isList));
+                
+                // 检查是否已存在
+                boolean exists = false;
+                for (TemplateField field : objectFields) {
+                    if (field.getName().equals(fieldName)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    objectFields.add(new TemplateField(fieldName, isList));
+                }
             }
         }
         
-        AppLogger.info("从模板中提取了 " + fields.size() + " 个字段");
+        AppLogger.info("从模板中提取了 " + objectFields.size() + " 个字段");
     }
     
     /**
@@ -428,7 +662,7 @@ public class DocumentGeneratorController {
      */
     private void extractFieldsFromExcel(List<List<String>> data) {
         // 清空现有字段
-        fields.clear();
+        objectFields.clear();
         
         // 假设第一行是标题行
         if (!data.isEmpty() && !data.get(0).isEmpty()) {
@@ -441,16 +675,52 @@ public class DocumentGeneratorController {
                     
                     if (matcher.find()) {
                         String fieldName = matcher.group(1);
-                        fields.add(new TemplateField(fieldName, false));
+                        
+                        // 检查是否已存在
+                        boolean exists = false;
+                        for (TemplateField field : objectFields) {
+                            if (field.getName().equals(fieldName)) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!exists) {
+                            // 检查是否是列表字段
+                            boolean isList = false;
+                            for (List<String> row : data) {
+                                for (String cell : row) {
+                                    if (cell.contains("{{#" + fieldName + "}}") && 
+                                        cell.contains("{{/" + fieldName + "}}")) {
+                                        isList = true;
+                                        break;
+                                    }
+                                }
+                                if (isList) break;
+                            }
+                            
+                            objectFields.add(new TemplateField(fieldName, isList));
+                        }
                     } else {
                         // 没有{{}}格式，将整个标题作为字段名
-                        fields.add(new TemplateField(header, false));
+                        // 检查是否已存在
+                        boolean exists = false;
+                        for (TemplateField field : objectFields) {
+                            if (field.getName().equals(header)) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!exists) {
+                            objectFields.add(new TemplateField(header, false));
+                        }
                     }
                 }
             }
         }
         
-        AppLogger.info("从Excel模板中提取了 " + fields.size() + " 个字段");
+        AppLogger.info("从Excel模板中提取了 " + objectFields.size() + " 个字段");
     }
     
     /**
@@ -479,6 +749,7 @@ public class DocumentGeneratorController {
                 }
                 return new SimpleStringProperty("");
             });
+            
             column.setCellFactory(TextFieldTableCell.forTableColumn());
             column.setOnEditCommit(event -> {
                 ObservableList<String> row = event.getRowValue();
@@ -512,7 +783,7 @@ public class DocumentGeneratorController {
         if (!fieldName.isEmpty()) {
             // 检查字段是否已存在
             boolean exists = false;
-            for (TemplateField field : fields) {
+            for (TemplateField field : objectFields) {
                 if (field.getName().equals(fieldName)) {
                     exists = true;
                     break;
@@ -524,13 +795,16 @@ public class DocumentGeneratorController {
                 return;
             }
             
-            fields.add(new TemplateField(fieldName, false));
+            objectFields.add(new TemplateField(fieldName, false));
             objectFieldInput.clear();
             
-            // 更新数据表格
-            updateDataTableView();
+            // 初始化字段数据映射
+            fieldDataMap.put(fieldName, "");
             
             AppLogger.info("添加对象字段: " + fieldName);
+            
+            // 更新预览
+            updatePreview();
         }
     }
     
@@ -540,7 +814,6 @@ public class DocumentGeneratorController {
     @FXML
     private void handleAddListField() {
         String fieldName = listFieldInput.getText().trim();
-        String itemFieldName = listItemFieldInput.getText().trim();
         
         if (fieldName.isEmpty()) {
             showError("添加失败", "请输入列表字段名称");
@@ -549,7 +822,7 @@ public class DocumentGeneratorController {
         
         // 检查字段是否已存在
         boolean exists = false;
-        for (TemplateField field : fields) {
+        for (TemplateField field : objectFields) {
             if (field.getName().equals(fieldName)) {
                 exists = true;
                 break;
@@ -562,107 +835,125 @@ public class DocumentGeneratorController {
         }
         
         // 添加列表字段
-        fields.add(new TemplateField(fieldName, true));
+        objectFields.add(new TemplateField(fieldName, true));
         
-        // 如果有列表项字段，也添加
-        if (!itemFieldName.isEmpty()) {
-            // 添加列表项字段，格式为：listName.itemName
-            String combinedName = fieldName + "." + itemFieldName;
-            fields.add(new TemplateField(combinedName, false));
-        }
+        // 初始化列表数据
+        listFieldDataMap.put(fieldName, new ArrayList<>());
         
         listFieldInput.clear();
-        listItemFieldInput.clear();
         
-        // 更新数据表格
-        updateDataTableView();
+        // 更新列表字段UI
+        updateListFieldsUI();
         
         AppLogger.info("添加列表字段: " + fieldName);
-    }
-    
-    /**
-     * 删除字段
-     */
-    private void deleteField(TemplateField field) {
-        String fieldName = field.getName();
-        
-        // 从字段列表中移除
-        fields.remove(field);
-        
-        // 从数据映射中移除
-        fieldDataMap.remove(fieldName);
-        
-        // 如果是列表字段，还要移除相关的列表数据
-        if (field.isList()) {
-            listFieldDataMap.remove(fieldName);
-            
-            // 还需要移除列表相关的子字段
-            List<TemplateField> fieldsToRemove = new ArrayList<>();
-            for (TemplateField f : fields) {
-                if (f.getName().startsWith(fieldName + ".")) {
-                    fieldsToRemove.add(f);
-                }
-            }
-            fields.removeAll(fieldsToRemove);
-        }
-        
-        // 如果是列表项字段，还需要从列表项数据中移除
-        if (fieldName.contains(".")) {
-            String listName = fieldName.substring(0, fieldName.indexOf("."));
-            String itemField = fieldName.substring(fieldName.indexOf(".") + 1);
-            
-            List<Map<String, String>> listItems = listFieldDataMap.get(listName);
-            if (listItems != null) {
-                for (Map<String, String> item : listItems) {
-                    item.remove(itemField);
-                }
-            }
-        }
-        
-        // 从模板中移除占位符
-        if (isWordMode) {
-            String text = wordEditor.getText();
-            String placeholder;
-            
-            if (field.isList()) {
-                // 删除列表字段的开始和结束标记
-                String startMarker = "{{#" + fieldName + "}}";
-                String endMarker = "{{/" + fieldName + "}}";
-                
-                int startIndex = text.indexOf(startMarker);
-                int endIndex = text.indexOf(endMarker);
-                
-                if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-                    // 删除整个列表段落，包括标记
-                    text = text.substring(0, startIndex) + text.substring(endIndex + endMarker.length());
-                }
-            } else {
-                // 删除对象字段占位符
-                placeholder = "{{" + fieldName + "}}";
-                text = text.replace(placeholder, "");
-            }
-            
-            wordEditor.setText(text);
-        } else {
-            // 从Excel中移除占位符
-            for (ObservableList<String> row : excelEditor.getItems()) {
-                for (int i = 0; i < row.size(); i++) {
-                    String cellText = row.get(i);
-                    String placeholder = "{{" + fieldName + "}}";
-                    if (cellText.contains(placeholder)) {
-                        row.set(i, cellText.replace(placeholder, ""));
-                    }
-                }
-            }
-        }
-        
-        // 更新数据表格
-        updateDataTableView();
         
         // 更新预览
         updatePreview();
+    }
+    
+    /**
+     * 更新列表字段UI
+     */
+    private void updateListFieldsUI() {
+        // 清空现有列表字段UI
+        listFieldsContainer.getChildren().clear();
         
-        AppLogger.info("删除字段: " + fieldName);
+        // 添加列表字段到UI
+        for (TemplateField field : objectFields) {
+        if (field.isList()) {
+                TitledPane listPane = createListFieldPane(field);
+                listFieldsContainer.getChildren().add(listPane);
+            }
+        }
+    }
+    
+    /**
+     * 创建列表字段面板
+     */
+    private TitledPane createListFieldPane(TemplateField listField) {
+        TitledPane listPane = new TitledPane();
+        listPane.setText(listField.getName());
+        listPane.setExpanded(false);
+        
+        VBox content = new VBox(5);
+        
+        // 添加列表项输入控件
+        HBox inputBox = new HBox(5);
+        TextField listItemInput = new TextField();
+        listItemInput.setPromptText("输入列表项字段");
+        listItemInput.setPrefWidth(200);
+        
+        Button addButton = new Button("添加");
+        addButton.getStyleClass().add("action-button");
+        addButton.setOnAction(e -> {
+            String itemName = listItemInput.getText().trim();
+            if (!itemName.isEmpty()) {
+                String fullName = listField.getName() + "." + itemName;
+                
+                // 检查是否已存在
+                boolean exists = false;
+                for (TemplateField field : objectFields) {
+                    if (field.getName().equals(fullName)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    objectFields.add(new TemplateField(fullName, false));
+                    listItemInput.clear();
+                    
+                    // 更新列表项UI
+                    updateListItemsUI(listField, content);
+                    
+                    AppLogger.info("添加列表项字段: " + fullName);
+                    
+                    // 更新预览
+                    updatePreview();
+            } else {
+                    showError("添加失败", "字段 '" + fullName + "' 已存在");
+                }
+            }
+        });
+        
+        inputBox.getChildren().addAll(listItemInput, addButton);
+        content.getChildren().add(inputBox);
+        
+        // 添加列表项
+        updateListItemsUI(listField, content);
+        
+        listPane.setContent(content);
+        return listPane;
+    }
+    
+    /**
+     * 更新列表项UI
+     */
+    private void updateListItemsUI(TemplateField listField, VBox container) {
+        // 移除现有列表项UI（保留输入框）
+        if (container.getChildren().size() > 1) {
+            container.getChildren().remove(1, container.getChildren().size());
+        }
+        
+        // 添加列表项字段
+        for (TemplateField field : objectFields) {
+            if (field.getName().startsWith(listField.getName() + ".")) {
+                String itemName = field.getName().substring(field.getName().indexOf(".") + 1);
+                
+                HBox itemBox = new HBox(5);
+                Label nameLabel = new Label(itemName);
+                nameLabel.setPrefWidth(200);
+                
+                Button deleteButton = new Button("X");
+                deleteButton.setOnAction(e -> {
+                    deleteField(field);
+                    updateListItemsUI(listField, container);
+                });
+                
+                itemBox.getChildren().addAll(nameLabel, deleteButton);
+                container.getChildren().add(itemBox);
+            }
+        }
     }
     
     /**
@@ -766,13 +1057,13 @@ public class DocumentGeneratorController {
             try {
                 if (isWordMode) {
                     // 生成Word模板
-                    wordTemplateService.generateWordTemplate(file.getPath(), fields);
+                    generateCustomWordTemplate(file.getPath());
                     // 更新编辑器内容
                     String content = wordTemplateService.readDocxContent(file.getPath());
                     wordEditor.setText(content);
                 } else {
                     // 生成Excel模板
-                    excelTemplateService.generateExcelTemplate(file.getPath(), fields);
+                    excelTemplateService.generateExcelTemplate(file.getPath(), objectFields);
                     // 更新Excel编辑器
                     List<List<String>> data = excelTemplateService.readExcelContent(file.getPath());
                     loadExcelData(data);
@@ -780,9 +1071,6 @@ public class DocumentGeneratorController {
                 
                 // 更新当前模板文件
                 currentTemplateFile = file;
-                
-                // 更新数据表格
-                updateDataTableView();
                 
                 // 更新预览
                 updatePreview();
@@ -793,6 +1081,138 @@ public class DocumentGeneratorController {
                 AppLogger.error("生成模板失败: " + e.getMessage(), e);
                 showError("生成失败", "无法生成模板: " + e.getMessage());
             }
+        }
+    }
+    
+    /**
+     * 生成自定义Word模板（按照HTML示例）
+     */
+    private void generateCustomWordTemplate(String filePath) throws Exception {
+        try (XWPFDocument document = new XWPFDocument()) {
+            // 创建标题
+            XWPFParagraph titleParagraph = document.createParagraph();
+            titleParagraph.setAlignment(org.apache.poi.xwpf.usermodel.ParagraphAlignment.CENTER);
+            XWPFRun titleRun = titleParagraph.createRun();
+            titleRun.setText("合同示例模板");
+            titleRun.setBold(true);
+            titleRun.setFontSize(16);
+            
+            // 添加客户信息段落
+            XWPFParagraph clientParagraph = document.createParagraph();
+            XWPFRun clientRun = clientParagraph.createRun();
+            clientRun.setText("甲方（客户）：");
+            XWPFRun clientNameRun = clientParagraph.createRun();
+            clientNameRun.setText("{{客户名称}}");
+            
+            // 添加合同编号段落
+            XWPFParagraph contractParagraph = document.createParagraph();
+            XWPFRun contractRun = contractParagraph.createRun();
+            contractRun.setText("合同编号：");
+            XWPFRun contractNumberRun = contractParagraph.createRun();
+            contractNumberRun.setText("{{合同编号}}");
+            
+            // 添加签约日期段落
+            XWPFParagraph dateParagraph = document.createParagraph();
+            XWPFRun dateRun = dateParagraph.createRun();
+            dateRun.setText("签约日期：");
+            XWPFRun signDateRun = dateParagraph.createRun();
+            signDateRun.setText("{{签约日期}}");
+            
+            // 添加项目名称段落
+            XWPFParagraph projectParagraph = document.createParagraph();
+            XWPFRun projectRun = projectParagraph.createRun();
+            projectRun.setText("项目名称：");
+            XWPFRun projectNameRun = projectParagraph.createRun();
+            projectNameRun.setText("{{项目名称}}");
+            
+            // 项目内容标题
+            XWPFParagraph contentTitleParagraph = document.createParagraph();
+            contentTitleParagraph.setStyle("Heading1");
+            XWPFRun contentTitleRun = contentTitleParagraph.createRun();
+            contentTitleRun.setText("一、项目内容");
+            contentTitleRun.setBold(true);
+            
+            // 项目内容描述
+            XWPFParagraph contentParagraph = document.createParagraph();
+            XWPFRun contentRun = contentParagraph.createRun();
+            contentRun.setText("根据甲方需求，乙方提供以下服务...");
+            
+            // 联系方式标题
+            XWPFParagraph contactTitleParagraph = document.createParagraph();
+            contactTitleParagraph.setStyle("Heading1");
+            XWPFRun contactTitleRun = contactTitleParagraph.createRun();
+            contactTitleRun.setText("二、联系方式");
+            contactTitleRun.setBold(true);
+            
+            // 联系人
+            XWPFParagraph contactParagraph = document.createParagraph();
+            XWPFRun contactLabelRun = contactParagraph.createRun();
+            contactLabelRun.setText("联系人：");
+            XWPFRun contactNameRun = contactParagraph.createRun();
+            contactNameRun.setText("{{联系人}}");
+            
+            // 联系电话
+            XWPFParagraph phoneParagraph = document.createParagraph();
+            XWPFRun phoneLabelRun = phoneParagraph.createRun();
+            phoneLabelRun.setText("联系电话：");
+            XWPFRun phoneRun = phoneParagraph.createRun();
+            phoneRun.setText("{{电话}}");
+            
+            // 合同金额标题
+            XWPFParagraph amountTitleParagraph = document.createParagraph();
+            amountTitleParagraph.setStyle("Heading1");
+            XWPFRun amountTitleRun = amountTitleParagraph.createRun();
+            amountTitleRun.setText("三、合同金额");
+            amountTitleRun.setBold(true);
+            
+            // 合同金额
+            XWPFParagraph amountParagraph = document.createParagraph();
+            XWPFRun amountLabelRun = amountParagraph.createRun();
+            amountLabelRun.setText("本合同金额为：");
+            XWPFRun amountRun = amountParagraph.createRun();
+            amountRun.setText("{{合同金额}}");
+            XWPFRun amountUnitRun = amountParagraph.createRun();
+            amountUnitRun.setText("元");
+            
+            // 其他条款标题
+            XWPFParagraph otherTitleParagraph = document.createParagraph();
+            otherTitleParagraph.setStyle("Heading1");
+            XWPFRun otherTitleRun = otherTitleParagraph.createRun();
+            otherTitleRun.setText("四、其他条款");
+            otherTitleRun.setBold(true);
+            
+            // 其他条款内容
+            XWPFParagraph otherParagraph = document.createParagraph();
+            XWPFRun otherRun = otherParagraph.createRun();
+            otherRun.setText("本合同未尽事宜，由双方协商解决。");
+            
+            // 自动添加字段到objectFields
+            if (objectFields.isEmpty()) {
+                objectFields.add(new TemplateField("客户名称", false));
+                objectFields.add(new TemplateField("合同编号", false));
+                objectFields.add(new TemplateField("签约日期", false));
+                objectFields.add(new TemplateField("项目名称", false));
+                objectFields.add(new TemplateField("联系人", false));
+                objectFields.add(new TemplateField("电话", false));
+                objectFields.add(new TemplateField("合同金额", false));
+                
+                // 初始化字段数据
+                fieldDataMap.put("客户名称", "南京科技有限公司");
+                fieldDataMap.put("合同编号", "HT-2025-001");
+                fieldDataMap.put("签约日期", "2025年4月1日");
+                fieldDataMap.put("项目名称", "智能管理系统开发项目");
+                fieldDataMap.put("联系人", "张经理");
+                fieldDataMap.put("电话", "13912345678");
+                fieldDataMap.put("合同金额", "120,000.00");
+            }
+            
+            // 保存文档
+            try (FileOutputStream out = new FileOutputStream(filePath)) {
+                document.write(out);
+            }
+        } catch (Exception e) {
+            AppLogger.error("生成Word模板失败: " + e.getMessage(), e);
+            throw e;
         }
     }
     
@@ -838,23 +1258,12 @@ public class DocumentGeneratorController {
             try {
                 if (isWordMode) {
                     // 保存预览中的内容作为文档
-                    wordTemplateService.saveDocxDocument(file.getPath(), previewArea.getText());
+                    wordTemplateService.saveDocxDocument(file.getPath(), wordPreviewArea.getText());
                 } else {
-                    // 保存Excel文档，暂时保存编辑器中的内容
+                    // 保存Excel文档
                     List<List<String>> data = new ArrayList<>();
-                    for (ObservableList<String> row : excelEditor.getItems()) {
-                        List<String> rowData = new ArrayList<>();
-                        for (String cell : row) {
-                            // 替换所有字段占位符
-                            String processedCell = cell;
-                            for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-                                String placeholder = "{{" + entry.getKey() + "}}";
-                                if (processedCell.contains(placeholder)) {
-                                    processedCell = processedCell.replace(placeholder, entry.getValue());
-                                }
-                            }
-                            rowData.add(processedCell);
-                        }
+                    for (ObservableList<String> row : excelPreviewArea.getItems()) {
+                        List<String> rowData = new ArrayList<>(row);
                         data.add(rowData);
                     }
                     excelTemplateService.saveExcelDocument(file.getPath(), data);
@@ -870,243 +1279,7 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 刷新模板列表
-     */
-    @FXML
-    private void handleRefreshTemplates() {
-        refreshTemplateList();
-    }
-    
-    /**
-     * 刷新模板列表
-     */
-    private void refreshTemplateList() {
-        ObservableList<String> templates = FXCollections.observableArrayList();
-        
-        // 加载templates目录下的模板文件
-        File templatesDir = new File(baseDir, "templates");
-        if (templatesDir.exists() && templatesDir.isDirectory()) {
-            File[] files = templatesDir.listFiles((dir, name) -> name.endsWith(".docx") || name.endsWith(".xlsx"));
-            if (files != null) {
-                for (File file : files) {
-                    templates.add(file.getName());
-                }
-            }
-        }
-        
-        templateComboBox.setItems(templates);
-        
-        if (!templates.isEmpty()) {
-            templateComboBox.getSelectionModel().selectFirst();
-            handleTemplateSelected();
-        }
-    }
-    
-    /**
-     * 处理模板选择
-     */
-    @FXML
-    private void handleTemplateSelected() {
-        String selectedTemplate = templateComboBox.getSelectionModel().getSelectedItem();
-        if (selectedTemplate != null) {
-            try {
-                File templatesDir = new File(baseDir, "templates");
-                File templateFile = new File(templatesDir, selectedTemplate);
-                
-                if (templateFile.exists()) {
-                    // 确定文件类型
-                    boolean isWordFile = selectedTemplate.endsWith(".docx");
-                    
-                    // 提取字段并设置数据表格列
-                    if (isWordFile) {
-                        String content = wordTemplateService.readDocxContent(templateFile.getPath());
-                        extractFields(content);
-                    } else {
-                        List<List<String>> data = excelTemplateService.readExcelContent(templateFile.getPath());
-                        extractFieldsFromExcel(data);
-                    }
-                    
-                    // 设置数据表格列
-                    setupDataTableColumns();
-                    
-                    AppLogger.info("加载模板: " + selectedTemplate);
-                }
-            } catch (Exception e) {
-                AppLogger.error("加载模板失败: " + e.getMessage(), e);
-                showError("加载失败", "无法加载所选模板: " + e.getMessage());
-            }
-        }
-    }
-    
-    /**
-     * 设置数据表格列
-     */
-    private void setupDataTableColumns() {
-        dataTableView.getColumns().clear();
-        dataTableView.getItems().clear();
-        
-        // 为每个字段创建一列
-        for (TemplateField field : fields) {
-            TableColumn<ObservableList<String>, String> column = new TableColumn<>(field.getName());
-            final int colIndex = dataTableView.getColumns().size();
-            
-            column.setCellValueFactory(param -> {
-                if (param.getValue().size() > colIndex) {
-                    return new SimpleStringProperty(param.getValue().get(colIndex));
-                }
-                return new SimpleStringProperty("");
-            });
-            column.setCellFactory(TextFieldTableCell.forTableColumn());
-            column.setOnEditCommit(event -> {
-                ObservableList<String> row = event.getRowValue();
-                // 确保行有足够的元素
-                while (row.size() <= colIndex) {
-                    row.add("");
-                }
-                row.set(colIndex, event.getNewValue());
-            });
-            
-            dataTableView.getColumns().add(column);
-        }
-        
-        // 添加一行空数据
-        addDataRow();
-    }
-    
-    /**
-     * 添加数据行
-     */
-    @FXML
-    private void handleAddRow() {
-        addDataRow();
-    }
-    
-    /**
-     * 添加数据行
-     */
-    private void addDataRow() {
-        ObservableList<String> row = FXCollections.observableArrayList();
-        // 为每个字段添加一个空单元格
-        for (int i = 0; i < dataTableView.getColumns().size(); i++) {
-            row.add("");
-        }
-        dataTableView.getItems().add(row);
-    }
-    
-    /**
-     * 删除选中行
-     */
-    @FXML
-    private void handleDeleteRow() {
-        int selectedIndex = dataTableView.getSelectionModel().getSelectedIndex();
-        if (selectedIndex >= 0) {
-            dataTableView.getItems().remove(selectedIndex);
-        }
-    }
-    
-    /**
-     * 保存数据
-     */
-    @FXML
-    private void handleSaveData() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("保存数据");
-        fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel表格", "*.xlsx"));
-        
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        fileChooser.setInitialFileName("数据_" + timestamp + ".xlsx");
-        
-        // 设置初始目录
-        File dataDir = new File(baseDir, "data");
-        if (!dataDir.exists()) {
-            dataDir.mkdirs();
-        }
-        fileChooser.setInitialDirectory(dataDir);
-        
-        File file = fileChooser.showSaveDialog(dataTableView.getScene().getWindow());
-        if (file != null) {
-            try {
-                // 准备数据
-                List<List<String>> data = new ArrayList<>();
-                
-                // 添加标题行
-                List<String> headers = new ArrayList<>();
-                for (TableColumn<?, ?> column : dataTableView.getColumns()) {
-                    headers.add(column.getText());
-                }
-                data.add(headers);
-                
-                // 添加数据行
-                for (ObservableList<String> row : dataTableView.getItems()) {
-                    data.add(new ArrayList<>(row));
-                }
-                
-                // 保存Excel文件
-                excelTemplateService.saveExcelDocument(file.getPath(), data);
-                
-                AppLogger.info("成功保存数据: " + file.getName());
-                showInfo("保存成功", "数据已保存到: " + file.getPath());
-            } catch (Exception e) {
-                AppLogger.error("保存数据失败: " + e.getMessage(), e);
-                showError("保存失败", "无法保存数据: " + e.getMessage());
-            }
-        }
-    }
-    
-    /**
-     * 字段列表单元格
-     */
-    private class FieldListCell extends ListCell<TemplateField> {
-        @Override
-        protected void updateItem(TemplateField item, boolean empty) {
-            super.updateItem(item, empty);
-            
-            if (empty || item == null) {
-                setText(null);
-                setGraphic(null);
-            } else {
-                HBox hbox = new HBox(5);
-                Label typeLabel = new Label(item.isList() ? "▣" : "◉");
-                typeLabel.setStyle("-fx-text-fill: -pink-text; -fx-font-weight: bold;");
-                
-                Label nameLabel = new Label(item.getName());
-                
-                Button deleteButton = new Button("×");
-                deleteButton.setStyle("-fx-background-color: transparent; -fx-text-fill: red; -fx-cursor: hand;");
-                deleteButton.setOnAction(e -> deleteField(item));
-                
-                hbox.getChildren().addAll(typeLabel, nameLabel, deleteButton);
-                hbox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                
-                setGraphic(hbox);
-            }
-        }
-    }
-    
-    /**
-     * 显示错误对话框
-     */
-    private void showError(String title, String message) {
-        Alert alert = new Alert(AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    
-    /**
-     * 显示信息对话框
-     */
-    private void showInfo(String title, String message) {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    
-    /**
-     * 导入Excel数据
+     * 处理导入Excel数据
      */
     @FXML
     private void handleImportDataExcel() {
@@ -1138,262 +1311,48 @@ public class DocumentGeneratorController {
                     String header = headers.get(i);
                     if (i < firstDataRow.size()) {
                         // 处理对象字段
-                        if (!header.contains("#")) {
-                            // 移除可能的占位符符号
-                            String fieldName = header.replace("{{", "").replace("}}", "").trim();
-                            fieldDataMap.put(fieldName, firstDataRow.get(i));
+                        if (!header.contains(".")) {
+                            // 不是列表项字段
+                            fieldDataMap.put(header, firstDataRow.get(i));
                         } else {
-                            // 处理列表字段
-                            String listFieldName = header.replace("{{#", "").replace("}}", "").trim();
-                            processListFieldData(listFieldName, headers, data);
+                            // 处理列表项字段
+                            String listName = header.substring(0, header.indexOf("."));
+                            String itemName = header.substring(header.indexOf(".") + 1);
+                            
+                            // 确保列表存在
+                            if (!listFieldDataMap.containsKey(listName)) {
+                                listFieldDataMap.put(listName, new ArrayList<>());
+                            }
+                            
+                            // 处理所有数据行
+                            for (int rowIndex = 1; rowIndex < data.size(); rowIndex++) {
+                                List<String> rowData = data.get(rowIndex);
+                                if (rowIndex > listFieldDataMap.get(listName).size()) {
+                                    // 需要添加新的列表项
+                                    Map<String, String> newItem = new HashMap<>();
+                                    listFieldDataMap.get(listName).add(newItem);
+                                }
+                                
+                                if (i < rowData.size() && !rowData.get(i).isEmpty()) {
+                                    // 添加列表项字段值
+                                    int listItemIndex = rowIndex - 1;
+                                    if (listItemIndex < listFieldDataMap.get(listName).size()) {
+                                        listFieldDataMap.get(listName).get(listItemIndex).put(itemName, rowData.get(i));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                
-                // 更新数据表格
-                updateDataTableView();
-                
-                // 更新预览
-                updatePreview();
+            
+            // 更新预览
+            updatePreview();
                 
                 AppLogger.info("成功导入Excel数据: " + file.getName());
                 showInfo("导入成功", "Excel数据已成功导入");
             } catch (Exception e) {
                 AppLogger.error("导入Excel数据失败: " + e.getMessage(), e);
                 showError("导入失败", "无法读取所选文件: " + e.getMessage());
-            }
-        }
-    }
-    
-    /**
-     * 处理列表字段数据
-     */
-    private void processListFieldData(String listFieldName, List<String> headers, List<List<String>> data) {
-        List<Map<String, String>> listItems = new ArrayList<>();
-        List<String> listItemFields = new ArrayList<>();
-        
-        // 找出属于这个列表的所有字段
-        for (String header : headers) {
-            if (header.contains(listFieldName + ".")) {
-                String itemField = header.substring(header.indexOf(".") + 1).replace("{{", "").replace("}}", "").trim();
-                listItemFields.add(itemField);
-            }
-        }
-        
-        // 从第二行开始遍历数据（跳过标题行）
-        for (int i = 1; i < data.size(); i++) {
-            List<String> row = data.get(i);
-            Map<String, String> item = new HashMap<>();
-            
-            boolean hasData = false;
-            for (int j = 0; j < headers.size() && j < row.size(); j++) {
-                String header = headers.get(j);
-                if (header.contains(listFieldName + ".")) {
-                    String itemField = header.substring(header.indexOf(".") + 1).replace("{{", "").replace("}}", "").trim();
-                    String value = row.get(j);
-                    if (value != null && !value.trim().isEmpty()) {
-                        item.put(itemField, value);
-                        hasData = true;
-                    }
-                }
-            }
-            
-            if (hasData) {
-                listItems.add(item);
-            }
-        }
-        
-        if (!listItems.isEmpty()) {
-            listFieldDataMap.put(listFieldName, listItems);
-        }
-    }
-    
-    /**
-     * 更新数据表格视图
-     */
-    private void updateDataTableView() {
-        dataTableView.getItems().clear();
-        dataTableView.getColumns().clear();
-        
-        // 添加对象字段列
-        TableColumn<ObservableList<String>, String> fieldNameColumn = new TableColumn<>("字段名称");
-        fieldNameColumn.setPrefWidth(150);
-        fieldNameColumn.setCellValueFactory(data -> {
-            if (data.getValue().size() > 0) {
-                return new SimpleStringProperty(data.getValue().get(0));
-            }
-            return new SimpleStringProperty("");
-        });
-        
-        TableColumn<ObservableList<String>, String> fieldValueColumn = new TableColumn<>("字段值");
-        fieldValueColumn.setPrefWidth(250);
-        fieldValueColumn.setCellValueFactory(data -> {
-            if (data.getValue().size() > 1) {
-                return new SimpleStringProperty(data.getValue().get(1));
-            }
-            return new SimpleStringProperty("");
-        });
-        fieldValueColumn.setCellFactory(TextFieldTableCell.forTableColumn());
-        fieldValueColumn.setOnEditCommit(event -> {
-            ObservableList<String> row = event.getRowValue();
-            String fieldName = row.get(0);
-            String newValue = event.getNewValue();
-            
-            // 更新字段数据
-            row.set(1, newValue);
-            fieldDataMap.put(fieldName, newValue);
-            
-            // 更新预览
-            updatePreview();
-        });
-        
-        dataTableView.getColumns().addAll(fieldNameColumn, fieldValueColumn);
-        
-        // 添加对象字段数据
-        for (TemplateField field : fields) {
-            if (!field.isList()) {
-                ObservableList<String> row = FXCollections.observableArrayList();
-                row.add(field.getName());
-                row.add(fieldDataMap.getOrDefault(field.getName(), ""));
-                dataTableView.getItems().add(row);
-            }
-        }
-        
-        dataTableView.setEditable(true);
-    }
-    
-    /**
-     * 更新预览
-     */
-    private void updatePreview() {
-        if (isWordMode) {
-            updateWordPreview();
-        } else {
-            updateExcelPreview();
-        }
-    }
-    
-    /**
-     * 更新Word预览
-     */
-    private void updateWordPreview() {
-        String templateText = wordEditor.getText();
-        if (templateText.isEmpty()) return;
-        
-        String previewText = templateText;
-        
-        // 替换对象字段
-        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            previewText = previewText.replace(placeholder, entry.getValue());
-        }
-        
-        // 处理列表字段
-        for (Map.Entry<String, List<Map<String, String>>> listEntry : listFieldDataMap.entrySet()) {
-            String listFieldName = listEntry.getKey();
-            List<Map<String, String>> listItems = listEntry.getValue();
-            
-            // 找到列表开始和结束标记
-            String startMarker = "{{#" + listFieldName + "}}";
-            String endMarker = "{{/" + listFieldName + "}}";
-            
-            int startIndex = previewText.indexOf(startMarker);
-            int endIndex = previewText.indexOf(endMarker);
-            
-            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-                String listTemplate = previewText.substring(startIndex + startMarker.length(), endIndex);
-                StringBuilder listContent = new StringBuilder();
-                
-                for (Map<String, String> item : listItems) {
-                    String itemContent = listTemplate;
-                    for (Map.Entry<String, String> itemField : item.entrySet()) {
-                        String itemPlaceholder = "{{" + itemField.getKey() + "}}";
-                        itemContent = itemContent.replace(itemPlaceholder, itemField.getValue());
-                    }
-                    listContent.append(itemContent);
-                }
-                
-                // 替换整个列表部分
-                previewText = previewText.substring(0, startIndex) + listContent.toString() + previewText.substring(endIndex + endMarker.length());
-            }
-        }
-        
-        // 更新预览区域
-        previewArea.setText(previewText);
-    }
-    
-    /**
-     * 更新Excel预览
-     */
-    private void updateExcelPreview() {
-        // Excel预览暂时使用文本形式显示
-        StringBuilder preview = new StringBuilder();
-        
-        // 获取表格数据
-        for (int i = 0; i < excelEditor.getItems().size(); i++) {
-            ObservableList<String> row = excelEditor.getItems().get(i);
-            StringBuilder rowText = new StringBuilder();
-            
-            for (int j = 0; j < row.size(); j++) {
-                String cellText = row.get(j);
-                
-                // 替换对象字段
-                for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-                    String placeholder = "{{" + entry.getKey() + "}}";
-                    if (cellText.contains(placeholder)) {
-                        cellText = cellText.replace(placeholder, entry.getValue());
-                    }
-                }
-                
-                rowText.append(cellText).append("\t");
-            }
-            
-            preview.append(rowText).append("\n");
-        }
-        
-        previewArea.setText(preview.toString());
-    }
-    
-    /**
-     * 处理字段列表点击事件
-     */
-    @FXML
-    private void handleFieldListClick(MouseEvent event) {
-        if (event.getClickCount() == 2) {
-            TemplateField selectedField = fieldListView.getSelectionModel().getSelectedItem();
-            if (selectedField != null) {
-                // 在编辑器当前光标位置插入字段
-                if (isWordMode) {
-                    int caretPosition = wordEditor.getCaretPosition();
-                    String fieldText;
-                    
-                    if (selectedField.isList()) {
-                        fieldText = "{{#" + selectedField.getName() + "}}\n{{/" + selectedField.getName() + "}}";
-                    } else {
-                        fieldText = "{{" + selectedField.getName() + "}}";
-                    }
-                    
-                    wordEditor.insertText(caretPosition, fieldText);
-                } else {
-                    // 在Excel编辑器中处理
-                    ObservableList<TablePosition> selectedCells = excelEditor.getSelectionModel().getSelectedCells();
-                    if (!selectedCells.isEmpty()) {
-                        TablePosition pos = selectedCells.get(0);
-                        int row = pos.getRow();
-                        int col = pos.getColumn();
-                        
-                        if (row >= 0 && col >= 0 && row < excelEditor.getItems().size()) {
-                            ObservableList<String> rowData = excelEditor.getItems().get(row);
-                            if (col < rowData.size()) {
-                                String fieldText = "{{" + selectedField.getName() + "}}";
-                                rowData.set(col, fieldText);
-                            }
-                        }
-                    }
-                }
-                
-                // 更新预览
-                updatePreview();
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.timelordtty.docgen.service;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -21,6 +22,16 @@ import com.timelordtty.docgen.model.TemplateField;
  * Word模板服务
  */
 public class WordTemplateService {
+    
+    /**
+     * 读取Word文档内容
+     * @param file 文件对象
+     * @return 文档内容
+     * @throws Exception 异常
+     */
+    public String readTemplate(File file) throws Exception {
+        return readDocxContent(file.getPath());
+    }
     
     /**
      * 读取Word文档内容

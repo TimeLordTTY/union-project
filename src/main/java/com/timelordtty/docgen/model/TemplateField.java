@@ -49,6 +49,29 @@ public class TemplateField {
         this.isList = isList;
     }
     
+    /**
+     * 获取字段的占位符
+     * @return 占位符，如{{字段名}}
+     */
+    public String getPlaceholder() {
+        if (isList) {
+            return "{{#" + name + "}}";
+        } else {
+            return "{{" + name + "}}";
+        }
+    }
+    
+    /**
+     * 获取字段的列表结束占位符
+     * @return 列表结束占位符，如{{/字段名}}
+     */
+    public String getListEndPlaceholder() {
+        if (isList) {
+            return "{{/" + name + "}}";
+        }
+        return "";
+    }
+    
     @Override
     public String toString() {
         return (isList ? "▣ " : "◉ ") + name;

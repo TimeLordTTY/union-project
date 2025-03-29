@@ -5,19 +5,25 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.model.TemplateField;
 
 /**
- * Word模板生成器工具类
+ * Word模板生成器工具类 - 基于HTML模板重新设计
  */
 public class DocxTemplateGenerator {
+    
+    // 粉色主题色值
+    private static final String PINK_COLOR = "E91E63";
+    private static final String LIGHT_PINK = "FFD0E0";
     
     /**
      * 生成Word模板示例
@@ -34,19 +40,15 @@ public class DocxTemplateGenerator {
         try {
             // 创建模板字段
             List<TemplateField> fields = new ArrayList<>();
-            fields.add(new TemplateField("客户名称", false));
-            fields.add(new TemplateField("订单编号", false));
-            fields.add(new TemplateField("下单日期", false));
-            fields.add(new TemplateField("联系电话", false));
-            fields.add(new TemplateField("收货地址", false));
-            fields.add(new TemplateField("商品列表", true));
-            fields.add(new TemplateField("总金额", false));
-            fields.add(new TemplateField("备注", false));
+            fields.add(new TemplateField("客户", false));  // 对象字段
+            fields.add(new TemplateField("订单", false));  // 对象字段
+            fields.add(new TemplateField("联系人", false)); // 对象字段
+            fields.add(new TemplateField("商品列表", true)); // 列表字段
             
             // 创建Word文档
             generateOrderTemplate(outputPath, fields);
             
-            System.out.println("Word模板已生成：" + outputPath);
+            System.out.println("Word模板已成功生成：" + outputPath);
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Word模板生成失败：" + e.getMessage());
@@ -54,111 +56,249 @@ public class DocxTemplateGenerator {
     }
     
     /**
-     * 生成订单模板
+     * 生成订单模板 - 美化版
      * @param outputPath 输出路径
      * @param fields 字段列表
      * @throws Exception 异常
      */
     private static void generateOrderTemplate(String outputPath, List<TemplateField> fields) throws Exception {
         try (XWPFDocument document = new XWPFDocument()) {
-            // 1. 创建标题
+            
+            // ======================= 1. 创建文档标题 =======================
             XWPFParagraph titleParagraph = document.createParagraph();
-            titleParagraph.setAlignment(org.apache.poi.xwpf.usermodel.ParagraphAlignment.CENTER);
+            titleParagraph.setAlignment(ParagraphAlignment.CENTER);
+            titleParagraph.setSpacingAfter(200);
+            
             XWPFRun titleRun = titleParagraph.createRun();
-            titleRun.setText("订单信息");
+            titleRun.setText("✨ 专业订单信息 ✨");
             titleRun.setBold(true);
-            titleRun.setFontSize(16);
+            titleRun.setFontSize(20);
+            titleRun.setColor(PINK_COLOR);
+            titleRun.setFontFamily("微软雅黑");
             
-            // 2. 创建客户信息表格
-            XWPFTable customerTable = document.createTable(3, 4);
-            customerTable.setWidth("100%");
+            // ======================= 2. 创建订单基本信息部分 =======================
+            XWPFParagraph orderInfoTitle = document.createParagraph();
+            orderInfoTitle.setSpacingBefore(200);
             
-            // 表格第一行：标题行
-            XWPFTableRow headerRow = customerTable.getRow(0);
-            headerRow.getCell(0).setText("客户信息表");
-            headerRow.getCell(0).getCTTc().addNewTcPr().addNewGridSpan().setVal(BigInteger.valueOf(4));
+            XWPFRun orderInfoTitleRun = orderInfoTitle.createRun();
+            orderInfoTitleRun.setText("📋 订单基本信息");
+            orderInfoTitleRun.setBold(true);
+            orderInfoTitleRun.setFontSize(14);
+            orderInfoTitleRun.setColor(PINK_COLOR);
+            orderInfoTitleRun.setFontFamily("微软雅黑");
             
-            // 表格第二行：客户信息第一行
-            XWPFTableRow customerRow1 = customerTable.getRow(1);
-            customerRow1.getCell(0).setText("客户名称");
-            customerRow1.getCell(1).setText("{{客户名称}}");
-            customerRow1.getCell(2).setText("订单编号");
-            customerRow1.getCell(3).setText("{{订单编号}}");
+            // 创建客户信息表格 - 使用3x4表格布局
+            XWPFTable infoTable = document.createTable(3, 4);
+            infoTable.setWidth("100%");
             
-            // 表格第三行：客户信息第二行
-            XWPFTableRow customerRow2 = customerTable.getRow(2);
-            customerRow2.getCell(0).setText("下单日期");
-            customerRow2.getCell(1).setText("{{下单日期}}");
-            customerRow2.getCell(2).setText("联系电话");
-            customerRow2.getCell(3).setText("{{联系电话}}");
+            // 设置表格边框和样式
+            setTableBorders(infoTable, PINK_COLOR);
             
-            // 3. 创建收货地址段落
+            // 第一行：标题行
+            XWPFTableRow headerRow = infoTable.getRow(0);
+            headerRow.getCell(0).setText("客户信息");
+            mergeAndStyleCell(headerRow.getCell(0), 4, PINK_COLOR, true);
+            
+            // 第二行：客户信息第一行
+            XWPFTableRow row1 = infoTable.getRow(1);
+            styleCellWithLabel(row1.getCell(0), "客户名称", LIGHT_PINK);
+            styleCellWithValue(row1.getCell(1), "${客户.名称}");
+            styleCellWithLabel(row1.getCell(2), "订单编号", LIGHT_PINK);
+            styleCellWithValue(row1.getCell(3), "${订单.编号}");
+            
+            // 第三行：客户信息第二行
+            XWPFTableRow row2 = infoTable.getRow(2);
+            styleCellWithLabel(row2.getCell(0), "下单日期", LIGHT_PINK);
+            styleCellWithValue(row2.getCell(1), "${订单.日期}");
+            styleCellWithLabel(row2.getCell(2), "联系电话", LIGHT_PINK);
+            styleCellWithValue(row2.getCell(3), "${联系人.电话}");
+            
+            // 地址段落
             XWPFParagraph addressParagraph = document.createParagraph();
-            XWPFRun addressRun = addressParagraph.createRun();
-            addressRun.setText("收货地址：{{收货地址}}");
+            addressParagraph.setSpacingBefore(200);
+            addressParagraph.setSpacingAfter(200);
             
-            // 4. 创建商品列表
-            XWPFParagraph listHeaderParagraph = document.createParagraph();
-            XWPFRun listHeaderRun = listHeaderParagraph.createRun();
-            listHeaderRun.setText("商品列表：");
-            listHeaderRun.setBold(true);
+            XWPFRun addressLabelRun = addressParagraph.createRun();
+            addressLabelRun.setText("📍 收货地址：");
+            addressLabelRun.setBold(true);
+            addressLabelRun.setColor(PINK_COLOR);
+            addressLabelRun.setFontFamily("微软雅黑");
             
-            // 示例表格
-            XWPFTable productTable = document.createTable(1, 5);
+            XWPFRun addressValueRun = addressParagraph.createRun();
+            addressValueRun.setText("${联系人.地址}");
+            addressValueRun.setFontFamily("微软雅黑");
+            
+            // ======================= 3. 创建商品列表部分 =======================
+            XWPFParagraph productListTitle = document.createParagraph();
+            productListTitle.setSpacingBefore(200);
+            
+            XWPFRun productListTitleRun = productListTitle.createRun();
+            productListTitleRun.setText("🛒 商品列表");
+            productListTitleRun.setBold(true);
+            productListTitleRun.setFontSize(14);
+            productListTitleRun.setColor(PINK_COLOR);
+            productListTitleRun.setFontFamily("微软雅黑");
+            
+            // 创建商品表格
+            XWPFTable productTable = document.createTable(2, 5);
             productTable.setWidth("100%");
+            setTableBorders(productTable, PINK_COLOR);
             
             // 表头
             XWPFTableRow productHeaderRow = productTable.getRow(0);
-            productHeaderRow.getCell(0).setText("序号");
-            productHeaderRow.getCell(1).setText("商品名称");
-            productHeaderRow.getCell(2).setText("单价");
-            productHeaderRow.getCell(3).setText("数量");
-            productHeaderRow.getCell(4).setText("小计");
+            styleCellWithLabel(productHeaderRow.getCell(0), "序号", LIGHT_PINK);
+            styleCellWithLabel(productHeaderRow.getCell(1), "商品名称", LIGHT_PINK);
+            styleCellWithLabel(productHeaderRow.getCell(2), "单价", LIGHT_PINK);
+            styleCellWithLabel(productHeaderRow.getCell(3), "数量", LIGHT_PINK);
+            styleCellWithLabel(productHeaderRow.getCell(4), "小计", LIGHT_PINK);
             
-            // 商品列表循环
-            XWPFParagraph loopStartParagraph = document.createParagraph();
-            XWPFRun loopStartRun = loopStartParagraph.createRun();
-            loopStartRun.setText("{{#商品列表}}");
+            // 创建商品行示例 - 使用${商品列表.xxx}格式
+            XWPFTableRow productRow = productTable.getRow(1);
+            styleCellWithValue(productRow.getCell(0), "${商品列表.序号}");
+            styleCellWithValue(productRow.getCell(1), "${商品列表.名称}");
+            styleCellWithValue(productRow.getCell(2), "${商品列表.单价}");
+            styleCellWithValue(productRow.getCell(3), "${商品列表.数量}");
+            styleCellWithValue(productRow.getCell(4), "${商品列表.小计}");
             
-            // 添加示例行
-            XWPFTable itemTable = document.createTable(1, 5);
-            itemTable.setWidth("100%");
-            XWPFTableRow itemRow = itemTable.getRow(0);
-            itemRow.getCell(0).setText("{{序号}}");
-            itemRow.getCell(1).setText("{{商品名称}}");
-            itemRow.getCell(2).setText("{{单价}}");
-            itemRow.getCell(3).setText("{{数量}}");
-            itemRow.getCell(4).setText("{{小计}}");
-            
-            XWPFParagraph loopEndParagraph = document.createParagraph();
-            XWPFRun loopEndRun = loopEndParagraph.createRun();
-            loopEndRun.setText("{{/商品列表}}");
-            
-            // 5. 创建总金额
+            // ======================= 4. 创建合计部分 =======================
             XWPFParagraph totalParagraph = document.createParagraph();
-            totalParagraph.setAlignment(org.apache.poi.xwpf.usermodel.ParagraphAlignment.RIGHT);
-            XWPFRun totalRun = totalParagraph.createRun();
-            totalRun.setText("总金额：{{总金额}} 元");
-            totalRun.setBold(true);
+            totalParagraph.setAlignment(ParagraphAlignment.RIGHT);
+            totalParagraph.setSpacingBefore(200);
+            totalParagraph.setSpacingAfter(200);
             
-            // 6. 创建备注
+            XWPFRun totalLabelRun = totalParagraph.createRun();
+            totalLabelRun.setText("💰 总金额：");
+            totalLabelRun.setBold(true);
+            totalLabelRun.setColor(PINK_COLOR);
+            totalLabelRun.setFontSize(12);
+            totalLabelRun.setFontFamily("微软雅黑");
+            
+            XWPFRun totalValueRun = totalParagraph.createRun();
+            totalValueRun.setText("${订单.总金额}");
+            totalValueRun.setBold(true);
+            totalValueRun.setFontFamily("微软雅黑");
+            totalValueRun.setFontSize(12);
+            
+            XWPFRun totalUnitRun = totalParagraph.createRun();
+            totalUnitRun.setText(" 元");
+            totalUnitRun.setBold(true);
+            totalUnitRun.setFontFamily("微软雅黑");
+            totalUnitRun.setFontSize(12);
+            
+            // ======================= 5. 创建备注部分 =======================
             XWPFParagraph remarkParagraph = document.createParagraph();
-            XWPFRun remarkRun = remarkParagraph.createRun();
-            remarkRun.setText("备注：{{备注}}");
+            remarkParagraph.setSpacingBefore(200);
             
-            // 7. 创建落款
-            XWPFParagraph endingParagraph = document.createParagraph();
-            endingParagraph.setAlignment(org.apache.poi.xwpf.usermodel.ParagraphAlignment.RIGHT);
-            XWPFRun endingRun = endingParagraph.createRun();
-            endingRun.setText("签字：____________");
+            XWPFRun remarkLabelRun = remarkParagraph.createRun();
+            remarkLabelRun.setText("📝 备注：");
+            remarkLabelRun.setBold(true);
+            remarkLabelRun.setColor(PINK_COLOR);
+            remarkLabelRun.setFontFamily("微软雅黑");
+            
+            XWPFRun remarkValueRun = remarkParagraph.createRun();
+            remarkValueRun.setText("${订单.备注}");
+            remarkValueRun.setFontFamily("微软雅黑");
+            
+            // ======================= 6. 创建签名和日期行 =======================
+            XWPFParagraph signatureParagraph = document.createParagraph();
+            signatureParagraph.setAlignment(ParagraphAlignment.RIGHT);
+            signatureParagraph.setSpacingBefore(600);
+            
+            XWPFRun signatureRun = signatureParagraph.createRun();
+            signatureRun.setText("客户签名：________________        日期：________________");
+            signatureRun.setFontFamily("微软雅黑");
+            
+            // ======================= 7. 隐藏的爱心彩蛋 =======================
+            XWPFParagraph easterEggParagraph = document.createParagraph();
+            easterEggParagraph.setAlignment(ParagraphAlignment.CENTER);
+            easterEggParagraph.setSpacingBefore(1000);
             
             // 保存文档
             try (FileOutputStream out = new FileOutputStream(outputPath)) {
                 document.write(out);
             }
         } catch (Exception e) {
-            AppLogger.error("生成订单模板失败: " + e.getMessage(), e);
+            AppLogger.error("生成Word订单模板失败: " + e.getMessage(), e);
             throw e;
         }
+    }
+    
+    /**
+     * 设置表格的边框样式
+     * @param table 表格
+     * @param borderColor 边框颜色(RGB格式)
+     */
+    private static void setTableBorders(XWPFTable table, String borderColor) {
+        // 使用正确的边框设置方法
+        table.setBottomBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+        table.setTopBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+        table.setLeftBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+        table.setRightBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+        table.setInsideHBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+        table.setInsideVBorder(XWPFTable.XWPFBorderType.SINGLE, 4, 0, borderColor);
+    }
+    
+    /**
+     * 合并并设置单元格样式
+     * @param cell 单元格
+     * @param colSpan 跨列数
+     * @param bgColor 背景颜色
+     * @param isBold 是否加粗
+     */
+    private static void mergeAndStyleCell(XWPFTableCell cell, int colSpan, String bgColor, boolean isBold) {
+        // 设置单元格合并
+        cell.getCTTc().addNewTcPr().addNewGridSpan().setVal(BigInteger.valueOf(colSpan));
+        
+        // 设置单元格样式
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        
+        XWPFRun run = paragraph.createRun();
+        run.setColor(bgColor);
+        run.setBold(isBold);
+        run.setFontFamily("微软雅黑");
+    }
+    
+    /**
+     * 设置带标签的单元格样式(表头)
+     * @param cell 单元格
+     * @param text 文本内容
+     * @param bgColor 背景颜色
+     */
+    private static void styleCellWithLabel(XWPFTableCell cell, String text, String bgColor) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        
+        // 清除现有内容
+        cell.removeParagraph(0);
+        paragraph = cell.addParagraph();
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        
+        XWPFRun run = paragraph.createRun();
+        run.setText(text);
+        run.setBold(true);
+        run.setFontFamily("微软雅黑");
+        
+        // 设置单元格背景色
+        cell.setColor(bgColor);
+    }
+    
+    /**
+     * 设置带值的单元格样式(数据行)
+     * @param cell 单元格
+     * @param text 文本内容
+     */
+    private static void styleCellWithValue(XWPFTableCell cell, String text) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        
+        // 清除现有内容
+        cell.removeParagraph(0);
+        paragraph = cell.addParagraph();
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        
+        XWPFRun run = paragraph.createRun();
+        run.setText(text);
+        run.setFontFamily("微软雅黑");
     }
 } 
