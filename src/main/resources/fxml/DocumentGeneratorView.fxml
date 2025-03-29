@@ -1,123 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="700.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+<VBox spacing="15" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
+      prefHeight="550.0" prefWidth="800.0"
       stylesheets="@../css/styles.css">
-   
-   <top>
-      <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #F8F8F8; -fx-padding: 10 15; -fx-border-color: #EEE; -fx-border-width: 0 0 1 0;">
-         <Label text="文档类型：" style="-fx-text-fill: -pink-text;"/>
-         <ComboBox fx:id="documentTypeComboBox" prefHeight="25.0" prefWidth="150.0" 
-                  style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                  
-         <Label text="模板文件：" style="-fx-text-fill: -pink-text; -fx-padding: 0 0 0 15;"/>
-         <TextField fx:id="templateFilePathTextField" promptText="选择模板文件" HBox.hgrow="ALWAYS" 
-                   style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-         <Button fx:id="chooseTemplateFileButton" mnemonicParsing="false" onAction="#chooseTemplateFile" 
-                 text="浏览..." prefWidth="80.0" styleClass="action-button"/>
-      </HBox>
-   </top>
-   
-   <center>
-      <HBox spacing="10" style="-fx-padding: 10;" VBox.vgrow="ALWAYS">
-         <!-- 左侧：模板编辑区域 -->
-         <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0;">
-            <!-- 字段添加部分 -->
-            <VBox spacing="5" style="-fx-background-color: #F8F8F8; -fx-padding: 10; -fx-border-color: #EEE; -fx-border-radius: 5;">
-                <Label text="添加字段" style="-fx-font-weight: bold; -fx-text-fill: -pink-text;"/>
-                
-                <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Label text="普通占位符：" style="-fx-text-fill: -pink-text;"/>
-                    <TextField fx:id="normalPlaceholderTextField" promptText="输入占位符名称" HBox.hgrow="ALWAYS" 
-                              style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                    <Button fx:id="addNormalPlaceholderButton" mnemonicParsing="false" text="增加" 
-                           prefWidth="60.0" styleClass="action-button"/>
-                </HBox>
-                
-                <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Label text="列表占位符：" style="-fx-text-fill: -pink-text;"/>
-                    <TextField fx:id="listNameTextField" promptText="列表名称" prefWidth="150.0"
-                              style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                    <TextField fx:id="listPropertyTextField" promptText="属性名称" HBox.hgrow="ALWAYS"
-                              style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                    <Button fx:id="addListPlaceholderButton" mnemonicParsing="false" text="增加" 
-                           prefWidth="60.0" styleClass="action-button"/>
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="模板类型：" style="-fx-text-fill: -pink-text;"/>
+        <RadioButton fx:id="wordRadioButton" text="Word文档" selected="true" onAction="#handleTemplateTypeChange">
+            <toggleGroup>
+                <ToggleGroup fx:id="templateTypeGroup"/>
+            </toggleGroup>
+        </RadioButton>
+        <RadioButton fx:id="excelRadioButton" text="Excel表格" toggleGroup="$templateTypeGroup" onAction="#handleTemplateTypeChange"/>
+        <HBox HBox.hgrow="ALWAYS"/>
+        <Button text="上传模板" onAction="#handleUploadTemplate" styleClass="action-button"/>
+    </HBox>
+    
+    <VBox spacing="10">
+        <HBox spacing="10">
+            <VBox spacing="5" HBox.hgrow="ALWAYS" maxWidth="350">
+                <Label text="对象字段：" style="-fx-text-fill: -pink-text;"/>
+                <HBox spacing="5">
+                    <TextField fx:id="objectFieldInput" HBox.hgrow="ALWAYS" promptText="输入对象字段（如：客户名称）" onAction="#handleAddObjectField"/>
+                    <Button text="添加" onAction="#handleAddObjectField" styleClass="action-button"/>
                 </HBox>
             </VBox>
-            
-            <!-- 字段列表部分 -->
-            <HBox spacing="5" VBox.vgrow="NEVER" style="-fx-background-color: #F8F8F8; -fx-padding: 10; -fx-border-color: #EEE; -fx-border-radius: 5;">
-                <VBox spacing="5" HBox.hgrow="ALWAYS">
-                    <Label text="字段列表" style="-fx-font-weight: bold; -fx-text-fill: -pink-text;"/>
-                    <ScrollPane fitToWidth="true" prefHeight="100.0" style="-fx-background-color: transparent; -fx-border-color: -pink-light; -fx-border-radius: 3;">
-                        <VBox fx:id="fieldsListVBox" spacing="3" style="-fx-padding: 5;"/>
-                    </ScrollPane>
+        </HBox>
+        <HBox spacing="10">
+            <VBox spacing="5" HBox.hgrow="ALWAYS" maxWidth="350">
+                <Label text="列表字段：" style="-fx-text-fill: -pink-text;"/>
+                <HBox spacing="5">
+                    <TextField fx:id="listFieldInput" HBox.hgrow="ALWAYS" promptText="输入列表字段（如：订单列表）"/>
+                    <TextField fx:id="listItemFieldInput" HBox.hgrow="ALWAYS" promptText="输入列表项字段（如：商品名称）"/>
+                    <Button text="添加" onAction="#handleAddListField" styleClass="action-button"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </VBox>
+    
+    <SplitPane VBox.vgrow="ALWAYS" orientation="HORIZONTAL" dividerPositions="0.5">
+        <VBox spacing="5">
+            <SplitPane orientation="VERTICAL" dividerPositions="0.4" VBox.vgrow="ALWAYS">
+                <VBox spacing="5">
+                    <Label text="字段列表" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+                    <ListView fx:id="fieldListView" VBox.vgrow="ALWAYS" onMouseClicked="#handleFieldListClick"/>
                 </VBox>
-            </HBox>
-            
-            <!-- 模板内容编辑部分 -->
-            <VBox spacing="5" VBox.vgrow="ALWAYS" style="-fx-background-color: #F8F8F8; -fx-padding: 10; -fx-border-color: #EEE; -fx-border-radius: 5;">
-                <Label text="模板内容编辑" style="-fx-font-weight: bold; -fx-text-fill: -pink-text;"/>
-                <TextArea fx:id="templateContentTextArea" VBox.vgrow="ALWAYS"
-                         style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                <HBox alignment="CENTER" spacing="10">
-                    <Button fx:id="saveTemplateButton" mnemonicParsing="false" 
-                           prefHeight="30.0" prefWidth="120.0" text="保存模板" styleClass="action-button"/>
-                    <Button fx:id="generateTemplateButton" mnemonicParsing="false" 
-                           prefHeight="30.0" prefWidth="120.0" text="生成模板" styleClass="action-button-primary"/>
-                </HBox>
-            </VBox>
-         </VBox>
-         
-         <!-- 右侧：数据预览区域 -->
-         <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 0;">
-            <!-- 数据输入部分 -->
-            <VBox spacing="5" style="-fx-background-color: #FFFFFF; -fx-padding: 10; -fx-border-color: #EEE; -fx-border-radius: 5;">
-                <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Label text="数据文件：" style="-fx-font-weight: bold; -fx-text-fill: -pink-text;"/>
-                    <TextField fx:id="dataFilePathTextField" promptText="选择Excel数据文件" prefWidth="250.0" 
-                              style="-fx-border-color: -pink-light; -fx-border-radius: 3;"/>
-                    <Button fx:id="chooseDataFileButton" mnemonicParsing="false" onAction="#chooseDataFile" 
-                           text="浏览..." prefWidth="80.0" styleClass="action-button"/>
-                </HBox>
                 
-                <ScrollPane fitToWidth="true" prefHeight="150.0" style="-fx-background-color: transparent; -fx-border-color: -pink-light; -fx-border-radius: 3;">
-                    <VBox fx:id="dataInputVBox" spacing="5" style="-fx-padding: 5;"/>
-                </ScrollPane>
-            </VBox>
+                <VBox spacing="5">
+                    <HBox spacing="5" alignment="CENTER_LEFT">
+                        <Label text="填充数据" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+                        <HBox HBox.hgrow="ALWAYS"/>
+                        <Button text="导入Excel" onAction="#handleImportDataExcel" styleClass="action-button"/>
+                    </HBox>
+                    <TableView fx:id="dataTableView" VBox.vgrow="ALWAYS" editable="true">
+                        <!-- 动态添加列 -->
+                    </TableView>
+                </VBox>
+            </SplitPane>
             
-            <!-- 预览部分 -->
-            <VBox spacing="5" VBox.vgrow="ALWAYS" style="-fx-background-color: #FFFFFF; -fx-padding: 10; -fx-border-color: #EEE; -fx-border-radius: 5;">
-                <Label text="实时预览" style="-fx-font-weight: bold; -fx-text-fill: -pink-text;"/>
-                <ScrollPane fx:id="previewScrollPane" VBox.vgrow="ALWAYS"
-                            style="-fx-border-color: -pink-light; -fx-border-radius: 3;">
-                    <VBox fx:id="previewContentVBox" style="-fx-background-color: white; -fx-padding: 10;"/>
-                </ScrollPane>
-                <HBox alignment="CENTER_RIGHT">
-                    <Button fx:id="saveDocumentButton" mnemonicParsing="false" 
-                           prefHeight="30.0" prefWidth="120.0" text="保存文档" styleClass="action-button-primary"/>
-                </HBox>
-            </VBox>
-         </VBox>
-      </HBox>
-   </center>
-   
-   <bottom>
-      <HBox alignment="CENTER_LEFT" style="-fx-padding: 5px; -fx-background-color: #F8F8F8;">
-         <Label fx:id="statusLabel" text="就绪" style="-fx-text-fill: #666;"/>
-      </HBox>
-   </bottom>
-</BorderPane> 
+            <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Button text="保存模板" onAction="#handleSaveTemplate" styleClass="action-button"/>
+                <Button text="生成模板" onAction="#handleGenerateTemplate" styleClass="action-button"/>
+            </HBox>
+        </VBox>
+        
+        <VBox spacing="5">
+            <SplitPane orientation="VERTICAL" dividerPositions="0.5" VBox.vgrow="ALWAYS">
+                <VBox spacing="5">
+                    <Label text="模板编辑区" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+                    <StackPane VBox.vgrow="ALWAYS">
+                        <!-- Word模式编辑区 -->
+                        <TextArea fx:id="wordEditor" styleClass="template-editor" wrapText="true" visible="true"/>
+                        
+                        <!-- Excel模式编辑区 -->
+                        <TableView fx:id="excelEditor" visible="false" editable="true">
+                            <columns>
+                                <!-- 动态添加列 -->
+                            </columns>
+                        </TableView>
+                    </StackPane>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="实时预览" style="-fx-text-fill: -pink-text; -fx-font-weight: bold;"/>
+                    <TextArea fx:id="previewArea" VBox.vgrow="ALWAYS" editable="false" 
+                             styleClass="preview-area" wrapText="true"/>
+                </VBox>
+            </SplitPane>
+            
+            <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Button text="保存文档" onAction="#handleSaveDocument" styleClass="action-button"/>
+            </HBox>
+        </VBox>
+    </SplitPane>
+</VBox> 

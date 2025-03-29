@@ -646,8 +646,9 @@ public class MainController {
      */
     private void loadTool(String title, String fxmlPath) {
         try {
-            // 加载工具FXML
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            // 使用类加载器加载工具FXML（修复中文路径问题）
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(MainController.class.getClassLoader().getResource(fxmlPath.substring(1)));
             javafx.scene.Parent toolView = loader.load();
             
             // 检查是否只是切换工具
@@ -799,7 +800,7 @@ public class MainController {
             });
             
         } catch (IOException e) {
-            AppLogger.error("加载工具时发生IO异常: " + e.getMessage(), e);
+            AppLogger.error("加载工具时发生IO异常: " + fxmlPath + " - " + e.getMessage(), e);
             showError("无法加载工具", "加载工具时发生IO异常: " + e.getMessage());
         } catch (Exception e) {
             AppLogger.error("加载工具时发生未知异常: " + e.getMessage(), e);
