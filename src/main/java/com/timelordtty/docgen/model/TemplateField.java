@@ -6,6 +6,7 @@ import java.util.List;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 
 /**
  * 模板字段类
@@ -26,8 +27,14 @@ public class TemplateField {
         this.name = new SimpleStringProperty(name);
         this.isList = new SimpleBooleanProperty(isList);
         
-        // 生成占位符
-        this.placeholder = new SimpleStringProperty("${" + name + "}");
+        // 生成占位符 - 根据字段类型使用不同格式
+        if (isList) {
+            // 列表字段使用 {{#name}} 格式
+            this.placeholder = new SimpleStringProperty("{{#" + name + "}}");
+        } else {
+            // 对象字段使用 ${name} 格式
+            this.placeholder = new SimpleStringProperty("${" + name + "}");
+        }
     }
 
     /**
@@ -54,7 +61,7 @@ public class TemplateField {
         this.name.set(name);
         
         // 更新占位符
-        this.placeholder.set("${" + name + "}");
+        updatePlaceholder();
     }
 
     /**
@@ -103,6 +110,21 @@ public class TemplateField {
      */
     public void setIsList(boolean isList) {
         this.isList.set(isList);
+        // 更新占位符格式
+        updatePlaceholder();
+    }
+    
+    /**
+     * 更新占位符
+     */
+    private void updatePlaceholder() {
+        if (isList.get()) {
+            // 列表字段使用 {{#name}} 格式
+            this.placeholder.set("{{#" + getName() + "}}");
+        } else {
+            // 对象字段使用 ${name} 格式
+            this.placeholder.set("${" + getName() + "}");
+        }
     }
     
     /**
@@ -126,6 +148,11 @@ public class TemplateField {
      * @param itemName 列表项名称
      */
     public void addListItem(String itemName) {
+        if (listItems == null) {
+            listItems = FXCollections.observableArrayList();
+        }
+        
+        // 避免重复添加
         if (!listItems.contains(itemName)) {
             listItems.add(itemName);
         }
@@ -134,9 +161,13 @@ public class TemplateField {
     /**
      * 移除列表项
      * @param itemName 列表项名称
+     * @return 是否成功移除
      */
-    public void removeListItem(String itemName) {
-        listItems.remove(itemName);
+    public boolean removeListItem(String itemName) {
+        if (listItems != null) {
+            return listItems.remove(itemName);
+        }
+        return false;
     }
     
     /**
@@ -145,7 +176,15 @@ public class TemplateField {
      * @return 占位符
      */
     public String getListItemPlaceholder(String itemName) {
-        return "${" + getName() + "." + itemName + "}";
+        return "{{" + itemName + "}}";
+    }
+    
+    /**
+     * 获取列表的结束占位符
+     * @return 列表结束占位符
+     */
+    public String getListEndPlaceholder() {
+        return "{{/" + getName() + "}}";
     }
     
     @Override

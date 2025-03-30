@@ -154,13 +154,25 @@ public class DocxTemplateGenerator {
             styleCellWithLabel(productHeaderRow.getCell(3), "数量", LIGHT_PINK);
             styleCellWithLabel(productHeaderRow.getCell(4), "小计", LIGHT_PINK);
             
-            // 创建商品行示例 - 使用${商品列表.xxx}格式
+            // 创建商品行示例 - 使用{{#商品列表}}..{{/商品列表}}格式
+            XWPFParagraph listStartPara = document.createParagraph();
+            XWPFRun listStartRun = listStartPara.createRun();
+            listStartRun.setText("{{#商品列表}}");
+            listStartRun.setColor("FFFFFF"); // 设置成白色隐藏
+            listStartRun.setFontSize(1);     // 设置成很小隐藏
+            
             XWPFTableRow productRow = productTable.getRow(1);
-            styleCellWithValue(productRow.getCell(0), "${商品列表.序号}");
-            styleCellWithValue(productRow.getCell(1), "${商品列表.名称}");
-            styleCellWithValue(productRow.getCell(2), "${商品列表.单价}");
-            styleCellWithValue(productRow.getCell(3), "${商品列表.数量}");
-            styleCellWithValue(productRow.getCell(4), "${商品列表.小计}");
+            styleCellWithValue(productRow.getCell(0), "{{序号}}");
+            styleCellWithValue(productRow.getCell(1), "{{名称}}");
+            styleCellWithValue(productRow.getCell(2), "{{单价}}");
+            styleCellWithValue(productRow.getCell(3), "{{数量}}");
+            styleCellWithValue(productRow.getCell(4), "{{小计}}");
+            
+            XWPFParagraph listEndPara = document.createParagraph();
+            XWPFRun listEndRun = listEndPara.createRun();
+            listEndRun.setText("{{/商品列表}}");
+            listEndRun.setColor("FFFFFF"); // 设置成白色隐藏
+            listEndRun.setFontSize(1);     // 设置成很小隐藏
             
             // ======================= 4. 创建合计部分 =======================
             XWPFParagraph totalParagraph = document.createParagraph();
@@ -356,11 +368,25 @@ public class DocxTemplateGenerator {
             setCellValue(productTable, 0, 2, "单价");
             setCellValue(productTable, 0, 3, "总价");
             
+            // 添加列表标记
+            XWPFParagraph listStartPara = document.createParagraph();
+            XWPFRun listStartRun = listStartPara.createRun();
+            listStartRun.setText("{{#products}}");
+            listStartRun.setColor("FFFFFF"); // 设置成白色隐藏
+            listStartRun.setFontSize(1);     // 设置成很小隐藏
+            
             // 添加列表数据占位符
-            setCellValue(productTable, 1, 0, "${products.name}");
-            setCellValue(productTable, 1, 1, "${products.quantity}");
-            setCellValue(productTable, 1, 2, "${products.price}");
-            setCellValue(productTable, 1, 3, "${products.total}");
+            setCellValue(productTable, 1, 0, "{{name}}");
+            setCellValue(productTable, 1, 1, "{{quantity}}");
+            setCellValue(productTable, 1, 2, "{{price}}");
+            setCellValue(productTable, 1, 3, "{{total}}");
+            
+            // 添加列表结束标记
+            XWPFParagraph listEndPara = document.createParagraph();
+            XWPFRun listEndRun = listEndPara.createRun();
+            listEndRun.setText("{{/products}}");
+            listEndRun.setColor("FFFFFF"); // 设置成白色隐藏
+            listEndRun.setFontSize(1);     // 设置成很小隐藏
             
             // 添加结束文字
             XWPFParagraph endParagraph = document.createParagraph();

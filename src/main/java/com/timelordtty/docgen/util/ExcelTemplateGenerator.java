@@ -17,19 +17,19 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.DefaultIndexedColorMap;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.model.TemplateField;
 
 /**
- * Excel模板生成器工具类 - 基于HTML模板重新设计美化版
+ * Excel模板生成器工具类
  */
 public class ExcelTemplateGenerator {
     
-    // 主题色定义
     private static final Color PRIMARY_COLOR = new Color(233, 30, 99); // #E91E63 粉色
     private static final Color SECONDARY_COLOR = new Color(255, 208, 224); // #FFD0E0 浅粉色
     private static final Color BORDER_COLOR = new Color(255, 182, 193); // #FFB6C1 淡粉色
@@ -47,23 +47,24 @@ public class ExcelTemplateGenerator {
         }
         
         try {
-            // 创建模板字段 - 使用对象和列表字段的形式
+            // 创建模板字段
             List<TemplateField> objectFields = new ArrayList<>();
             objectFields.add(new TemplateField("客户.名称", false));
             objectFields.add(new TemplateField("客户.电话", false));
-            objectFields.add(new TemplateField("客户.邮箱", false));
             objectFields.add(new TemplateField("订单.编号", false));
             objectFields.add(new TemplateField("订单.日期", false));
+            objectFields.add(new TemplateField("联系人.地址", false));
             objectFields.add(new TemplateField("订单.总金额", false));
-            objectFields.add(new TemplateField("备注", false));
+            objectFields.add(new TemplateField("订单.备注", false));
             
             List<TemplateField> listFields = new ArrayList<>();
-            listFields.add(new TemplateField("商品列表.序号", true));
-            listFields.add(new TemplateField("商品列表.名称", true));
-            listFields.add(new TemplateField("商品列表.型号", true));
-            listFields.add(new TemplateField("商品列表.单价", true));
-            listFields.add(new TemplateField("商品列表.数量", true));
-            listFields.add(new TemplateField("商品列表.小计", true));
+            TemplateField productListField = new TemplateField("商品列表", true);
+            productListField.addListItem("序号");
+            productListField.addListItem("名称");
+            productListField.addListItem("单价");
+            productListField.addListItem("数量");
+            productListField.addListItem("小计");
+            listFields.add(productListField);
             
             // 创建Excel文档
             generateBeautifulOrderTemplate(outputPath, objectFields, listFields);
@@ -76,7 +77,7 @@ public class ExcelTemplateGenerator {
     }
     
     /**
-     * 生成美化版订单模板
+     * 生成美观的订单模板
      * @param outputPath 输出路径
      * @param objectFields 对象字段列表
      * @param listFields 列表字段列表
@@ -85,410 +86,410 @@ public class ExcelTemplateGenerator {
     private static void generateBeautifulOrderTemplate(String outputPath, 
                                                     List<TemplateField> objectFields, 
                                                     List<TemplateField> listFields) throws Exception {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("订单模板");
-            
-            // 创建样式集合
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            // 创建样式
             CellStyle[] styles = createStyles(workbook);
             
+            // 创建工作表
+            Sheet sheet = workbook.createSheet("订单模板");
+            
             // 设置列宽
-            sheet.setColumnWidth(0, 15 * 256); // A列
-            sheet.setColumnWidth(1, 20 * 256); // B列
-            sheet.setColumnWidth(2, 15 * 256); // C列
-            sheet.setColumnWidth(3, 20 * 256); // D列
-            sheet.setColumnWidth(4, 15 * 256); // E列
-            sheet.setColumnWidth(5, 15 * 256); // F列
+            sheet.setColumnWidth(0, 20 * 256);
+            sheet.setColumnWidth(1, 20 * 256);
+            sheet.setColumnWidth(2, 20 * 256);
+            sheet.setColumnWidth(3, 20 * 256);
+            sheet.setColumnWidth(4, 20 * 256);
+            sheet.setColumnWidth(5, 20 * 256);
             
-            int rowIndex = 0;
+            int rowNum = 0;
             
-            // ===================== 1. 创建标题行 =====================
-            Row titleRow = sheet.createRow(rowIndex++);
-            titleRow.setHeightInPoints(30); // 设置行高
-            
+            // 1. 创建标题行
+            Row titleRow = sheet.createRow(rowNum++);
+            titleRow.setHeightInPoints(30);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("✨ 专业订单模板 ✨");
+            titleCell.setCellValue("✨ 专业订单信息 ✨");
             titleCell.setCellStyle(styles[0]); // 标题样式
-            
-            // 合并标题单元格从A1到F1
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
             
             // 空行
-            rowIndex++;
+            sheet.createRow(rowNum++);
             
-            // ===================== 2. 创建客户信息部分 =====================
-            Row customerHeaderRow = sheet.createRow(rowIndex++);
-            customerHeaderRow.setHeightInPoints(22);
+            // 2. 客户信息部分
+            Row customerTitle = sheet.createRow(rowNum++);
+            Cell customerTitleCell = customerTitle.createCell(0);
+            customerTitleCell.setCellValue("📋 客户信息");
+            customerTitleCell.setCellStyle(styles[1]); // 小标题样式
+            sheet.addMergedRegion(new CellRangeAddress(rowNum-1, rowNum-1, 0, 5));
             
-            Cell customerHeaderCell = customerHeaderRow.createCell(0);
-            customerHeaderCell.setCellValue("📋 客户信息");
-            customerHeaderCell.setCellStyle(styles[1]); // 分组标题样式
+            // 客户信息表格
+            Row customerRow1 = sheet.createRow(rowNum++);
             
-            // 合并分组标题单元格
-            sheet.addMergedRegion(new CellRangeAddress(rowIndex-1, rowIndex-1, 0, 5));
+            Cell customerLabel1 = customerRow1.createCell(0);
+            customerLabel1.setCellValue("客户名称");
+            customerLabel1.setCellStyle(styles[2]); // 表头样式
             
-            // 客户基本信息表头行
-            Row customerLabelRow = sheet.createRow(rowIndex++);
-            customerLabelRow.setHeightInPoints(20);
+            Cell customerValue1 = customerRow1.createCell(1);
+            customerValue1.setCellValue("${客户.名称}");
+            customerValue1.setCellStyle(styles[3]); // 单元格样式
             
-            String[] customerLabels = {"客户名称", "联系电话", "客户邮箱", "订单编号", "下单日期", "订单金额"};
-            for (int i = 0; i < customerLabels.length; i++) {
-                Cell cell = customerLabelRow.createCell(i);
-                cell.setCellValue(customerLabels[i]);
-                cell.setCellStyle(styles[2]); // 表头样式
-            }
+            Cell customerLabel2 = customerRow1.createCell(2);
+            customerLabel2.setCellValue("联系电话");
+            customerLabel2.setCellStyle(styles[2]); // 表头样式
             
-            // 客户信息数据行
-            Row customerDataRow = sheet.createRow(rowIndex++);
-            customerDataRow.setHeightInPoints(20);
+            Cell customerValue2 = customerRow1.createCell(3);
+            customerValue2.setCellValue("${客户.电话}");
+            customerValue2.setCellStyle(styles[3]); // 单元格样式
             
-            Cell nameCell = customerDataRow.createCell(0);
-            nameCell.setCellValue("${客户.名称}");
-            nameCell.setCellStyle(styles[3]); // 数据样式
+            Cell customerLabel3 = customerRow1.createCell(4);
+            customerLabel3.setCellValue("订单编号");
+            customerLabel3.setCellStyle(styles[2]); // 表头样式
             
-            Cell phoneCell = customerDataRow.createCell(1);
-            phoneCell.setCellValue("${客户.电话}");
-            phoneCell.setCellStyle(styles[3]);
+            Cell customerValue3 = customerRow1.createCell(5);
+            customerValue3.setCellValue("${订单.编号}");
+            customerValue3.setCellStyle(styles[3]); // 单元格样式
             
-            Cell emailCell = customerDataRow.createCell(2);
-            emailCell.setCellValue("${客户.邮箱}");
-            emailCell.setCellStyle(styles[3]);
+            Row customerRow2 = sheet.createRow(rowNum++);
             
-            Cell orderIdCell = customerDataRow.createCell(3);
-            orderIdCell.setCellValue("${订单.编号}");
-            orderIdCell.setCellStyle(styles[3]);
+            Cell dateLabel = customerRow2.createCell(0);
+            dateLabel.setCellValue("下单日期");
+            dateLabel.setCellStyle(styles[2]); // 表头样式
             
-            Cell dateCell = customerDataRow.createCell(4);
-            dateCell.setCellValue("${订单.日期}");
-            dateCell.setCellStyle(styles[3]);
+            Cell dateValue = customerRow2.createCell(1);
+            dateValue.setCellValue("${订单.日期}");
+            dateValue.setCellStyle(styles[3]); // 单元格样式
             
-            Cell amountCell = customerDataRow.createCell(5);
-            amountCell.setCellValue("${订单.总金额}");
-            amountCell.setCellStyle(styles[3]);
+            Cell addressLabel = customerRow2.createCell(2);
+            addressLabel.setCellValue("收货地址");
+            addressLabel.setCellStyle(styles[2]); // 表头样式
+            
+            Cell addressValue = customerRow2.createCell(3);
+            addressValue.setCellValue("${联系人.地址}");
+            addressValue.setCellStyle(styles[3]); // 单元格样式
+            sheet.addMergedRegion(new CellRangeAddress(rowNum-1, rowNum-1, 3, 5));
             
             // 空行
-            rowIndex++;
+            sheet.createRow(rowNum++);
             
-            // ===================== 3. 创建商品信息部分 =====================
-            Row productHeaderRow = sheet.createRow(rowIndex++);
-            productHeaderRow.setHeightInPoints(22);
+            // 3. 商品信息部分
+            Row productTitle = sheet.createRow(rowNum++);
+            Cell productTitleCell = productTitle.createCell(0);
+            productTitleCell.setCellValue("🛒 商品列表");
+            productTitleCell.setCellStyle(styles[1]); // 小标题样式
+            sheet.addMergedRegion(new CellRangeAddress(rowNum-1, rowNum-1, 0, 5));
             
-            Cell productHeaderCell = productHeaderRow.createCell(0);
-            productHeaderCell.setCellValue("🛒 商品列表");
-            productHeaderCell.setCellStyle(styles[1]); // 分组标题样式
+            // 插入列表开始标记（隐藏）
+            Row listStartRow = sheet.createRow(rowNum++);
+            Cell listStartCell = listStartRow.createCell(0);
+            listStartCell.setCellValue("{{#商品列表}}");
+            CellStyle hiddenStyle = workbook.createCellStyle();
+            hiddenStyle.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+            hiddenStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font hiddenFont = workbook.createFont();
+            hiddenFont.setColor(IndexedColors.WHITE.getIndex());
+            hiddenFont.setFontHeightInPoints((short)1);
+            hiddenStyle.setFont(hiddenFont);
+            listStartCell.setCellStyle(hiddenStyle);
             
-            // 合并分组标题单元格
-            sheet.addMergedRegion(new CellRangeAddress(rowIndex-1, rowIndex-1, 0, 5));
+            // 商品表格头
+            Row productHeader = sheet.createRow(rowNum++);
             
-            // 商品列表表头行
-            Row productLabelRow = sheet.createRow(rowIndex++);
-            productLabelRow.setHeightInPoints(20);
-            
-            String[] productLabels = {"序号", "商品名称", "型号", "单价", "数量", "小计"};
-            for (int i = 0; i < productLabels.length; i++) {
-                Cell cell = productLabelRow.createCell(i);
-                cell.setCellValue(productLabels[i]);
-                cell.setCellStyle(styles[2]); // 表头样式
+            String[] headers = new String[]{"序号", "商品名称", "单价", "数量", "小计", "备注"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell headerCell = productHeader.createCell(i);
+                headerCell.setCellValue(headers[i]);
+                headerCell.setCellStyle(styles[2]); // 表头样式
             }
             
-            // 商品列表数据行1
-            Row productDataRow1 = sheet.createRow(rowIndex++);
-            productDataRow1.setHeightInPoints(20);
+            // 商品表格数据行
+            Row productRow = sheet.createRow(rowNum++);
             
-            Cell seqCell = productDataRow1.createCell(0);
-            seqCell.setCellValue("${商品列表.序号}");
-            seqCell.setCellStyle(styles[3]);
+            Cell productCell1 = productRow.createCell(0);
+            productCell1.setCellValue("{{序号}}");
+            productCell1.setCellStyle(styles[3]); // 单元格样式
             
-            Cell productNameCell = productDataRow1.createCell(1);
-            productNameCell.setCellValue("${商品列表.名称}");
-            productNameCell.setCellStyle(styles[3]);
+            Cell productCell2 = productRow.createCell(1);
+            productCell2.setCellValue("{{名称}}");
+            productCell2.setCellStyle(styles[3]); // 单元格样式
             
-            Cell modelCell = productDataRow1.createCell(2);
-            modelCell.setCellValue("${商品列表.型号}");
-            modelCell.setCellStyle(styles[3]);
+            Cell productCell3 = productRow.createCell(2);
+            productCell3.setCellValue("{{单价}}");
+            productCell3.setCellStyle(styles[3]); // 单元格样式
             
-            Cell priceCell = productDataRow1.createCell(3);
-            priceCell.setCellValue("${商品列表.单价}");
-            priceCell.setCellStyle(styles[3]);
+            Cell productCell4 = productRow.createCell(3);
+            productCell4.setCellValue("{{数量}}");
+            productCell4.setCellStyle(styles[3]); // 单元格样式
             
-            Cell qtyCell = productDataRow1.createCell(4);
-            qtyCell.setCellValue("${商品列表.数量}");
-            qtyCell.setCellStyle(styles[3]);
+            Cell productCell5 = productRow.createCell(4);
+            productCell5.setCellValue("{{小计}}");
+            productCell5.setCellStyle(styles[3]); // 单元格样式
             
-            Cell subtotalCell = productDataRow1.createCell(5);
-            subtotalCell.setCellValue("${商品列表.小计}");
-            subtotalCell.setCellStyle(styles[3]);
+            Cell productCell6 = productRow.createCell(5);
+            productCell6.setCellValue("");
+            productCell6.setCellStyle(styles[3]); // 单元格样式
             
-            // 添加几个示例行，以便用户明白如何填写
-            for (int i = 0; i < 5; i++) {
-                Row row = sheet.createRow(rowIndex++);
-                row.setHeightInPoints(20);
-                for (int j = 0; j < 6; j++) {
-                    Cell cell = row.createCell(j);
-                    cell.setCellStyle(styles[3]);
-                }
-            }
+            // 插入列表结束标记（隐藏）
+            Row listEndRow = sheet.createRow(rowNum++);
+            Cell listEndCell = listEndRow.createCell(0);
+            listEndCell.setCellValue("{{/商品列表}}");
+            listEndCell.setCellStyle(hiddenStyle);
             
-            // ===================== 4. 创建备注部分 =====================
-            Row remarkHeaderRow = sheet.createRow(rowIndex++);
-            remarkHeaderRow.setHeightInPoints(22);
+            // 空行
+            sheet.createRow(rowNum++);
             
-            Cell remarkHeaderCell = remarkHeaderRow.createCell(0);
-            remarkHeaderCell.setCellValue("📝 备注");
-            remarkHeaderCell.setCellStyle(styles[1]);
+            // 4. 合计信息
+            Row totalRow = sheet.createRow(rowNum++);
             
-            // 合并备注标题单元格
-            sheet.addMergedRegion(new CellRangeAddress(rowIndex-1, rowIndex-1, 0, 5));
+            Cell totalLabel = totalRow.createCell(3);
+            totalLabel.setCellValue("总金额：");
+            totalLabel.setCellStyle(styles[4]); // 强调样式
             
-            // 备注内容行
-            Row remarkContentRow = sheet.createRow(rowIndex++);
-            remarkContentRow.setHeightInPoints(40); // 设置较高的行高
+            Cell totalValue = totalRow.createCell(4);
+            totalValue.setCellValue("${订单.总金额}");
+            totalValue.setCellStyle(styles[4]); // 强调样式
             
-            Cell remarkCell = remarkContentRow.createCell(0);
-            remarkCell.setCellValue("${备注}");
-            remarkCell.setCellStyle(styles[3]);
+            Cell totalUnit = totalRow.createCell(5);
+            totalUnit.setCellValue("元");
+            totalUnit.setCellStyle(styles[4]); // 强调样式
             
-            // 合并备注内容单元格
-            sheet.addMergedRegion(new CellRangeAddress(rowIndex-1, rowIndex-1, 0, 5));
+            // 5. 备注信息
+            Row remarkRow = sheet.createRow(rowNum++);
             
-            // ===================== 5. 创建隐藏的爱心彩蛋 =====================
-            Row easterEggRow = sheet.createRow(rowIndex + 2);
+            Cell remarkLabel = remarkRow.createCell(0);
+            remarkLabel.setCellValue("📝 备注：");
+            remarkLabel.setCellStyle(styles[1]); // 小标题样式
             
-            // 冻结前两行，方便查看
-            sheet.createFreezePane(0, 5);
+            Cell remarkValue = remarkRow.createCell(1);
+            remarkValue.setCellValue("${订单.备注}");
+            remarkValue.setCellStyle(styles[3]); // 单元格样式
+            sheet.addMergedRegion(new CellRangeAddress(rowNum-1, rowNum-1, 1, 5));
+            
+            // 空行
+            sheet.createRow(rowNum++);
+            sheet.createRow(rowNum++);
+            
+            // 6. 签名行
+            Row signatureRow = sheet.createRow(rowNum++);
+            
+            Cell signatureLabel = signatureRow.createCell(3);
+            signatureLabel.setCellValue("客户签名：");
+            signatureLabel.setCellStyle(styles[3]); // 单元格样式
+            
+            Cell signatureLine = signatureRow.createCell(4);
+            signatureLine.setCellValue("__________________");
+            signatureLine.setCellStyle(styles[3]); // 单元格样式
+            sheet.addMergedRegion(new CellRangeAddress(rowNum-1, rowNum-1, 4, 5));
             
             // 保存文件
             try (FileOutputStream out = new FileOutputStream(outputPath)) {
                 workbook.write(out);
             }
+            
         } catch (Exception e) {
             AppLogger.error("生成Excel订单模板失败: " + e.getMessage(), e);
             throw e;
         }
     }
-    
+
     /**
-     * 创建Excel样式集合
+     * 创建样式数组
      * @param workbook 工作簿
-     * @return 样式数组 [0]:标题样式 [1]:分组标题样式 [2]:表头样式 [3]:数据单元格样式 [4]:彩蛋样式
+     * @return 样式数组
      */
     private static CellStyle[] createStyles(Workbook workbook) {
         CellStyle[] styles = new CellStyle[5];
         
-        // 创建颜色
-        XSSFColor primaryColor = new XSSFColor(PRIMARY_COLOR, new DefaultIndexedColorMap());
-        XSSFColor secondaryColor = new XSSFColor(SECONDARY_COLOR, new DefaultIndexedColorMap());
-        XSSFColor borderColor = new XSSFColor(BORDER_COLOR, new DefaultIndexedColorMap());
-        
-        // ========== 1. 标题样式 ==========
-        CellStyle titleStyle = workbook.createCellStyle();
-        Font titleFont = workbook.createFont();
+        // 标题样式
+        XSSFCellStyle titleStyle = (XSSFCellStyle) workbook.createCellStyle();
+        XSSFFont titleFont = (XSSFFont) workbook.createFont();
+        titleFont.setFontHeightInPoints((short)16);
         titleFont.setBold(true);
-        titleFont.setFontHeightInPoints((short) 16);
-        titleFont.setColor(IndexedColors.PINK.getIndex());
+        titleFont.setColor(new XSSFColor(PRIMARY_COLOR, null));
         titleStyle.setFont(titleFont);
         titleStyle.setAlignment(HorizontalAlignment.CENTER);
         titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-        // 设置边框
-        titleStyle.setBorderBottom(BorderStyle.MEDIUM);
-        titleStyle.setBorderTop(BorderStyle.MEDIUM);
-        titleStyle.setBorderLeft(BorderStyle.MEDIUM);
-        titleStyle.setBorderRight(BorderStyle.MEDIUM);
-        titleStyle.setBottomBorderColor(IndexedColors.PINK.getIndex());
-        titleStyle.setTopBorderColor(IndexedColors.PINK.getIndex());
-        titleStyle.setLeftBorderColor(IndexedColors.PINK.getIndex());
-        titleStyle.setRightBorderColor(IndexedColors.PINK.getIndex());
-        // 设置背景色
-        titleStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
-        titleStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         styles[0] = titleStyle;
         
-        // ========== 2. 分组标题样式 ==========
-        CellStyle groupStyle = workbook.createCellStyle();
-        Font groupFont = workbook.createFont();
-        groupFont.setBold(true);
-        groupFont.setFontHeightInPoints((short) 12);
-        groupFont.setColor(IndexedColors.PINK.getIndex());
-        groupStyle.setFont(groupFont);
-        groupStyle.setAlignment(HorizontalAlignment.LEFT);
-        groupStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-        // 设置背景色（浅色）
-        groupStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
-        groupStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        styles[1] = groupStyle;
+        // 小标题样式
+        XSSFCellStyle subTitleStyle = (XSSFCellStyle) workbook.createCellStyle();
+        XSSFFont subTitleFont = (XSSFFont) workbook.createFont();
+        subTitleFont.setFontHeightInPoints((short)12);
+        subTitleFont.setBold(true);
+        subTitleFont.setColor(new XSSFColor(PRIMARY_COLOR, null));
+        subTitleStyle.setFont(subTitleFont);
+        subTitleStyle.setAlignment(HorizontalAlignment.LEFT);
+        subTitleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        styles[1] = subTitleStyle;
         
-        // ========== 3. 表头样式 ==========
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
-        headerFont.setBold(true);
-        headerFont.setFontHeightInPoints((short) 11);
-        headerStyle.setFont(headerFont);
+        // 表头样式
+        XSSFCellStyle headerStyle = (XSSFCellStyle) workbook.createCellStyle();
+        headerStyle.setFillForegroundColor(new XSSFColor(SECONDARY_COLOR, null));
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         headerStyle.setAlignment(HorizontalAlignment.CENTER);
         headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-        // 设置边框
-        headerStyle.setBorderBottom(BorderStyle.THIN);
         headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
         headerStyle.setBorderLeft(BorderStyle.THIN);
         headerStyle.setBorderRight(BorderStyle.THIN);
-        // 设置浅粉色背景
-        headerStyle.setFillForegroundColor(IndexedColors.ROSE.getIndex());
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        headerStyle.setTopBorderColor(new XSSFColor(BORDER_COLOR, null));
+        headerStyle.setBottomBorderColor(new XSSFColor(BORDER_COLOR, null));
+        headerStyle.setLeftBorderColor(new XSSFColor(BORDER_COLOR, null));
+        headerStyle.setRightBorderColor(new XSSFColor(BORDER_COLOR, null));
+        XSSFFont headerFont = (XSSFFont) workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
         styles[2] = headerStyle;
         
-        // ========== 4. 数据单元格样式 ==========
-        CellStyle dataStyle = workbook.createCellStyle();
-        dataStyle.setAlignment(HorizontalAlignment.CENTER);
-        dataStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-        // 设置边框
-        dataStyle.setBorderBottom(BorderStyle.THIN);
-        dataStyle.setBorderTop(BorderStyle.THIN);
-        dataStyle.setBorderLeft(BorderStyle.THIN);
-        dataStyle.setBorderRight(BorderStyle.THIN);
-        // 设置自动换行
-        dataStyle.setWrapText(true);
-        styles[3] = dataStyle;
+        // 单元格样式
+        XSSFCellStyle cellStyle = (XSSFCellStyle) workbook.createCellStyle();
+        cellStyle.setAlignment(HorizontalAlignment.CENTER);
+        cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        cellStyle.setBorderTop(BorderStyle.THIN);
+        cellStyle.setBorderBottom(BorderStyle.THIN);
+        cellStyle.setBorderLeft(BorderStyle.THIN);
+        cellStyle.setBorderRight(BorderStyle.THIN);
+        cellStyle.setTopBorderColor(new XSSFColor(BORDER_COLOR, null));
+        cellStyle.setBottomBorderColor(new XSSFColor(BORDER_COLOR, null));
+        cellStyle.setLeftBorderColor(new XSSFColor(BORDER_COLOR, null));
+        cellStyle.setRightBorderColor(new XSSFColor(BORDER_COLOR, null));
+        styles[3] = cellStyle;
         
-        // ========== 5. 彩蛋样式 ==========
-        CellStyle easterEggStyle = workbook.createCellStyle();
-        Font easterEggFont = workbook.createFont();
-        easterEggFont.setColor(IndexedColors.PINK.getIndex());
-        easterEggFont.setFontHeightInPoints((short) 8);
-        easterEggStyle.setFont(easterEggFont);
-        easterEggStyle.setAlignment(HorizontalAlignment.CENTER);
-        styles[4] = easterEggStyle;
+        // 强调样式
+        XSSFCellStyle emphasisStyle = (XSSFCellStyle) workbook.createCellStyle();
+        emphasisStyle.setAlignment(HorizontalAlignment.RIGHT);
+        emphasisStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont emphasisFont = (XSSFFont) workbook.createFont();
+        emphasisFont.setBold(true);
+        emphasisFont.setColor(new XSSFColor(PRIMARY_COLOR, null));
+        emphasisStyle.setFont(emphasisFont);
+        styles[4] = emphasisStyle;
         
         return styles;
     }
-
+    
     /**
      * 创建Excel模板
      * @param outputPath 输出路径
      */
     public static void createExcelTemplate(String outputPath) {
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("订单模板");
+            // 创建工作表
+            Sheet sheet = workbook.createSheet("模板");
             
-            // 设置列宽
-            sheet.setColumnWidth(0, 20 * 256);
-            sheet.setColumnWidth(1, 20 * 256);
-            sheet.setColumnWidth(2, 15 * 256);
-            sheet.setColumnWidth(3, 15 * 256);
+            // 创建标题样式
+            CellStyle titleStyle = createTitleStyle(workbook);
+            
+            // 创建表头样式
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            
+            // 创建普通单元格样式
+            CellStyle normalStyle = createNormalStyle(workbook);
             
             // 创建标题行
             Row titleRow = sheet.createRow(0);
-            CellStyle titleStyle = createTitleStyle(workbook);
-            
-            Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("订单信息");
+            Cell titleCell = titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("订单信息模板");
             titleCell.setCellStyle(titleStyle);
             
             // 合并标题单元格
-            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
             
-            // 创建客户信息
-            Row customerRow1 = sheet.createRow(2);
-            Row customerRow2 = sheet.createRow(3);
-            Row customerRow3 = sheet.createRow(4);
+            // 创建客户信息部分
+            Row customerHeaderRow = sheet.createRow(2);
+            Cell customerHeaderCell = customerHeaderRow.createCell(0);
+            customerHeaderCell.setCellValue("客户信息");
+            customerHeaderCell.setCellStyle(headerStyle);
+            sheet.addMergedRegion(new CellRangeAddress(2, 2, 0, 5));
             
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle normalStyle = createNormalStyle(workbook);
+            // 客户信息表格
+            String[][] customerInfo = {
+                {"客户名称", "${客户.名称}", "联系电话", "${客户.电话}"},
+                {"订单编号", "${订单.编号}", "下单日期", "${订单.日期}"},
+                {"收货地址", "${联系人.地址}", "", ""}
+            };
             
-            // 客户名称
-            Cell customerLabelCell = customerRow1.createCell(0);
-            customerLabelCell.setCellValue("客户名称:");
-            customerLabelCell.setCellStyle(headerStyle);
+            for (int i = 0; i < customerInfo.length; i++) {
+                Row row = sheet.createRow(i + 3);
+                for (int j = 0; j < customerInfo[i].length; j++) {
+                    Cell cell = row.createCell(j);
+                    cell.setCellValue(customerInfo[i][j]);
+                    cell.setCellStyle(normalStyle);
+                }
+                // 合并地址单元格
+                if (i == 2) {
+                    sheet.addMergedRegion(new CellRangeAddress(i + 3, i + 3, 1, 3));
+                }
+            }
             
-            Cell customerValueCell = customerRow1.createCell(1);
-            customerValueCell.setCellValue("${customerName}");
-            customerValueCell.setCellStyle(normalStyle);
-            
-            // 联系人
-            Cell contactLabelCell = customerRow2.createCell(0);
-            contactLabelCell.setCellValue("联系人:");
-            contactLabelCell.setCellStyle(headerStyle);
-            
-            Cell contactValueCell = customerRow2.createCell(1);
-            contactValueCell.setCellValue("${contactPerson}");
-            contactValueCell.setCellStyle(normalStyle);
-            
-            // 联系电话
-            Cell phoneLabelCell = customerRow3.createCell(0);
-            phoneLabelCell.setCellValue("联系电话:");
-            phoneLabelCell.setCellStyle(headerStyle);
-            
-            Cell phoneValueCell = customerRow3.createCell(1);
-            phoneValueCell.setCellValue("${contactPhone}");
-            phoneValueCell.setCellStyle(normalStyle);
-            
-            // 日期
-            Cell dateLabelCell = customerRow1.createCell(2);
-            dateLabelCell.setCellValue("日期:");
-            dateLabelCell.setCellStyle(headerStyle);
-            
-            Cell dateValueCell = customerRow1.createCell(3);
-            dateValueCell.setCellValue("${orderDate}");
-            dateValueCell.setCellStyle(normalStyle);
-            
-            // 订单号
-            Cell orderNoLabelCell = customerRow2.createCell(2);
-            orderNoLabelCell.setCellValue("订单号:");
-            orderNoLabelCell.setCellStyle(headerStyle);
-            
-            Cell orderNoValueCell = customerRow2.createCell(3);
-            orderNoValueCell.setCellValue("${orderNumber}");
-            orderNoValueCell.setCellStyle(normalStyle);
-            
-            // 创建订单表头
-            Row headerRow = sheet.createRow(6);
-            
-            Cell productHeaderCell = headerRow.createCell(0);
-            productHeaderCell.setCellValue("产品名称");
+            // 创建商品列表部分
+            Row productHeaderRow = sheet.createRow(7);
+            Cell productHeaderCell = productHeaderRow.createCell(0);
+            productHeaderCell.setCellValue("商品列表");
             productHeaderCell.setCellStyle(headerStyle);
+            sheet.addMergedRegion(new CellRangeAddress(7, 7, 0, 5));
             
-            Cell quantityHeaderCell = headerRow.createCell(1);
-            quantityHeaderCell.setCellValue("数量");
-            quantityHeaderCell.setCellStyle(headerStyle);
+            // 插入列表开始标记（隐藏）
+            Row listStartRow = sheet.createRow(8);
+            Cell listStartCell = listStartRow.createCell(0);
+            listStartCell.setCellValue("{{#商品列表}}");
+            listStartCell.setCellStyle(normalStyle);
             
-            Cell priceHeaderCell = headerRow.createCell(2);
-            priceHeaderCell.setCellValue("单价");
-            priceHeaderCell.setCellStyle(headerStyle);
+            // 商品表格头
+            String[] productHeaders = {"序号", "商品名称", "单价", "数量", "小计", "备注"};
+            Row productTableHeader = sheet.createRow(9);
+            for (int i = 0; i < productHeaders.length; i++) {
+                Cell cell = productTableHeader.createCell(i);
+                cell.setCellValue(productHeaders[i]);
+                cell.setCellStyle(headerStyle);
+            }
             
-            Cell totalHeaderCell = headerRow.createCell(3);
-            totalHeaderCell.setCellValue("总价");
-            totalHeaderCell.setCellStyle(headerStyle);
+            // 商品数据行
+            Row productRow = sheet.createRow(10);
+            String[] productData = {"{{序号}}", "{{名称}}", "{{单价}}", "{{数量}}", "{{小计}}", ""};
+            for (int i = 0; i < productData.length; i++) {
+                Cell cell = productRow.createCell(i);
+                cell.setCellValue(productData[i]);
+                cell.setCellStyle(normalStyle);
+            }
             
-            // 创建订单数据行示例
-            Row dataRow = sheet.createRow(7);
+            // 插入列表结束标记（隐藏）
+            Row listEndRow = sheet.createRow(11);
+            Cell listEndCell = listEndRow.createCell(0);
+            listEndCell.setCellValue("{{/商品列表}}");
+            listEndCell.setCellStyle(normalStyle);
             
-            Cell productCell = dataRow.createCell(0);
-            productCell.setCellValue("${products.name}");
-            productCell.setCellStyle(normalStyle);
+            // 创建合计行
+            Row totalRow = sheet.createRow(13);
+            Cell totalLabelCell = totalRow.createCell(3);
+            totalLabelCell.setCellValue("总金额：");
+            totalLabelCell.setCellStyle(normalStyle);
             
-            Cell quantityCell = dataRow.createCell(1);
-            quantityCell.setCellValue("${products.quantity}");
-            quantityCell.setCellStyle(normalStyle);
+            Cell totalValueCell = totalRow.createCell(4);
+            totalValueCell.setCellValue("${订单.总金额}");
+            totalValueCell.setCellStyle(normalStyle);
             
-            Cell priceCell = dataRow.createCell(2);
-            priceCell.setCellValue("${products.price}");
-            priceCell.setCellStyle(normalStyle);
+            Cell totalUnitCell = totalRow.createCell(5);
+            totalUnitCell.setCellValue("元");
+            totalUnitCell.setCellStyle(normalStyle);
             
-            Cell totalCell = dataRow.createCell(3);
-            totalCell.setCellValue("${products.total}");
-            totalCell.setCellStyle(normalStyle);
+            // 创建备注行
+            Row remarkRow = sheet.createRow(15);
+            Cell remarkLabelCell = remarkRow.createCell(0);
+            remarkLabelCell.setCellValue("备注：");
+            remarkLabelCell.setCellStyle(normalStyle);
             
-            // 创建总计行
-            Row totalRow = sheet.createRow(9);
+            Cell remarkValueCell = remarkRow.createCell(1);
+            remarkValueCell.setCellValue("${订单.备注}");
+            remarkValueCell.setCellStyle(normalStyle);
+            sheet.addMergedRegion(new CellRangeAddress(15, 15, 1, 5));
             
-            Cell totalLabelCell = totalRow.createCell(2);
-            totalLabelCell.setCellValue("总计:");
-            totalLabelCell.setCellStyle(headerStyle);
+            // 设置列宽
+            for (int i = 0; i < 6; i++) {
+                sheet.setColumnWidth(i, 15 * 256);
+            }
             
-            Cell totalValueCell = totalRow.createCell(3);
-            totalValueCell.setCellValue("${totalAmount}");
-            totalValueCell.setCellStyle(headerStyle);
-            
-            // 保存工作簿
-            try (FileOutputStream fileOut = new FileOutputStream(outputPath)) {
-                workbook.write(fileOut);
+            // 保存文件
+            try (FileOutputStream out = new FileOutputStream(outputPath)) {
+                workbook.write(out);
             }
             
             System.out.println("Excel模板创建成功: " + outputPath);
@@ -498,7 +499,7 @@ public class ExcelTemplateGenerator {
             System.err.println("创建Excel模板失败: " + e.getMessage());
         }
     }
-
+    
     /**
      * 创建标题样式
      * @param workbook 工作簿
@@ -506,18 +507,18 @@ public class ExcelTemplateGenerator {
      */
     private static CellStyle createTitleStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 16);
-        font.setBold(true);
-        style.setFont(font);
+        
+        // 设置对齐方式
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        
+        // 设置字体
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short)16);
+        font.setBold(true);
+        font.setColor(IndexedColors.PINK.getIndex());
+        style.setFont(font);
+        
         return style;
     }
     
@@ -528,17 +529,26 @@ public class ExcelTemplateGenerator {
      */
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
+        
+        // 设置对齐方式
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
+        // 设置背景色
+        style.setFillForegroundColor(IndexedColors.LIGHT_TURQUOISE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        
+        // 设置字体
         Font font = workbook.createFont();
         font.setBold(true);
         style.setFont(font);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setBorderTop(BorderStyle.THIN);
+        
+        // 设置边框
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
-        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderTop(BorderStyle.THIN);
+        
         return style;
     }
     
@@ -549,12 +559,17 @@ public class ExcelTemplateGenerator {
      */
     private static CellStyle createNormalStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.LEFT);
+        
+        // 设置对齐方式
+        style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setBorderTop(BorderStyle.THIN);
+        
+        // 设置边框
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        
         return style;
     }
 } 

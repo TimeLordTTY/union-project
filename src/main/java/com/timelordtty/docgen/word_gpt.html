@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200">
+  <title>Document Generator UI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #fff5f8;
+      color: #333;
+    }
+    .container {
+      width: 1200px;
+      margin: 20px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .row {
+      display: flex;
+      gap: 20px;
+    }
+    .column {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid #ffb6c1;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ffb6c1;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #aaa;
+    }
+    .custom-select, .custom-file {
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ffb6c1;
+      background-color: #fff0f5;
+    }
+    button {
+      background-color: #e91e63;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .field-item {
+      background-color: #fff0f5;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .preview-box {
+      height: 300px;
+      overflow-y: auto;
+      background: #fff0f5;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .button-right {
+      display: flex;
+      justify-content: space-evenly;
+      gap: 12px;
+      margin-top: 15px;
+    }
+    .inline-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ffb6c1;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #ffe4ec;
+    }
+    .list-table th {
+      background-color: #ffe9f2;
+      text-align: center;
+    }
+    .list-table td input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px;
+      border: 1px solid #ffb6c1;
+      border-radius: 6px;
+    }
+    .placeholder-note {
+      margin-left: 10px;
+      font-size: 13px;
+      color: #999;
+      font-style: italic;
+    }
+    .btn-group-horizontal {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+    .action-btn {
+      background-color: #e91e63;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      min-width: 140px;
+    }
+    .icon-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  background-color: #e91e63;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+.icon-btn:hover {
+  background-color: #d81b60;
+}
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Row 1 -->
+    <div class="row">
+      <div class="column">
+        <div class="inline-group">
+          <select class="custom-select">
+            <option value="word">Word</option>
+            <option value="excel">Excel</option>
+          </select>
+          <input type="file" class="custom-file" />
+        </div>
+      </div>
+      <div class="column">
+        <div class="inline-group">
+          <button style="flex: 1">Import Excel Data</button>
+          <button style="flex: 1">Export Fields</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="row">
+      <div class="column">
+        <div class="inline-group">
+          <input type="text" placeholder="Text field name" />
+          <button class="icon-btn">+</button>
+        </div>
+        <div class="inline-group">
+          <input type="text" placeholder="List name" />
+          <button class="icon-btn">+</button>
+        </div>
+
+        <!-- Flat Key-Value Fields -->
+        <div class="field-item">
+          <span>Customer Name <span class="placeholder-note">{{Customer Name}}</span></span>
+          <button>×</button>
+        </div>
+        <div class="field-item">
+          <span>Customer Email <span class="placeholder-note">{{Customer Email}}</span></span>
+          <button class="icon-btn">×</button>
+        </div>
+        <div class="field-item">
+          <span>Customer Address <span class="placeholder-note">{{Customer Address}}</span></span>
+          <button class="icon-btn">×</button>
+        </div>
+
+        <!-- List: ProjectList Definition Only -->
+        <table class="list-table">
+            <thead>
+              <tr>
+                <th colspan="3">
+                  ProjectList (Field Definition)
+                  <span class="placeholder-note">{{#ProjectList}}...{{/ProjectList}}</span>
+                  <button class="icon-btn">×</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Project Name <span class="placeholder-note">{{ProjectList.Project Name}}</span></td>
+                <td>
+  <div class="btn-group-horizontal">
+    <button class="icon-btn">＋</button>
+    <button class="icon-btn">×</button>
+  </div>
+</td>
+              </tr>
+              <tr>
+                <td>Project Date <span class="placeholder-note">{{ProjectList.Project Date}}</span></td>
+                <td>
+  <div class="btn-group-horizontal">
+    <button class="icon-btn">＋</button>
+    <button class="icon-btn">×</button>
+  </div>
+</td>
+              </tr>
+              <tr>
+                <td>Project Manager <span class="placeholder-note">{{ProjectList.Project Manager}}</span></td>
+                <td>
+  <div class="btn-group-horizontal">
+    <button class="icon-btn">＋</button>
+    <button class="icon-btn">×</button>
+  </div>
+</td>
+              </tr>
+            </tbody>
+          </table>
+      </div>
+
+      <div class="column">
+        <!-- Flat Input Fields -->
+        <input type="text" placeholder="Customer Name" value="Acme Corp" />
+        <input type="text" placeholder="Customer Email" value="alice@acme.com" />
+        <input type="text" placeholder="Customer Address" value="123 Pink Ave" />
+
+        <!-- List Table: Data Entry -->
+        <table class="list-table">
+            <thead>
+              <tr>
+                <th colspan="5">ProjectList (Data Entry)</th>
+              </tr>
+              <tr>
+                <th>Project Name</th>
+                <th>Project Date</th>
+                <th>Project Manager</th>
+                <th></th> <!-- 每列后也可插入列按钮，待后续实现 -->
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="text" value="AI System" /></td>
+                <td><input type="text" value="2025-04-01" /></td>
+                <td><input type="text" value="John" /></td>
+                <td>
+  <div class="btn-group-horizontal">
+    <button class="icon-btn">＋</button>
+    <button class="icon-btn">×</button>
+  </div>
+</td>
+              </tr>
+              <tr>
+                <td><input type="text" value="Data Dashboard" /></td>
+                <td><input type="text" value="2025-05-15" /></td>
+                <td><input type="text" value="Emily" /></td>
+                <td>
+  <div class="btn-group-horizontal">
+    <button class="icon-btn">＋</button>
+    <button class="icon-btn">×</button>
+  </div>
+</td>
+              </tr>
+            </tbody>
+          </table>
+          
+      </div>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="row">
+      <div class="column">
+        <textarea rows="14" placeholder="Template editor...">This contract is signed between {{Customer Name}} ({{Customer Email}}) located at {{Customer Address}}.
+
+Project Assignments:
+{{#ProjectList}}
+- {{Project Name}} on {{Project Date}} managed by {{Project Manager}}
+{{/ProjectList}}
+
+Sincerely,
+Company XYZ</textarea>
+        <div class="button-row">
+          <button class="action-btn">Save Template</button>
+          <button class="action-btn">Generate Template</button>
+        </div>
+      </div>
+      <div class="column">
+        <div class="preview-box">
+This contract is signed between Acme Corp (alice@acme.com) located at 123 Pink Ave.
+
+Project Assignments:
+- AI System on 2025-04-01 managed by John
+- Data Dashboard on 2025-05-15 managed by Emily
+
+Sincerely,
+Company XYZ
+        </div>
+        <div class="button-right">
+          <button class="action-btn">Preview PDF</button>
+          <button class="action-btn">Generate Document</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
