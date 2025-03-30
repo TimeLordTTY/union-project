@@ -199,28 +199,30 @@ for %%i in ("%PROJECT_ROOT%\target\dependency\*.jar") do set CLASSPATH=!CLASSPAT
 echo 使用的类路径: !CLASSPATH!
 
 REM 创建Word模板
-echo 创建Word文档模板...
+echo 创建Word项目报告模板...
 cd /d "%PROJECT_ROOT%"
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.DocxTemplateGenerator "%TEMPLATES_DIR%\word\订单模板.docx"
+if not exist "%TEMPLATES_DIR%\word" mkdir "%TEMPLATES_DIR%\word"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.utils.DocxTemplateGenerator "%TEMPLATES_DIR%\word\项目报告模板.docx"
 if %ERRORLEVEL% NEQ 0 (
-    echo 警告: Word模板创建失败，将使用备用模板
+    echo 警告: Word项目报告模板创建失败，将使用备用模板
     echo 创建简单的Word模板...
-    echo 这是一个示例Word模板文件 > "%TEMPLATES_DIR%\word\简单订单模板.docx"
+    echo 这是一个示例Word模板文件 > "%TEMPLATES_DIR%\word\简单项目报告模板.docx"
 )
 
 REM 创建Excel模板
-echo 创建Excel模板...
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.ExcelTemplateGenerator "%TEMPLATES_DIR%\excel\订单模板.xlsx"
+echo 创建Excel项目模板...
+if not exist "%TEMPLATES_DIR%\excel" mkdir "%TEMPLATES_DIR%\excel"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.utils.ExcelTemplateGenerator "%TEMPLATES_DIR%\excel\项目模板.xlsx"
 if %ERRORLEVEL% NEQ 0 (
-    echo 警告: Excel模板创建失败，将创建空的Excel文件
-    copy NUL "%TEMPLATES_DIR%\excel\简单订单模板.xlsx"
+    echo 警告: Excel项目模板创建失败，将创建空的Excel文件
+    copy NUL "%TEMPLATES_DIR%\excel\简单项目模板.xlsx"
 )
 
 echo 创建Excel测试数据...
-call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.util.ExcelDataGenerator "%TEMPLATES_DIR%\excel\测试数据.xlsx"
+call "%JAVA_HOME%\bin\java.exe" -cp !CLASSPATH! com.timelordtty.docgen.utils.ExcelDataGenerator "%TEMPLATES_DIR%\excel\客户项目数据.xlsx"
 if %ERRORLEVEL% NEQ 0 (
     echo 警告: Excel测试数据创建失败，创建简单的Excel文件
-    copy NUL "%TEMPLATES_DIR%\excel\简单测试数据.xlsx"
+    copy NUL "%TEMPLATES_DIR%\excel\简单客户数据.xlsx"
 )
 
 echo 检查模板目录中的文件...

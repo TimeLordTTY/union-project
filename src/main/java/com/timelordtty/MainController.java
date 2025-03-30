@@ -1,6 +1,7 @@
 package com.timelordtty;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Timer;
 
 import com.timelordtty.projectCalendar.ProjectCalendarController;
@@ -620,9 +621,26 @@ public class MainController {
     private void handleDocGenToolClick() {
         try {
             AppLogger.info("打开文档生成工具");
+            
+            // 记录FXML文件详细信息
+            String fxmlPath = "/fxml/DocumentGeneratorView.fxml";
+            java.net.URL url = getClass().getResource(fxmlPath);
+            AppLogger.info("文档生成工具FXML URL: " + (url != null ? url.toString() : "null"));
+            
+            // 检查控制器类是否存在
+            try {
+                Class<?> controllerClass = Class.forName("com.timelordtty.docgen.controller.DocumentGeneratorController");
+                AppLogger.info("DocumentGeneratorController类存在: " + controllerClass.getName());
+            } catch (ClassNotFoundException e) {
+                AppLogger.error("DocumentGeneratorController类不存在!", e);
+            }
+            
             loadTool("文档生成", "/fxml/DocumentGeneratorView.fxml");
         } catch (Exception e) {
             AppLogger.error("打开文档生成工具失败: " + e.getMessage(), e);
+            AppLogger.error("异常类型: " + e.getClass().getName());
+            AppLogger.error("异常堆栈: ", e);
+            showError("无法加载工具", "加载文档生成工具失败: " + e.getMessage());
         }
     }
     
@@ -646,209 +664,306 @@ public class MainController {
      */
     private void loadTool(String title, String fxmlPath) {
         try {
-            // 修改类加载器的加载方式
-            FXMLLoader loader = new FXMLLoader();
-            
             // 记录正在尝试加载的路径
             AppLogger.info("尝试加载工具: " + title + ", 路径: " + fxmlPath);
             
-            // 尝试用不同的方法加载资源
-            java.net.URL url = null;
+            // 记录类加载器信息
+            ClassLoader cl = getClass().getClassLoader();
+            AppLogger.info("使用类加载器: " + cl);
             
-            // 方法1: 使用类的资源加载器
-            url = getClass().getResource(fxmlPath);
-            AppLogger.info("方法1加载结果: " + (url != null ? "成功" : "失败"));
+            // 创建FXML加载器，不手动设置控制器，使用FXML文件中定义的控制器
+            FXMLLoader loader = new FXMLLoader();
+            AppLogger.info("创建了FXMLLoader实例: " + loader);
+
+            // 加载方法1: 使用URL
+            java.net.URL url = getClass().getResource(fxmlPath);
+            if (url != null) {
+                AppLogger.info("使用URL加载FXML: " + url);
+                loader.setLocation(url);
+                try {
+                    javafx.scene.Parent toolView = loader.load();
+                    AppLogger.info("URL方式成功加载FXML, 控制器: " + loader.getController());
+                    handleToolViewAfterLoad(toolView, title, fxmlPath);
+                    return;
+                } catch (Exception e) {
+                    AppLogger.error("URL方式加载FXML失败: " + e.getMessage(), e);
+                    AppLogger.error("异常类型: " + e.getClass().getName());
+                }
+            } else {
+                AppLogger.info("URL为null，尝试其他加载方式");
+            }
+
+            // 加载方法2: 使用类加载器
+            url = getClass().getClassLoader().getResource(fxmlPath.substring(1));
+            if (url != null) {
+                AppLogger.info("使用类加载器URL加载FXML: " + url);
+                loader.setLocation(url);
+                try {
+                    javafx.scene.Parent toolView = loader.load();
+                    AppLogger.info("类加载器方式成功加载FXML, 控制器: " + loader.getController());
+                    handleToolViewAfterLoad(toolView, title, fxmlPath);
+                    return;
+                } catch (Exception e) {
+                    AppLogger.error("类加载器方式加载FXML失败: " + e.getMessage(), e);
+                    AppLogger.error("异常类型: " + e.getClass().getName());
+                }
+            } else {
+                AppLogger.info("类加载器URL为null，尝试其他加载方式");
+            }
+
+            // 加载方法3: 使用InputStream
+            try (InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath)) {
+                if (fxmlStream != null) {
+                    AppLogger.info("使用输入流加载FXML，流大小: " + fxmlStream.available() + " 字节");
+                    
+                    // 确保CSS样式表能被正确加载
+                    loader.setClassLoader(getClass().getClassLoader());
+                    
+                    try {
+                        javafx.scene.Parent toolView = loader.load(fxmlStream);
+                        AppLogger.info("输入流方式成功加载FXML, 控制器: " + loader.getController());
+                        
+                        // 手动加载CSS样式
+                        String cssPath = "/css/styles.css";
+                        url = getClass().getResource(cssPath);
+                        if (url != null && toolView.getStylesheets().isEmpty()) {
+                            toolView.getStylesheets().add(url.toExternalForm());
+                            AppLogger.info("手动添加样式表: " + url.toExternalForm());
+                        }
+                        
+                        handleToolViewAfterLoad(toolView, title, fxmlPath);
+                        return;
+                    } catch (Exception e) {
+                        AppLogger.error("输入流方式加载FXML失败: " + e.getMessage(), e);
+                        AppLogger.error("异常类型: " + e.getClass().getName());
+                        AppLogger.error("异常堆栈: ", e);
+                    }
+                } else {
+                    AppLogger.info("输入流为null，尝试其他加载方式");
+                }
+            } catch (Exception e) {
+                AppLogger.error("创建输入流时出错: " + e.getMessage(), e);
+            }
+
+            // 加载方法4: 尝试从文件系统加载
+            String[] paths = {
+                "target/classes" + fxmlPath,
+                "resources" + fxmlPath,
+                "src/main/resources" + fxmlPath
+            };
             
-            // 方法2: 如果失败，尝试使用类加载器
-            if (url == null) {
-                url = getClass().getClassLoader().getResource(fxmlPath.substring(1));
-                AppLogger.info("方法2加载结果: " + (url != null ? "成功" : "失败"));
+            for (String path : paths) {
+                java.io.File file = new java.io.File(path);
+                AppLogger.info("检查文件系统路径: " + file.getAbsolutePath() + ", 存在: " + file.exists());
+                
+                if (file.exists()) {
+                    try (java.io.FileInputStream fxmlStream = new java.io.FileInputStream(file)) {
+                        AppLogger.info("从文件系统加载FXML: " + file.getAbsolutePath() + ", 大小: " + file.length() + " 字节");
+                        
+                        try {
+                            javafx.scene.Parent toolView = loader.load(fxmlStream);
+                            AppLogger.info("文件系统方式成功加载FXML, 控制器: " + loader.getController());
+                            
+                            // 手动加载CSS样式
+                            String cssFile = "src/main/resources/css/styles.css";
+                            if (new java.io.File(cssFile).exists()) {
+                                String cssUrl = new java.io.File(cssFile).toURI().toURL().toExternalForm();
+                                toolView.getStylesheets().add(cssUrl);
+                                AppLogger.info("手动添加样式表: " + cssUrl);
+                            }
+                            
+                            handleToolViewAfterLoad(toolView, title, fxmlPath);
+                            return;
+                        } catch (Exception e) {
+                            AppLogger.error("文件系统方式加载FXML失败: " + e.getMessage(), e);
+                            AppLogger.error("异常类型: " + e.getClass().getName());
+                            AppLogger.error("异常堆栈: ", e);
+                        }
+                    } catch (Exception e) {
+                        AppLogger.error("创建文件输入流失败: " + e.getMessage(), e);
+                    }
+                }
             }
             
-            // 方法3: 如果仍然失败，尝试直接从文件系统加载
-            if (url == null) {
-                // 从resources目录尝试加载
-                String resourcePath = "resources" + fxmlPath;
-                java.io.File file = new java.io.File(resourcePath);
-                if (file.exists()) {
-                    url = file.toURI().toURL();
-                    AppLogger.info("从外部resources目录加载成功: " + file.getAbsolutePath());
-                } else {
-                    // 从src目录尝试加载
-                    String srcPath = "src/main/resources" + fxmlPath;
-                    file = new java.io.File(srcPath);
-                    if (file.exists()) {
-                        url = file.toURI().toURL();
-                        AppLogger.info("从src目录加载成功: " + file.getAbsolutePath());
-                    } else {
-                        AppLogger.warning("文件不存在: " + file.getAbsolutePath());
-                    }
+            // 尝试最后一种方法：直接将文件内容读入内存并解析
+            String fullContent = null;
+            InputStream is = getClass().getResourceAsStream(fxmlPath);
+            if (is != null) {
+                try {
+                    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+                    fullContent = s.hasNext() ? s.next() : "";
+                    AppLogger.info("FXML文件内容长度: " + fullContent.length() + " 字符");
+                    AppLogger.info("FXML文件前100个字符: " + fullContent.substring(0, Math.min(100, fullContent.length())));
+                } catch (Exception e) {
+                    AppLogger.error("读取FXML内容失败: " + e.getMessage(), e);
                 }
             }
             
             // 如果所有方法都失败，抛出异常
-            if (url == null) {
-                throw new java.io.IOException("无法加载FXML文件: " + fxmlPath);
-            }
-            
-            loader.setLocation(url);
-            javafx.scene.Parent toolView = loader.load();
-            
-            // 检查是否只是切换工具
-            if (toolsContainer.isVisible()) {
-                // 如果是切换到相同的工具，不做任何操作
-                if (fxmlPath.equals(currentTool)) {
-                    return;
-                }
-                
-                // 使用淡入淡出动画切换工具内容
-                animateToolChange(toolView, title);
-                currentTool = fxmlPath;
-                
-                // 根据不同工具调整大小
-                if (fxmlPath.equals("/fxml/AmountConverterView.fxml")) {
-                    // 金额转换小工具 - 小尺寸
-                    toolsContainer.setPrefWidth(400);
-                    toolsContainer.setPrefHeight(350);
-                    toolsContainer.setMaxWidth(450);
-                } else if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
-                    // 文档生成小工具需要与日历相同大小
-                    toolsContainer.setPrefWidth(1000);
-                    toolsContainer.setPrefHeight(680);
-                    toolsContainer.setMaxWidth(Double.MAX_VALUE);
-                    toolsContainer.setMaxHeight(Double.MAX_VALUE);
-                } else if (fxmlPath.equals("/fxml/TextCorrectorView.fxml")) {
-                    // 文本处理小工具 - 中等尺寸
-                    toolsContainer.setPrefWidth(600);
-                    toolsContainer.setPrefHeight(450);
-                    toolsContainer.setMaxWidth(650);
-                }
-                
-                // 添加代码以在工具加载完成后根据实际内容调整尺寸
-                javafx.application.Platform.runLater(() -> {
-                    if (toolView.prefWidth(-1) > 0 && toolView.prefHeight(-1) > 0) {
-                        // 如果工具视图有指定的首选尺寸，使用它
-                        toolsContainer.setPrefWidth(toolView.prefWidth(-1) + 20); // 加一些边距
-                        toolsContainer.setPrefHeight(toolView.prefHeight(-1) + 60); // 加一些边距给标题栏和底部
-                    } else {
-                        // 根据内容计算大小
-                        toolView.applyCss();
-                        toolView.layout();
-                        double width = toolView.getBoundsInLocal().getWidth() + 20;
-                        double height = toolView.getBoundsInLocal().getHeight() + 60;
-                        
-                        // 设置容器大小
-                        toolsContainer.setPrefWidth(width);
-                        toolsContainer.setPrefHeight(height);
-                    }
-                    
-                    // 防止过小
-                    if (toolsContainer.getPrefWidth() < 400) toolsContainer.setPrefWidth(400);
-                    if (toolsContainer.getPrefHeight() < 300) toolsContainer.setPrefHeight(300);
-                    
-                    // 防止过大超出屏幕
-                    if (toolsContainer.getScene() != null) {
-                        double sceneWidth = toolsContainer.getScene().getWidth();
-                        double sceneHeight = toolsContainer.getScene().getHeight();
-                        
-                        if (toolsContainer.getPrefWidth() > sceneWidth * 0.9) {
-                            toolsContainer.setPrefWidth(sceneWidth * 0.9);
-                            toolsContainer.setMaxWidth(sceneWidth * 0.9);
-                        }
-                        
-                        if (toolsContainer.getPrefHeight() > sceneHeight * 0.9) {
-                            toolsContainer.setPrefHeight(sceneHeight * 0.9);
-                            toolsContainer.setMaxHeight(sceneHeight * 0.9);
-                        }
-                    }
-                });
-                
+            throw new java.io.IOException("无法加载FXML文件: " + fxmlPath + " (未知路径)");
+        } catch (IOException e) {
+            AppLogger.error("加载工具时发生IO异常: " + fxmlPath + " - " + e.getMessage(), e);
+            AppLogger.error("异常堆栈: ", e);
+            showError("无法加载工具", "加载工具失败: " + e.getMessage());
+        } catch (Exception e) {
+            AppLogger.error("加载工具时发生异常: " + e.getMessage(), e);
+            AppLogger.error("异常类型: " + e.getClass().getName());
+            AppLogger.error("异常堆栈: ", e);
+            showError("无法加载工具", "加载工具时发生错误: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 处理工具视图加载后的通用逻辑
+     */
+    private void handleToolViewAfterLoad(javafx.scene.Parent toolView, String title, String fxmlPath) {
+        // 检查是否只是切换工具
+        if (toolsContainer.isVisible()) {
+            // 如果是切换到相同的工具，不做任何操作
+            if (fxmlPath.equals(currentTool)) {
                 return;
             }
             
-            // 记录当前工具
+            // 使用淡入淡出动画切换工具内容
+            animateToolChange(toolView, title);
             currentTool = fxmlPath;
             
-            // 设置工具标题
-            toolTitle.setText(title);
-            
-            // 将工具视图添加到内容区域
-            toolContentArea.getChildren().clear();
-            toolContentArea.getChildren().add(toolView);
-            
-            // 根据内容调整大小
-            if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
+            // 根据不同工具调整大小
+            if (fxmlPath.equals("/fxml/AmountConverterView.fxml")) {
+                // 金额转换小工具 - 小尺寸
+                toolsContainer.setPrefWidth(400);
+                toolsContainer.setPrefHeight(350);
+                toolsContainer.setMaxWidth(450);
+            } else if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
                 // 文档生成小工具需要与日历相同大小
                 toolsContainer.setPrefWidth(1000);
                 toolsContainer.setPrefHeight(680);
                 toolsContainer.setMaxWidth(Double.MAX_VALUE);
                 toolsContainer.setMaxHeight(Double.MAX_VALUE);
-            } else {
-                // 其他小工具使用自适应大小
-                toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
-                toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
-                toolsContainer.setMaxWidth(Region.USE_COMPUTED_SIZE);
-                toolsContainer.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            } else if (fxmlPath.equals("/fxml/TextCorrectorView.fxml")) {
+                // 文本处理小工具 - 中等尺寸
+                toolsContainer.setPrefWidth(600);
+                toolsContainer.setPrefHeight(450);
+                toolsContainer.setMaxWidth(650);
             }
             
-            // 更新状态和按钮文本
-            closeToolButton.setText("收起 ▲");
-            isExpanded = true;
-            
-            // 在下一个UI刷新周期计算并应用实际尺寸
+            // 添加代码以在工具加载完成后根据实际内容调整尺寸
             javafx.application.Platform.runLater(() -> {
-                // 计算工具视图的尺寸
-                toolView.applyCss();
-                toolView.layout();
-                
-                double width = toolView.prefWidth(-1);
-                double height = toolView.prefHeight(-1);
-                
-                if (width <= 0 || height <= 0) {
-                    // 没有明确的首选尺寸，使用计算的边界尺寸
-                    width = toolView.getBoundsInLocal().getWidth() + 20; // 添加边距
-                    height = toolView.getBoundsInLocal().getHeight() + 60; // 添加边距给标题栏和底部
+                if (toolView.prefWidth(-1) > 0 && toolView.prefHeight(-1) > 0) {
+                    // 如果工具视图有指定的首选尺寸，使用它
+                    toolsContainer.setPrefWidth(toolView.prefWidth(-1) + 20); // 加一些边距
+                    toolsContainer.setPrefHeight(toolView.prefHeight(-1) + 60); // 加一些边距给标题栏和底部
                 } else {
-                    // 有明确的首选尺寸，添加一些边距
-                    width += 20;
-                    height += 60;
+                    // 根据内容计算大小
+                    toolView.applyCss();
+                    toolView.layout();
+                    double width = toolView.getBoundsInLocal().getWidth() + 20;
+                    double height = toolView.getBoundsInLocal().getHeight() + 60;
+                    
+                    // 设置容器大小
+                    toolsContainer.setPrefWidth(width);
+                    toolsContainer.setPrefHeight(height);
                 }
                 
                 // 防止过小
-                if (width < 400) width = 400;
-                if (height < 300) height = 300;
+                if (toolsContainer.getPrefWidth() < 400) toolsContainer.setPrefWidth(400);
+                if (toolsContainer.getPrefHeight() < 300) toolsContainer.setPrefHeight(300);
                 
                 // 防止过大超出屏幕
                 if (toolsContainer.getScene() != null) {
                     double sceneWidth = toolsContainer.getScene().getWidth();
                     double sceneHeight = toolsContainer.getScene().getHeight();
                     
-                    if (width > sceneWidth * 0.9) {
-                        width = sceneWidth * 0.9;
+                    if (toolsContainer.getPrefWidth() > sceneWidth * 0.9) {
+                        toolsContainer.setPrefWidth(sceneWidth * 0.9);
+                        toolsContainer.setMaxWidth(sceneWidth * 0.9);
                     }
                     
-                    if (height > sceneHeight * 0.9) {
-                        height = sceneHeight * 0.9;
+                    if (toolsContainer.getPrefHeight() > sceneHeight * 0.9) {
+                        toolsContainer.setPrefHeight(sceneHeight * 0.9);
+                        toolsContainer.setMaxHeight(sceneHeight * 0.9);
                     }
                 }
-                
-                // 设置容器大小
-                toolsContainer.setPrefWidth(width);
-                toolsContainer.setPrefHeight(height);
-                toolsContainer.setMaxWidth(width);
-                toolsContainer.setMaxHeight(height);
-                
-                // 展示工具容器（带动画）
-                animateOpen();
             });
             
-        } catch (IOException e) {
-            AppLogger.error("加载工具时发生IO异常: " + fxmlPath + " - " + e.getMessage(), e);
-            showError("无法加载工具", "加载工具时发生IO异常: " + e.getMessage());
-        } catch (Exception e) {
-            AppLogger.error("加载工具时发生未知异常: " + e.getMessage(), e);
-            showError("无法加载工具", "加载工具时发生未知异常: " + e.getMessage());
+            return;
         }
+        
+        // 记录当前工具
+        currentTool = fxmlPath;
+        
+        // 设置工具标题
+        toolTitle.setText(title);
+        
+        // 将工具视图添加到内容区域
+        toolContentArea.getChildren().clear();
+        toolContentArea.getChildren().add(toolView);
+        
+        // 根据内容调整大小
+        if (fxmlPath.equals("/fxml/DocumentGeneratorView.fxml")) {
+            // 文档生成小工具需要与日历相同大小
+            toolsContainer.setPrefWidth(1000);
+            toolsContainer.setPrefHeight(680);
+            toolsContainer.setMaxWidth(Double.MAX_VALUE);
+            toolsContainer.setMaxHeight(Double.MAX_VALUE);
+        } else {
+            // 其他小工具使用自适应大小
+            toolsContainer.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            toolsContainer.setPrefHeight(Region.USE_COMPUTED_SIZE);
+            toolsContainer.setMaxWidth(Region.USE_COMPUTED_SIZE);
+            toolsContainer.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        }
+        
+        // 更新状态和按钮文本
+        closeToolButton.setText("收起 ▲");
+        isExpanded = true;
+        
+        // 在下一个UI刷新周期计算并应用实际尺寸
+        javafx.application.Platform.runLater(() -> {
+            // 计算工具视图的尺寸
+            toolView.applyCss();
+            toolView.layout();
+            
+            double width = toolView.prefWidth(-1);
+            double height = toolView.prefHeight(-1);
+            
+            if (width <= 0 || height <= 0) {
+                // 没有明确的首选尺寸，使用计算的边界尺寸
+                width = toolView.getBoundsInLocal().getWidth() + 20; // 添加边距
+                height = toolView.getBoundsInLocal().getHeight() + 60; // 添加边距给标题栏和底部
+            } else {
+                // 有明确的首选尺寸，添加一些边距
+                width += 20;
+                height += 60;
+            }
+            
+            // 防止过小
+            if (width < 400) width = 400;
+            if (height < 300) height = 300;
+            
+            // 防止过大超出屏幕
+            if (toolsContainer.getScene() != null) {
+                double sceneWidth = toolsContainer.getScene().getWidth();
+                double sceneHeight = toolsContainer.getScene().getHeight();
+                
+                if (width > sceneWidth * 0.9) {
+                    width = sceneWidth * 0.9;
+                }
+                
+                if (height > sceneHeight * 0.9) {
+                    height = sceneHeight * 0.9;
+                }
+            }
+            
+            // 设置容器大小
+            toolsContainer.setPrefWidth(width);
+            toolsContainer.setPrefHeight(height);
+            toolsContainer.setMaxWidth(width);
+            toolsContainer.setMaxHeight(height);
+            
+            // 展示工具容器（带动画）
+            animateOpen();
+        });
     }
     
     /**
@@ -858,6 +973,19 @@ public class MainController {
      */
     private void showError(String title, String message) {
         javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    /**
+     * 显示信息对话框
+     * @param title 标题
+     * @param message 消息
+     */
+    private void showInfo(String title, String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

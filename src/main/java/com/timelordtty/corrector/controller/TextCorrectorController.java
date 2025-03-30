@@ -1149,4 +1149,32 @@ public class TextCorrectorController implements Initializable {
             }
         }
     }
+
+    /**
+     * 调整布局，使其自适应
+     */
+    public void adjustLayout() {
+        try {
+            // 获取当前场景和窗口大小
+            if (inputTextArea == null || resultTextArea == null) return;
+            
+            double sceneWidth = inputTextArea.getScene().getWidth();
+            double sceneHeight = inputTextArea.getScene().getHeight();
+            
+            // 调整文本区域的大小
+            inputTextArea.setPrefWidth(sceneWidth * 0.9);
+            inputTextArea.setPrefHeight(sceneHeight * 0.4);
+            
+            resultTextArea.setPrefWidth(sceneWidth * 0.9);
+            resultTextArea.setPrefHeight(sceneHeight * 0.4);
+            
+            // 调整纠错结果流的大小
+            if (correctedTextFlow != null) {
+                correctedTextFlow.setPrefWidth(sceneWidth * 0.9);
+            }
+        } catch (Exception e) {
+            // 忽略调整布局时的异常
+            System.err.println("调整文本纠错器布局时出错: " + e.getMessage());
+        }
+    }
 } 

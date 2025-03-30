@@ -1,215 +1,166 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.collections.FXCollections?>
 <?import java.lang.String?>
-<?import javafx.collections.*?>
-<?import javafx.scene.text.Font?>
 
-<VBox fx:id="window" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" 
-      prefHeight="800.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" 
-      fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController" 
-      style="-fx-background-color: #fff5f8;">
-   <padding>
-      <Insets top="20" right="20" bottom="20" left="20"/>
-   </padding>
-   <children>
-      <!-- 顶部操作区域 -->
-      <HBox prefHeight="60.0" prefWidth="1160.0" spacing="15" alignment="CENTER_LEFT"
-            style="-fx-background-color: #ffffff; -fx-border-color: #ffb6c1; -fx-border-radius: 16; -fx-background-radius: 16; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);">
-         <padding>
-            <Insets top="10" right="20" bottom="10" left="20"/>
-         </padding>
-         <children>
-            <ComboBox fx:id="templateTypeComboBox" prefHeight="36.0" prefWidth="120.0" promptText="模板类型" 
-                      style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;">
-               <items>
-                  <FXCollections fx:factory="observableArrayList">
-                     <String fx:value="Word文档" />
-                     <String fx:value="Excel表格" />
-                  </FXCollections>
-               </items>
-            </ComboBox>
-            <Button mnemonicParsing="false" onAction="#handleSelectTemplate" prefHeight="36.0" prefWidth="120.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="选择模板" />
-            <Button mnemonicParsing="false" onAction="#handleGenerateTemplate" prefHeight="36.0" prefWidth="120.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="生成模板" />
-            <Button mnemonicParsing="false" onAction="#handleSaveTemplate" prefHeight="36.0" prefWidth="120.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="保存模板" />
-            <Button mnemonicParsing="false" onAction="#handleSaveDocument" prefHeight="36.0" prefWidth="120.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="保存文档" />
-            <HBox HBox.hgrow="ALWAYS" />
-            <Button mnemonicParsing="false" onAction="#handleExportFields" prefHeight="36.0" prefWidth="140.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="导出字段列表" />
-            <Button mnemonicParsing="false" onAction="#handleImportDataExcel" prefHeight="36.0" prefWidth="140.0" 
-                    style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold;" text="导入Excel数据" />
-         </children>
-      </HBox>
-      
-      <Region prefHeight="20" />
-      
-      <!-- 主要内容区域 -->
-      <HBox spacing="20" VBox.vgrow="ALWAYS">
-         <children>
-            <!-- 左侧列 - 字段管理 -->
-            <VBox prefHeight="700.0" prefWidth="570.0" spacing="15" HBox.hgrow="ALWAYS" 
-                  style="-fx-background-color: #ffffff; -fx-border-color: #ffb6c1; -fx-border-radius: 16; -fx-background-radius: 16; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);">
-               <padding>
-                  <Insets top="20" right="20" bottom="20" left="20"/>
-               </padding>
-               <children>
-                  <!-- 字段添加区域 -->
-                  <HBox prefHeight="40.0" prefWidth="530.0" spacing="10" alignment="CENTER_LEFT">
-                     <children>
-                        <TextField fx:id="objectFieldInput" prefHeight="40.0" prefWidth="380.0" promptText="输入对象字段名" 
-                                   style="-fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 10;" />
-                        <Button mnemonicParsing="false" onAction="#handleAddObjectField" prefHeight="40.0" prefWidth="40.0" 
-                                style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 16;" text="+" />
-                     </children>
-                  </HBox>
-                  
-                  <HBox prefHeight="40.0" prefWidth="530.0" spacing="10" alignment="CENTER_LEFT">
-                     <children>
-                        <TextField fx:id="listFieldInput" prefHeight="40.0" prefWidth="380.0" promptText="输入列表名称" 
-                                   style="-fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 10;" />
-                        <Button mnemonicParsing="false" onAction="#handleAddListField" prefHeight="40.0" prefWidth="40.0" 
-                                style="-fx-background-color: #e91e63; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 16;" text="+" />
-                     </children>
-                  </HBox>
-                  
-                  <Separator style="-fx-background-color: #ffb6c1; -fx-opacity: 0.5;">
-                     <VBox.margin>
-                        <Insets top="5" bottom="5" />
-                     </VBox.margin>
-                  </Separator>
-                  
-                  <!-- 对象字段表格 -->
-                  <Label text="对象字段列表" style="-fx-text-fill: #e91e63; -fx-font-size: 15;">
-                     <font>
-                        <Font name="System Bold" size="15.0" />
-                     </font>
-                  </Label>
-                  
-                  <TableView fx:id="objectFieldsTable" prefHeight="140.0" prefWidth="530.0" 
-                             style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;">
-                    <columns>
-                      <TableColumn fx:id="objectFieldNameColumn" prefWidth="200.0" text="字段名" 
-                                   style="-fx-background-color: #ffe4ec; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="objectFieldPlaceholderColumn" prefWidth="200.0" text="占位符" 
-                                   style="-fx-background-color: #ffe4ec; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="objectFieldDeleteColumn" prefWidth="110.0" text="操作" 
-                                   style="-fx-background-color: #ffe4ec; -fx-border-color: #ffb6c1;" />
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                  </TableView>
-                  
-                  <!-- 列表字段表格 -->
-                  <Label text="列表字段列表" style="-fx-text-fill: #e91e63; -fx-font-size: 15;">
-                     <font>
-                        <Font name="System Bold" size="15.0" />
-                     </font>
-                  </Label>
-                  
-                  <TableView fx:id="listFieldsTable" prefHeight="140.0" prefWidth="530.0" 
-                             style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;">
-                    <columns>
-                      <TableColumn fx:id="listNameColumn" prefWidth="150.0" text="列表名" 
-                                   style="-fx-background-color: #ffe9f2; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="listObjectNameColumn" prefWidth="150.0" text="对象名" 
-                                   style="-fx-background-color: #ffe9f2; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="listAddColumn" prefWidth="100.0" text="添加" 
-                                   style="-fx-background-color: #ffe9f2; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="listDeleteColumn" prefWidth="100.0" text="删除" 
-                                   style="-fx-background-color: #ffe9f2; -fx-border-color: #ffb6c1;" />
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                  </TableView>
-                  
-                  <VBox fx:id="listFieldsContainer" prefHeight="0.0" prefWidth="0.0" visible="false" />
-                  
-                  <Separator style="-fx-background-color: #ffb6c1; -fx-opacity: 0.5;">
-                     <VBox.margin>
-                        <Insets top="5" bottom="5" />
-                     </VBox.margin>
-                  </Separator>
-                  
-                  <!-- 模板编辑区域 -->
-                  <Label text="模板编辑" style="-fx-text-fill: #e91e63; -fx-font-size: 15;">
-                     <font>
-                        <Font name="System Bold" size="15.0" />
-                     </font>
-                  </Label>
-                  
-                  <TextArea fx:id="wordEditor" prefHeight="220.0" prefWidth="530.0" wrapText="true"
-                            style="-fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #fff0f5;" />
-                            
-                  <TableView fx:id="excelEditor" prefHeight="220.0" prefWidth="530.0" visible="false" 
-                             style="-fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #fff0f5;" />
-               </children>
-            </VBox>
+<VBox fx:id="mainPane" xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
+      prefHeight="800.0" prefWidth="1200.0"
+      stylesheets="@../css/styles.css">
+    
+    <SplitPane fx:id="mainSplitPane" orientation="VERTICAL" VBox.vgrow="ALWAYS" dividerPositions="0.15">
+        <!-- 顶部按钮区域 -->
+        <VBox spacing="10" styleClass="content-section">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
             
-            <!-- 右侧列 - 数据填充与预览 -->
-            <VBox prefHeight="700.0" prefWidth="570.0" spacing="15" HBox.hgrow="ALWAYS" 
-                  style="-fx-background-color: #ffffff; -fx-border-color: #ffb6c1; -fx-border-radius: 16; -fx-background-radius: 16; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);">
-               <padding>
-                  <Insets top="20" right="20" bottom="20" left="20"/>
-               </padding>
-               <children>
-                  <!-- 数据填充区域 -->
-                  <Label text="数据填充" style="-fx-text-fill: #e91e63; -fx-font-size: 15;">
-                     <font>
-                        <Font name="System Bold" size="15.0" />
-                     </font>
-                  </Label>
-                  
-                  <TableView fx:id="objectDataTable" prefHeight="150.0" prefWidth="530.0" 
-                             style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;">
-                    <columns>
-                      <TableColumn fx:id="objectFieldNameDataColumn" prefWidth="220.0" text="对象字段名" 
-                                   style="-fx-background-color: #ffe4ec; -fx-border-color: #ffb6c1;" />
-                      <TableColumn fx:id="objectFieldValueColumn" prefWidth="290.0" text="值" 
-                                   style="-fx-background-color: #ffe4ec; -fx-border-color: #ffb6c1;" />
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                    </columnResizePolicy>
-                  </TableView>
-                  
-                  <VBox fx:id="listDataContainer" prefHeight="250.0" prefWidth="530.0" spacing="10" 
-                        style="-fx-background-color: #ffffff; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;">
-                     <padding>
-                        <Insets top="5" right="5" bottom="5" left="5"/>
-                     </padding>
-                  </VBox>
-                  
-                  <Separator style="-fx-background-color: #ffb6c1; -fx-opacity: 0.5;">
-                     <VBox.margin>
-                        <Insets top="5" bottom="5" />
-                     </VBox.margin>
-                  </Separator>
-                  
-                  <!-- 预览区域 -->
-                  <Label text="预览" style="-fx-text-fill: #e91e63; -fx-font-size: 15;">
-                     <font>
-                        <Font name="System Bold" size="15.0" />
-                     </font>
-                  </Label>
-                  
-                  <TextArea fx:id="wordPreviewArea" editable="false" prefHeight="220.0" prefWidth="530.0" wrapText="true"
-                            style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;" />
-                            
-                  <TableView fx:id="excelPreviewArea" prefHeight="220.0" prefWidth="530.0" visible="false" 
-                             style="-fx-background-color: #fff0f5; -fx-border-color: #ffb6c1; -fx-border-radius: 8; -fx-background-radius: 8;" />
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="文档生成器" styleClass="title-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label text="当前模式:"/>
+                
+                <fx:define>
+                    <ToggleGroup fx:id="modeToggleGroup"/>
+                </fx:define>
+                
+                <RadioButton fx:id="wordModeRadio" text="Word" selected="true" 
+                             onAction="#handleWordModeSelect" styleClass="action-button"
+                             toggleGroup="$modeToggleGroup"/>
+                <RadioButton fx:id="excelModeRadio" text="Excel" 
+                             onAction="#handleExcelModeSelect" styleClass="action-button"
+                             toggleGroup="$modeToggleGroup"/>
                              
-                  <TableView fx:id="listDataTableExample" prefHeight="0.0" prefWidth="0.0" visible="false" />
-               </children>
-            </VBox>
-         </children>
-      </HBox>
-   </children>
+                <!-- 添加模板类型ComboBox -->
+                <Label text="模板类型:" styleClass="field-label"/>
+                <ComboBox fx:id="templateTypeComboBox" prefWidth="120">
+                    <items>
+                        <FXCollections fx:factory="observableArrayList">
+                            <String fx:value="Word"/>
+                            <String fx:value="Excel"/>
+                        </FXCollections>
+                    </items>
+                </ComboBox>
+            </HBox>
+            
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="操作:"/>
+                <Button text="导入模板" onAction="#handleImportTemplate" styleClass="action-button"/>
+                <Button text="导出字段" onAction="#handleExportFields" styleClass="action-button"/>
+                <Button text="生成文档" onAction="#handleGenerateDocument" styleClass="action-button"/>
+                <Label text="当前模板:"/>
+                <Label fx:id="templateNameLabel" text="无" styleClass="field-label"/>
+            </HBox>
+        </VBox>
+        
+        <!-- 下方内容区域 -->
+        <SplitPane fx:id="contentSplitPane" dividerPositions="0.5">
+            <!-- 左侧分割区域 - 字段定义和数据填充 -->
+            <SplitPane orientation="VERTICAL" dividerPositions="0.5">
+                <!-- 字段定义区域 -->
+                <VBox spacing="10" styleClass="content-section">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="字段定义" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="添加字段" onAction="#handleAddField" styleClass="action-button"/>
+                        <Button text="添加列表" onAction="#handleAddListField" styleClass="action-button"/>
+                    </HBox>
+                    
+                    <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS"/>
+                    
+                    <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
+                        <VBox fx:id="objectFieldItemsContainer" spacing="10"/>
+                    </ScrollPane>
+                    
+                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS"/>
+                    
+                    <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
+                        <VBox fx:id="listFieldItemsContainer" spacing="10"/>
+                    </ScrollPane>
+                </VBox>
+                
+                <!-- 数据填充区域 -->
+                <VBox spacing="10" styleClass="content-section">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="数据填充" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="导入数据" onAction="#handleImportData" styleClass="action-button"/>
+                        <Button text="保存数据" onAction="#handleSaveData" styleClass="action-button"/>
+                    </HBox>
+                    
+                    <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
+                        <VBox fx:id="objectDataItemsContainer" spacing="10"/>
+                    </ScrollPane>
+                    
+                    <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
+                        <VBox fx:id="listDataItemsContainer" spacing="10"/>
+                    </ScrollPane>
+                </VBox>
+            </SplitPane>
+            
+            <!-- 右侧分割区域 - 模板编辑和预览 -->
+            <SplitPane orientation="VERTICAL" dividerPositions="0.5">
+                <!-- 模板编辑区域 -->
+                <VBox spacing="10" styleClass="content-section">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="模板编辑" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button text="保存模板" onAction="#handleSaveTemplate" styleClass="action-button"/>
+                    </HBox>
+                    
+                    <StackPane VBox.vgrow="ALWAYS">
+                        <!-- Word模式下的编辑器 -->
+                        <TextArea fx:id="wordEditor" promptText="导入Word模板后在此编辑..." 
+                                 wrapText="true" visible="true" styleClass="template-editor"/>
+                        
+                        <!-- Excel模式下的表格编辑器 -->
+                        <TableView fx:id="excelEditor" visible="false" styleClass="template-editor">
+                            <!-- 表格列会动态添加 -->
+                        </TableView>
+                    </StackPane>
+                </VBox>
+                
+                <!-- 预览区域 -->
+                <VBox spacing="10" styleClass="content-section">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="预览" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    
+                    <ScrollPane fx:id="previewScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="preview-scroll-pane">
+                        <StackPane>
+                            <!-- Word模式下的预览 -->
+                            <TextArea fx:id="wordPreviewArea" editable="false" wrapText="true" 
+                                      styleClass="preview-area" visible="true"/>
+                            
+                            <!-- Excel模式下的预览 -->
+                            <TableView fx:id="excelPreviewArea" styleClass="preview-area" visible="false">
+                                <!-- 表格列会动态添加 -->
+                            </TableView>
+                        </StackPane>
+                    </ScrollPane>
+                </VBox>
+            </SplitPane>
+        </SplitPane>
+    </SplitPane>
 </VBox> 

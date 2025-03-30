@@ -16,12 +16,12 @@
     
     <VBox spacing="10" VBox.vgrow="ALWAYS">
         <HBox spacing="10" alignment="CENTER_LEFT">
-            <Button text="纠错" fx:id="correctButton" onAction="#correctText" styleClass="action-button" HBox.hgrow="NEVER"/>
-            <Button text="清空" onAction="#clearText" styleClass="action-button" HBox.hgrow="NEVER"/>
-            <Button text="上传" onAction="#uploadFile" styleClass="action-button" HBox.hgrow="NEVER"/>
+            <Button text="纠错" fx:id="correctButton" onAction="#correctText" styleClass="action-button" HBox.hgrow="NEVER" prefWidth="80"/>
+            <Button text="清空" onAction="#clearText" styleClass="action-button" HBox.hgrow="NEVER" prefWidth="80"/>
+            <Button text="上传" onAction="#uploadFile" styleClass="action-button" HBox.hgrow="NEVER" prefWidth="80"/>
             <Region HBox.hgrow="ALWAYS" />
-            <Button text="规则" fx:id="replaceRuleButton" onAction="#openReplaceRuleDialog" styleClass="action-button-alt" HBox.hgrow="NEVER"/>
-            <Button text="执行" fx:id="executeReplaceButton" onAction="#executeReplace" styleClass="action-button-alt" HBox.hgrow="NEVER"/>
+            <Button text="规则管理" fx:id="replaceRuleButton" onAction="#openReplaceRuleDialog" styleClass="action-button-alt" HBox.hgrow="NEVER" prefWidth="100"/>
+            <Button text="执行替换" fx:id="executeReplaceButton" onAction="#executeReplace" styleClass="action-button-alt" HBox.hgrow="NEVER" prefWidth="100"/>
         </HBox>
         
         <TextArea fx:id="inputTextArea" promptText="请输入需要纠错的文本...&#10;或者点击&quot;上传文件&quot;按钮上传Word/TXT文件...&#10;也可以直接拖放文件到此处..." wrapText="true" VBox.vgrow="ALWAYS"
@@ -32,7 +32,7 @@
         
         <HBox spacing="10" alignment="CENTER_LEFT">
             <Label text="处理结果:" style="-fx-text-fill: -pink-text;"/>
-            <Button text="复制结果" onAction="#copyResult" styleClass="action-button" HBox.hgrow="NEVER"/>
+            <Button text="复制结果" onAction="#copyResult" styleClass="action-button" HBox.hgrow="NEVER" prefWidth="100"/>
             <ProgressIndicator fx:id="progressIndicator" visible="false" style="-fx-progress-color: -pink-primary;" />
         </HBox>
         

@@ -1,10 +1,8 @@
 package com.timelordtty.docgen.service;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -16,30 +14,20 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
 import com.timelordtty.AppLogger;
-import com.timelordtty.docgen.model.TemplateField;
 
 /**
- * Word模板服务
+ * Word模板服务类，提供Word文档模板的读取、解析和生成功能
  */
 public class WordTemplateService {
     
     /**
-     * 读取Word文档内容
-     * @param file 文件对象
-     * @return 文档内容
-     * @throws Exception 异常
+     * 读取Word文档内容为纯文本
+     * 
+     * @param filePath Word文档路径
+     * @return 文档内容文本
+     * @throws IOException IO异常
      */
-    public String readTemplate(File file) throws Exception {
-        return readDocxContent(file.getPath());
-    }
-    
-    /**
-     * 读取Word文档内容
-     * @param filePath 文件路径
-     * @return 文档内容
-     * @throws Exception 异常
-     */
-    public String readDocxContent(String filePath) throws Exception {
+    public String readDocxContent(String filePath) throws IOException {
         StringBuilder content = new StringBuilder();
         
         try (FileInputStream fis = new FileInputStream(filePath);
@@ -47,23 +35,32 @@ public class WordTemplateService {
             
             // 读取段落
             for (XWPFParagraph paragraph : document.getParagraphs()) {
-                content.append(paragraph.getText()).append("\n");
+                content.append(paragraph.getText());
+                // 保持段落换行以保留文档结构
+                content.append("\n");
             }
             
             // 读取表格
             for (XWPFTable table : document.getTables()) {
+                // 添加表格标记，帮助保留文档结构
+                content.append("[TABLE_START]\n");
                 for (XWPFTableRow row : table.getRows()) {
+                    // 行开始
+                    content.append("[ROW_START]");
                     for (XWPFTableCell cell : row.getTableCells()) {
-                        content.append(cell.getText()).append("\t");
+                        // 单元格内容
+                        content.append("[CELL_START]");
+                        for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                            content.append(paragraph.getText());
+                            content.append(" ");
+                        }
+                        content.append("[CELL_END]");
                     }
-                    content.append("\n");
+                    // 行结束
+                    content.append("[ROW_END]\n");
                 }
+                content.append("[TABLE_END]\n\n");
             }
-            
-            AppLogger.info("成功读取Word文档: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("读取Word文档失败: " + filePath, e);
-            throw e;
         }
         
         return content.toString();
@@ -71,205 +68,211 @@ public class WordTemplateService {
     
     /**
      * 保存Word模板
+     * 
      * @param filePath 文件路径
      * @param content 文档内容
-     * @throws Exception 异常
+     * @throws IOException IO异常
      */
-    public void saveDocxTemplate(String filePath, String content) throws Exception {
+    public void saveDocxTemplate(String filePath, String content) throws IOException {
+        // 创建新文档
         try (XWPFDocument document = new XWPFDocument()) {
-            // 创建段落
-            XWPFParagraph paragraph = document.createParagraph();
-            XWPFRun run = paragraph.createRun();
-            run.setText(content);
+            // 简化实现：仅创建包含内容的段落
+            String[] paragraphs = content.split("\n");
+            
+            for (String paragraph : paragraphs) {
+                XWPFParagraph p = document.createParagraph();
+                XWPFRun run = p.createRun();
+                run.setText(paragraph);
+            }
             
             // 保存文档
             try (FileOutputStream out = new FileOutputStream(filePath)) {
                 document.write(out);
             }
+        }
+        
+        AppLogger.info("保存Word模板: " + filePath);
+    }
+    
+    /**
+     * 生成模板
+     * 
+     * @param outputPath 输出路径
+     * @param content 模板内容
+     * @throws IOException IO异常
+     */
+    public void generateTemplate(String outputPath, String content) throws IOException {
+        saveDocxTemplate(outputPath, content);
+    }
+    
+    /**
+     * 根据模板和数据生成文档
+     * 
+     * @param templatePath 模板路径
+     * @param outputPath 输出路径
+     * @param fieldDataMap 普通字段数据
+     * @param listFieldDataMap 列表字段数据
+     * @throws IOException IO异常
+     */
+    public void generateDocument(
+            String templatePath, 
+            String outputPath, 
+            Map<String, String> fieldDataMap,
+            Map<String, List<Map<String, String>>> listFieldDataMap) throws IOException {
+        
+        // 读取模板
+        try (FileInputStream fis = new FileInputStream(templatePath);
+             XWPFDocument document = new XWPFDocument(fis)) {
             
-            AppLogger.info("成功保存Word模板: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("保存Word模板失败: " + filePath, e);
-            throw e;
+            // 处理段落中的占位符
+            for (XWPFParagraph paragraph : document.getParagraphs()) {
+                processParagraph(paragraph, fieldDataMap, listFieldDataMap);
+            }
+            
+            // 处理表格中的占位符
+            for (XWPFTable table : document.getTables()) {
+                processTable(table, fieldDataMap, listFieldDataMap);
+            }
+            
+            // 保存生成的文档
+            try (FileOutputStream fos = new FileOutputStream(outputPath)) {
+                document.write(fos);
+            }
+        }
+        
+        AppLogger.info("生成Word文档: " + outputPath);
+    }
+    
+    /**
+     * 处理表格中的占位符
+     */
+    private void processTable(XWPFTable table, Map<String, String> fieldDataMap, 
+            Map<String, List<Map<String, String>>> listFieldDataMap) {
+        
+        for (XWPFTableRow row : table.getRows()) {
+            for (XWPFTableCell cell : row.getTableCells()) {
+                for (XWPFParagraph paragraph : cell.getParagraphs()) {
+                    processParagraph(paragraph, fieldDataMap, listFieldDataMap);
+                }
+            }
         }
     }
     
     /**
-     * 保存Word文档
-     * @param filePath 文件路径
-     * @param content 文档内容
-     * @throws Exception 异常
+     * 处理段落中的占位符
+     * 
+     * @param paragraph 段落
+     * @param fieldDataMap 字段数据
+     * @param listFieldDataMap 列表数据
      */
-    public void saveDocxDocument(String filePath, String content) throws Exception {
-        saveDocxTemplate(filePath, content);
+    private void processParagraph(
+            XWPFParagraph paragraph, 
+            Map<String, String> fieldDataMap,
+            Map<String, List<Map<String, String>>> listFieldDataMap) {
+        
+        String text = paragraph.getText();
+        
+        // 检查段落是否包含占位符
+        if (!text.contains("{{")) {
+            return; // 不包含占位符，直接返回
+        }
+        
+        // 替换普通字段占位符
+        boolean modified = false;
+        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+            String placeholder = "{{" + entry.getKey() + "}}";
+            if (text.contains(placeholder)) {
+                text = text.replace(placeholder, entry.getValue() != null ? entry.getValue() : "");
+                modified = true;
+            }
+        }
+        
+        // 如果有修改，更新段落内容
+        if (modified) {
+            // 清除原有内容并保留样式
+            XWPFRun firstRun = null;
+            if (!paragraph.getRuns().isEmpty()) {
+                firstRun = paragraph.getRuns().get(0);
+            }
+            
+            // 清除所有现有Run
+            for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
+                paragraph.removeRun(i);
+            }
+            
+            // 创建新的Run并应用原有样式
+            XWPFRun newRun = paragraph.createRun();
+            if (firstRun != null) {
+                // 复制样式
+                newRun.setBold(firstRun.isBold());
+                newRun.setItalic(firstRun.isItalic());
+                newRun.setUnderline(firstRun.getUnderline());
+                newRun.setColor(firstRun.getColor());
+                newRun.setFontFamily(firstRun.getFontFamily());
+                newRun.setFontSize(firstRun.getFontSize());
+            }
+            
+            // 设置新内容
+            newRun.setText(text);
+        }
+        
+        // 查找列表占位符并处理
+        processListPlaceholders(paragraph, listFieldDataMap);
     }
     
     /**
-     * 生成Word模板
-     * @param filePath 文件路径
-     * @param fields 字段列表
-     * @throws Exception 异常
+     * 处理列表占位符
      */
-    public void generateWordTemplate(String filePath, List<TemplateField> fields) throws Exception {
-        try (XWPFDocument document = new XWPFDocument()) {
-            // 创建标题段落
-            XWPFParagraph titleParagraph = document.createParagraph();
-            titleParagraph.setAlignment(org.apache.poi.xwpf.usermodel.ParagraphAlignment.CENTER);
-            XWPFRun titleRun = titleParagraph.createRun();
-            titleRun.setText("文档模板");
-            titleRun.setBold(true);
-            titleRun.setFontSize(16);
+    private void processListPlaceholders(XWPFParagraph paragraph, Map<String, List<Map<String, String>>> listFieldDataMap) {
+        String text = paragraph.getText();
+        
+        // 查找列表开始标记 {{#listName}}
+        for (String listName : listFieldDataMap.keySet()) {
+            String startTag = "{{#" + listName + "}}";
+            String endTag = "{{/" + listName + "}}";
             
-            // 创建说明段落
-            XWPFParagraph descParagraph = document.createParagraph();
-            XWPFRun descRun = descParagraph.createRun();
-            descRun.setText("本文档包含以下字段：");
-            
-            // 创建表格
-            XWPFTable table = document.createTable(fields.size() + 1, 3);
-            table.setWidth("100%");
-            
-            // 设置表头
-            XWPFTableRow headerRow = table.getRow(0);
-            headerRow.getCell(0).setText("字段名称");
-            headerRow.getCell(1).setText("字段类型");
-            headerRow.getCell(2).setText("字段占位符");
-            
-            // 分离对象字段和列表字段
-            List<TemplateField> objectFields = new ArrayList<>();
-            List<TemplateField> listFields = new ArrayList<>();
-            Map<String, List<TemplateField>> listItemFields = new HashMap<>();
-            
-            for (TemplateField field : fields) {
-                if (field.isList()) {
-                    listFields.add(field);
-                    listItemFields.put(field.getName(), new ArrayList<>());
-                } else if (field.getName().contains(".")) {
-                    // 这是列表项字段
-                    String listName = field.getName().substring(0, field.getName().indexOf("."));
-                    List<TemplateField> itemFields = listItemFields.getOrDefault(listName, new ArrayList<>());
-                    itemFields.add(field);
-                    listItemFields.put(listName, itemFields);
-                } else {
-                    objectFields.add(field);
+            if (text.contains(startTag) && text.contains(endTag)) {
+                // 获取列表数据
+                List<Map<String, String>> listData = listFieldDataMap.get(listName);
+                if (listData == null || listData.isEmpty()) {
+                    continue;
                 }
-            }
-            
-            // 填充字段
-            int rowIndex = 1;
-            
-            // 添加对象字段
-            for (TemplateField field : objectFields) {
-                XWPFTableRow row = table.getRow(rowIndex++);
-                row.getCell(0).setText(field.getName());
-                row.getCell(1).setText("普通");
-                row.getCell(2).setText("{{" + field.getName() + "}}");
-            }
-            
-            // 添加列表字段
-            for (TemplateField field : listFields) {
-                XWPFTableRow row = table.getRow(rowIndex++);
-                row.getCell(0).setText(field.getName());
-                row.getCell(1).setText("列表");
-                row.getCell(2).setText("{{#" + field.getName() + "}} ... {{/" + field.getName() + "}}");
                 
-                // 添加列表项字段
-                List<TemplateField> itemFields = listItemFields.get(field.getName());
-                if (itemFields != null && !itemFields.isEmpty()) {
-                    for (TemplateField itemField : itemFields) {
-                        if (rowIndex < table.getNumberOfRows()) {
-                            row = table.getRow(rowIndex++);
-                        } else {
-                            row = table.createRow();
-                        }
-                        String itemName = itemField.getName().substring(itemField.getName().indexOf(".") + 1);
-                        row.getCell(0).setText("  " + itemName);
-                        row.getCell(1).setText("列表项");
-                        row.getCell(2).setText("{{" + itemName + "}}");
+                // 提取列表模板内容
+                int startIndex = text.indexOf(startTag) + startTag.length();
+                int endIndex = text.indexOf(endTag);
+                if (startIndex >= endIndex) {
+                    continue;
+                }
+                
+                String templateContent = text.substring(startIndex, endIndex);
+                
+                // 构建列表替换内容
+                StringBuilder listContent = new StringBuilder();
+                for (Map<String, String> item : listData) {
+                    String itemContent = templateContent;
+                    for (Map.Entry<String, String> field : item.entrySet()) {
+                        String fieldPlaceholder = "{{" + listName + "." + field.getKey() + "}}";
+                        itemContent = itemContent.replace(fieldPlaceholder, field.getValue() != null ? field.getValue() : "");
                     }
-                }
-            }
-            
-            // 如果存在列表字段，添加说明
-            if (!listFields.isEmpty()) {
-                XWPFParagraph listParagraph = document.createParagraph();
-                XWPFRun listRun = listParagraph.createRun();
-                listRun.setText("注意：对于列表字段，需要在{{#字段名}}和{{/字段名}}之间添加要循环的内容。");
-            }
-            
-            // 添加示例内容
-            XWPFParagraph exampleParagraph = document.createParagraph();
-            XWPFRun exampleRun = exampleParagraph.createRun();
-            exampleRun.setText("以下是示例内容：");
-            
-            XWPFParagraph contentParagraph = document.createParagraph();
-            XWPFRun contentRun = contentParagraph.createRun();
-            
-            StringBuilder exampleContent = new StringBuilder();
-            exampleContent.append("尊敬的");
-            
-            // 添加一个客户字段示例
-            boolean hasCustomerField = false;
-            for (TemplateField field : objectFields) {
-                if (field.getName().contains("客户") || field.getName().contains("用户") || 
-                    field.getName().contains("姓名") || field.getName().contains("收件人")) {
-                    exampleContent.append("{{").append(field.getName()).append("}}");
-                    hasCustomerField = true;
-                    break;
-                }
-            }
-            
-            if (!hasCustomerField && !objectFields.isEmpty()) {
-                // 如果没有客户相关字段，使用第一个非列表字段
-                exampleContent.append("{{").append(objectFields.get(0).getName()).append("}}");
-            }
-            
-            exampleContent.append("：\n\n");
-            exampleContent.append("    感谢您选择我们的服务！以下是您的信息摘要：\n\n");
-            
-            // 添加非列表字段示例
-            for (TemplateField field : objectFields) {
-                if (!field.getName().contains("客户") && !field.getName().contains("用户") && 
-                    !field.getName().contains("姓名") && !field.getName().contains("收件人")) {
-                    exampleContent.append("    ").append(field.getName()).append("：{{").append(field.getName()).append("}}\n");
-                }
-            }
-            
-            exampleContent.append("\n");
-            
-            // 添加列表字段示例
-            for (TemplateField field : listFields) {
-                exampleContent.append("    ").append(field.getName()).append("明细：\n");
-                exampleContent.append("    {{#").append(field.getName()).append("}}\n");
-                
-                // 添加列表项字段
-                List<TemplateField> itemFields = listItemFields.get(field.getName());
-                if (itemFields != null && !itemFields.isEmpty()) {
-                    for (TemplateField itemField : itemFields) {
-                        String itemName = itemField.getName().substring(itemField.getName().indexOf(".") + 1);
-                        exampleContent.append("        ").append(itemName).append("：{{").append(itemName).append("}}\n");
-                    }
-                } else {
-                    exampleContent.append("        项目内容\n");
+                    listContent.append(itemContent);
                 }
                 
-                exampleContent.append("    {{/").append(field.getName()).append("}}\n\n");
+                // 替换整个列表内容
+                String finalContent = text.substring(0, text.indexOf(startTag)) 
+                        + listContent.toString() 
+                        + text.substring(text.indexOf(endTag) + endTag.length());
+                
+                // 清除原有内容
+                for (int i = paragraph.getRuns().size() - 1; i >= 0; i--) {
+                    paragraph.removeRun(i);
+                }
+                
+                // 添加新内容
+                XWPFRun newRun = paragraph.createRun();
+                newRun.setText(finalContent);
+                break; // 一个段落只处理一个列表
             }
-            
-            exampleContent.append("    此致\n");
-            exampleContent.append("    敬礼");
-            
-            contentRun.setText(exampleContent.toString());
-            
-            // 保存文档
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                document.write(out);
-            }
-            
-            AppLogger.info("成功生成Word模板: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("生成Word模板失败: " + filePath, e);
-            throw e;
         }
     }
 } 

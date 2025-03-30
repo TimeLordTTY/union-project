@@ -1,61 +1,73 @@
 package com.timelordtty.docgen.service;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.timelordtty.AppLogger;
-import com.timelordtty.docgen.model.TemplateField;
-
-import javafx.collections.ObservableList;
 
 /**
- * Excel模板服务
+ * Excel模板服务类，提供Excel表格模板的读取、解析和生成功能
  */
 public class ExcelTemplateService {
-    
+
     /**
-     * 读取Excel内容
-     * @param file 文件对象
-     * @return Excel内容，按行列表形式返回
-     * @throws Exception 异常
+     * 读取Excel表格内容
+     * 
+     * @param filePath Excel文件路径
+     * @return 表格内容列表
+     * @throws IOException IO异常
      */
-    public List<List<String>> readTemplate(File file) throws Exception {
-        return readExcelContent(file.getPath());
-    }
-    
-    /**
-     * 读取Excel内容
-     * @param filePath 文件路径
-     * @return Excel内容，按行列表形式返回
-     * @throws Exception 异常
-     */
-    public List<List<String>> readExcelContent(String filePath) throws Exception {
-        List<List<String>> data = new ArrayList<>();
+    public List<List<String>> readExcelContent(String filePath) throws IOException {
+        List<List<String>> result = new ArrayList<>();
         
         try (FileInputStream fis = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(fis)) {
+             Workbook workbook = WorkbookFactory.create(fis)) {
             
+            // 读取第一个工作表
             Sheet sheet = workbook.getSheetAt(0);
             
-            // 读取所有行
-            for (Row row : sheet) {
+            // 遍历行
+            for (int i = 0; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    result.add(new ArrayList<>());
+                    continue;
+                }
+                
                 List<String> rowData = new ArrayList<>();
-                for (Cell cell : row) {
+                
+                // 遍历列
+                for (int j = 0; j < row.getLastCellNum(); j++) {
+                    Cell cell = row.getCell(j);
+                    if (cell == null) {
+                        rowData.add("");
+                        continue;
+                    }
+                    
+                    // 根据单元格类型获取值
                     switch (cell.getCellType()) {
                         case STRING:
                             rowData.add(cell.getStringCellValue());
@@ -67,39 +79,32 @@ public class ExcelTemplateService {
                             rowData.add(String.valueOf(cell.getBooleanCellValue()));
                             break;
                         case FORMULA:
-                            try {
-                                rowData.add(cell.getStringCellValue());
-                            } catch (IllegalStateException e) {
-                                rowData.add(String.valueOf(cell.getNumericCellValue()));
-                            }
+                            rowData.add(cell.getCellFormula());
                             break;
                         default:
                             rowData.add("");
                     }
                 }
-                data.add(rowData);
+                
+                result.add(rowData);
             }
-            
-            AppLogger.info("成功读取Excel文件: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("读取Excel文件失败: " + filePath, e);
-            throw e;
         }
         
-        return data;
+        return result;
     }
     
     /**
      * 保存Excel模板
+     * 
      * @param filePath 文件路径
-     * @param data Excel内容
-     * @throws Exception 异常
+     * @param data 表格数据
+     * @throws IOException IO异常
      */
-    public void saveExcelTemplate(String filePath, List<List<String>> data) throws Exception {
+    public void saveExcelTemplate(String filePath, List<List<String>> data) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("模板");
+            Sheet sheet = workbook.createSheet("Sheet1");
             
-            // 创建行和单元格
+            // 写入数据
             for (int i = 0; i < data.size(); i++) {
                 Row row = sheet.createRow(i);
                 List<String> rowData = data.get(i);
@@ -110,441 +115,399 @@ public class ExcelTemplateService {
                 }
             }
             
-            // 冻结首行
-            if (!data.isEmpty()) {
-                sheet.createFreezePane(0, 1);
-            }
-            
-            // 自动调整列宽
-            for (int i = 0; i < getMaxColumnCount(data); i++) {
-                sheet.autoSizeColumn(i);
-            }
-            
             // 保存文件
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                workbook.write(out);
+            try (FileOutputStream fos = new FileOutputStream(filePath)) {
+                workbook.write(fos);
             }
-            
-            AppLogger.info("成功保存Excel模板: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("保存Excel模板失败: " + filePath, e);
-            throw e;
         }
+        
+        AppLogger.info("保存Excel模板: " + filePath);
     }
     
     /**
-     * 保存Excel文档
-     * @param filePath 文件路径
-     * @param data Excel内容
-     * @throws Exception 异常
+     * 生成模板
+     * 
+     * @param outputPath 输出路径
+     * @param data 模板数据
+     * @throws IOException IO异常
      */
-    public void saveExcelDocument(String filePath, List<List<String>> data) throws Exception {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("数据");
-            
-            // 创建表头样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            // 创建行和单元格
-            for (int i = 0; i < data.size(); i++) {
-                Row row = sheet.createRow(i);
-                List<String> rowData = data.get(i);
-                
-                for (int j = 0; j < rowData.size(); j++) {
-                    Cell cell = row.createCell(j);
-                    String value = rowData.get(j);
-                    
-                    // 尝试将数字字符串转换为数字
-                    try {
-                        double numValue = Double.parseDouble(value);
-                        cell.setCellValue(numValue);
-                    } catch (NumberFormatException e) {
-                        cell.setCellValue(value);
-                    }
-                    
-                    // 为表头设置样式
-                    if (i == 0) {
-                        cell.setCellStyle(headerStyle);
-                    }
-                }
-            }
-            
-            // 冻结首行
-            if (!data.isEmpty()) {
-                sheet.createFreezePane(0, 1);
-            }
-            
-            // 自动调整列宽
-            for (int i = 0; i < getMaxColumnCount(data); i++) {
-                sheet.autoSizeColumn(i);
-            }
-            
-            // 保存文件
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                workbook.write(out);
-            }
-            
-            AppLogger.info("成功保存Excel文档: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("保存Excel文档失败: " + filePath, e);
-            throw e;
-        }
+    public void generateTemplate(String outputPath, List<List<String>> data) throws IOException {
+        saveExcelTemplate(outputPath, data);
     }
     
     /**
-     * 生成Excel模板
-     * @param filePath 文件路径
-     * @param fields 字段列表
-     * @throws Exception 异常
-     */
-    public void generateExcelTemplate(String filePath, List<TemplateField> fields) throws Exception {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("模板");
-            
-            // 创建表头样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            // 分离对象字段和列表字段
-            List<TemplateField> objectFields = new ArrayList<>();
-            List<TemplateField> listFields = new ArrayList<>();
-            Map<String, List<TemplateField>> listItemFields = new HashMap<>();
-            
-            for (TemplateField field : fields) {
-                if (field.isList()) {
-                    listFields.add(field);
-                    listItemFields.put(field.getName(), new ArrayList<>());
-                } else if (field.getName().contains(".")) {
-                    // 这是列表项字段
-                    String listName = field.getName().substring(0, field.getName().indexOf("."));
-                    List<TemplateField> itemFields = listItemFields.getOrDefault(listName, new ArrayList<>());
-                    itemFields.add(field);
-                    listItemFields.put(listName, itemFields);
-                } else {
-                    objectFields.add(field);
-                }
-            }
-            
-            // 创建说明工作表
-            Sheet infoSheet = workbook.createSheet("字段说明");
-            Row infoTitleRow = infoSheet.createRow(0);
-            Cell infoTitleCell = infoTitleCell = infoTitleRow.createCell(0);
-            infoTitleCell.setCellValue("字段说明");
-            infoTitleCell.setCellStyle(headerStyle);
-            
-            Row infoHeaderRow = infoSheet.createRow(1);
-            infoHeaderRow.createCell(0).setCellValue("字段名称");
-            infoHeaderRow.createCell(1).setCellValue("字段类型");
-            infoHeaderRow.createCell(2).setCellValue("字段占位符");
-            
-            int infoRowIndex = 2;
-            
-            // 添加对象字段说明
-            for (TemplateField field : objectFields) {
-                Row row = infoSheet.createRow(infoRowIndex++);
-                row.createCell(0).setCellValue(field.getName());
-                row.createCell(1).setCellValue("普通");
-                row.createCell(2).setCellValue("{{" + field.getName() + "}}");
-            }
-            
-            // 添加列表字段说明
-            for (TemplateField field : listFields) {
-                Row row = infoSheet.createRow(infoRowIndex++);
-                row.createCell(0).setCellValue(field.getName());
-                row.createCell(1).setCellValue("列表");
-                row.createCell(2).setCellValue("{{#" + field.getName() + "}} ... {{/" + field.getName() + "}}");
-                
-                // 添加列表项字段说明
-                List<TemplateField> itemFields = listItemFields.get(field.getName());
-                if (itemFields != null && !itemFields.isEmpty()) {
-                    for (TemplateField itemField : itemFields) {
-                        row = infoSheet.createRow(infoRowIndex++);
-                        String itemName = itemField.getName().substring(itemField.getName().indexOf(".") + 1);
-                        row.createCell(0).setCellValue("  " + itemName);
-                        row.createCell(1).setCellValue("列表项");
-                        row.createCell(2).setCellValue("{{" + itemName + "}}");
-                    }
-                }
-            }
-            
-            // 自动调整说明表格列宽
-            for (int i = 0; i < 3; i++) {
-                infoSheet.autoSizeColumn(i);
-            }
-            
-            // 创建表头行
-            Row headerRow = sheet.createRow(0);
-            int columnIndex = 0;
-            
-            // 添加对象字段列
-            for (TemplateField field : objectFields) {
-                Cell cell = headerRow.createCell(columnIndex++);
-                cell.setCellValue("{{" + field.getName() + "}}");
-                cell.setCellStyle(headerStyle);
-            }
-            
-            // 添加列表字段列
-            for (TemplateField field : listFields) {
-                List<TemplateField> itemFields = listItemFields.get(field.getName());
-                if (itemFields != null && !itemFields.isEmpty()) {
-                    for (TemplateField itemField : itemFields) {
-                        Cell cell = headerRow.createCell(columnIndex++);
-                        String itemName = itemField.getName().substring(itemField.getName().indexOf(".") + 1);
-                        cell.setCellValue("{{#" + field.getName() + "}}{{" + itemName + "}}{{/" + field.getName() + "}}");
-                        cell.setCellStyle(headerStyle);
-                    }
-                } else {
-                    // 如果没有子字段，创建一个列表字段列
-                    Cell cell = headerRow.createCell(columnIndex++);
-                    cell.setCellValue("{{#" + field.getName() + "}}{{item}}{{/" + field.getName() + "}}");
-                    cell.setCellStyle(headerStyle);
-                }
-            }
-            
-            // 添加样例数据行
-            Row dataRow = sheet.createRow(1);
-            columnIndex = 0;
-            
-            // 添加对象字段样例数据
-            for (TemplateField field : objectFields) {
-                Cell cell = dataRow.createCell(columnIndex++);
-                
-                // 根据字段名称生成样例数据
-                String fieldName = field.getName().toLowerCase();
-                if (fieldName.contains("日期") || fieldName.contains("时间") || fieldName.contains("date") || fieldName.contains("time")) {
-                    cell.setCellValue("2023-01-01");
-                } else if (fieldName.contains("金额") || fieldName.contains("价格") || fieldName.contains("费用") || 
-                           fieldName.contains("amount") || fieldName.contains("price") || fieldName.contains("cost")) {
-                    cell.setCellValue(1000.00);
-                } else if (fieldName.contains("数量") || fieldName.contains("个数") || fieldName.contains("count") || 
-                         fieldName.contains("quantity") || fieldName.contains("number")) {
-                    cell.setCellValue(10);
-                } else if (fieldName.contains("电话") || fieldName.contains("手机") || fieldName.contains("phone") || 
-                         fieldName.contains("mobile") || fieldName.contains("tel")) {
-                    cell.setCellValue("13800138000");
-                } else if (fieldName.contains("邮箱") || fieldName.contains("email")) {
-                    cell.setCellValue("example@example.com");
-                } else if (fieldName.contains("地址") || fieldName.contains("address")) {
-                    cell.setCellValue("北京市朝阳区");
-                } else if (fieldName.contains("姓名") || fieldName.contains("name") || fieldName.contains("客户") || 
-                         fieldName.contains("用户") || fieldName.contains("customer") || fieldName.contains("user")) {
-                    cell.setCellValue("张三");
-                } else {
-                    cell.setCellValue("样例数据");
-                }
-            }
-            
-            // 添加列表字段样例数据
-            for (TemplateField field : listFields) {
-                List<TemplateField> itemFields = listItemFields.get(field.getName());
-                if (itemFields != null && !itemFields.isEmpty()) {
-                    for (TemplateField itemField : itemFields) {
-                        Cell cell = dataRow.createCell(columnIndex++);
-                        String itemName = itemField.getName().substring(itemField.getName().indexOf(".") + 1).toLowerCase();
-                        
-                        // 根据字段名称生成样例数据
-                        if (itemName.contains("日期") || itemName.contains("时间")) {
-                            cell.setCellValue("2023-01-01");
-                        } else if (itemName.contains("金额") || itemName.contains("价格") || itemName.contains("费用")) {
-                            cell.setCellValue(200.00);
-                        } else if (itemName.contains("数量") || itemName.contains("个数")) {
-                            cell.setCellValue(2);
-                        } else if (itemName.contains("名称") || itemName.contains("标题")) {
-                            cell.setCellValue("样例项目");
-                        } else {
-                            cell.setCellValue("样例数据");
-                        }
-                    }
-                } else {
-                    Cell cell = dataRow.createCell(columnIndex++);
-                    cell.setCellValue("样例项目");
-                }
-            }
-            
-            // 冻结首行
-            sheet.createFreezePane(0, 1);
-            
-            // 自动调整列宽
-            for (int i = 0; i < columnIndex; i++) {
-                sheet.autoSizeColumn(i);
-            }
-            
-            // 保存文件
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                workbook.write(out);
-            }
-            
-            AppLogger.info("成功生成Excel模板: " + filePath);
-        } catch (Exception e) {
-            AppLogger.error("生成Excel模板失败: " + filePath, e);
-            throw e;
-        }
-    }
-    
-    /**
-     * 获取最大列数
-     * @param data 数据
-     * @return 最大列数
-     */
-    private int getMaxColumnCount(List<List<String>> data) {
-        int maxColumns = 0;
-        for (List<String> row : data) {
-            maxColumns = Math.max(maxColumns, row.size());
-        }
-        return maxColumns;
-    }
-    
-    /**
-     * 导出字段到Excel
-     * @param file 导出文件
-     * @param objectFields 对象字段列表
+     * 根据模板和数据生成文档
+     * 
+     * @param templatePath 模板路径
+     * @param outputPath 输出路径
+     * @param fieldDataMap 普通字段数据
      * @param listFieldDataMap 列表字段数据
-     * @throws Exception 异常
+     * @throws IOException IO异常
      */
-    public void exportFieldsToExcel(File file, ObservableList<TemplateField> objectFields, 
-                                    Map<String, List<Map<String, String>>> listFieldDataMap) throws Exception {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("字段列表");
+    public void generateDocument(
+            String templatePath, 
+            String outputPath, 
+            Map<String, String> fieldDataMap,
+            Map<String, List<Map<String, String>>> listFieldDataMap) throws IOException {
+        
+        try (FileInputStream fis = new FileInputStream(templatePath);
+             Workbook workbook = WorkbookFactory.create(fis)) {
             
-            // 创建表头样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            
-            // 创建表头行
-            Row headerRow = sheet.createRow(0);
-            Cell nameHeaderCell = headerRow.createCell(0);
-            nameHeaderCell.setCellValue("字段名称");
-            nameHeaderCell.setCellStyle(headerStyle);
-            
-            Cell typeHeaderCell = headerRow.createCell(1);
-            typeHeaderCell.setCellValue("字段类型");
-            typeHeaderCell.setCellStyle(headerStyle);
-            
-            Cell placeholderHeaderCell = headerRow.createCell(2);
-            placeholderHeaderCell.setCellValue("占位符");
-            placeholderHeaderCell.setCellStyle(headerStyle);
-            
-            int rowIndex = 1;
-            
-            // 添加对象字段
-            for (TemplateField field : objectFields) {
-                Row row = sheet.createRow(rowIndex++);
-                row.createCell(0).setCellValue(field.getName());
-                row.createCell(1).setCellValue(field.isList() ? "列表" : "普通");
-                row.createCell(2).setCellValue(field.getPlaceholder());
+            // 处理所有工作表
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                processSheet(sheet, fieldDataMap, listFieldDataMap);
             }
             
-            // 添加列表字段数据
-            for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
-                String listName = entry.getKey();
-                List<Map<String, String>> listData = entry.getValue();
-                
-                // 添加列表字段行
-                Row listRow = sheet.createRow(rowIndex++);
-                listRow.createCell(0).setCellValue(listName);
-                listRow.createCell(1).setCellValue("列表");
-                listRow.createCell(2).setCellValue("{{#" + listName + "}} ... {{/" + listName + "}}");
-                
-                // 添加列表项数据
-                if (!listData.isEmpty()) {
-                    // 获取所有可能的列表项字段
-                    Map<String, Boolean> itemFields = new HashMap<>();
-                    for (Map<String, String> item : listData) {
-                        itemFields.putAll(item.entrySet().stream()
-                            .collect(HashMap::new, (m, e) -> m.put(e.getKey(), true), HashMap::putAll));
-                    }
-                    
-                    // 添加列表项字段行
-                    for (String itemField : itemFields.keySet()) {
-                        Row itemRow = sheet.createRow(rowIndex++);
-                        itemRow.createCell(0).setCellValue("  " + itemField);
-                        itemRow.createCell(1).setCellValue("列表项");
-                        itemRow.createCell(2).setCellValue("{{" + itemField + "}}");
-                    }
-                }
+            // 保存生成的文档
+            try (FileOutputStream fos = new FileOutputStream(outputPath)) {
+                workbook.write(fos);
             }
-            
-            // 自动调整列宽
-            for (int i = 0; i < 3; i++) {
-                sheet.autoSizeColumn(i);
-            }
-            
-            // 创建数据工作表
-            Sheet dataSheet = workbook.createSheet("数据填充");
-            
-            // 添加数据表头
-            Row dataHeaderRow = dataSheet.createRow(0);
-            
-            // 对象字段表头
-            int colIndex = 0;
-            for (TemplateField field : objectFields) {
-                if (!field.isList()) {
-                    Cell cell = dataHeaderRow.createCell(colIndex++);
-                    cell.setCellValue(field.getName());
-                    cell.setCellStyle(headerStyle);
-                }
-            }
-            
-            // 列表字段表头
-            for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
-                String listName = entry.getKey();
-                List<Map<String, String>> listData = entry.getValue();
-                
-                if (!listData.isEmpty()) {
-                    // 获取所有可能的列表项字段
-                    Map<String, Boolean> itemFields = new HashMap<>();
-                    for (Map<String, String> item : listData) {
-                        itemFields.putAll(item.entrySet().stream()
-                            .collect(HashMap::new, (m, e) -> m.put(e.getKey(), true), HashMap::putAll));
-                    }
-                    
-                    // 添加列表项字段表头
-                    for (String itemField : itemFields.keySet()) {
-                        Cell cell = dataHeaderRow.createCell(colIndex++);
-                        cell.setCellValue(listName + "." + itemField);
-                        cell.setCellStyle(headerStyle);
-                    }
-                }
-            }
-            
-            // 添加数据行
-            Row dataRow = dataSheet.createRow(1);
-            
-            // 添加对象字段数据
-            colIndex = 0;
-            for (TemplateField field : objectFields) {
-                if (!field.isList()) {
-                    dataRow.createCell(colIndex++).setCellValue("");
-                }
-            }
-            
-            // 自动调整数据表列宽
-            for (int i = 0; i < colIndex; i++) {
-                dataSheet.autoSizeColumn(i);
-            }
-            
-            // 保存文件
-            try (FileOutputStream out = new FileOutputStream(file)) {
-                workbook.write(out);
-            }
-            
-            AppLogger.info("成功导出字段到Excel: " + file.getPath());
-        } catch (Exception e) {
-            AppLogger.error("导出字段到Excel失败", e);
-            throw e;
         }
+        
+        AppLogger.info("生成Excel文档: " + outputPath);
+    }
+    
+    /**
+     * 处理工作表中的占位符
+     * 
+     * @param sheet 工作表
+     * @param fieldDataMap 字段数据
+     * @param listFieldDataMap 列表数据
+     */
+    private void processSheet(
+            Sheet sheet, 
+            Map<String, String> fieldDataMap,
+            Map<String, List<Map<String, String>>> listFieldDataMap) {
+        
+        // 遍历所有行
+        for (int i = 0; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            
+            // 遍历所有列
+            for (int j = 0; j < row.getLastCellNum(); j++) {
+                Cell cell = row.getCell(j);
+                if (cell == null || cell.getCellType() != CellType.STRING) {
+                    continue;
+                }
+                
+                String cellValue = cell.getStringCellValue();
+                
+                // 替换普通字段占位符
+                boolean modified = false;
+                for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+                    String placeholder = "{{" + entry.getKey() + "}}";
+                    if (cellValue.contains(placeholder)) {
+                        cellValue = cellValue.replace(placeholder, entry.getValue());
+                        modified = true;
+                    }
+                }
+                
+                // 如果有修改，更新单元格内容
+                if (modified) {
+                    cell.setCellValue(cellValue);
+                }
+                
+                // 注意：列表字段的处理比较复杂，需要创建新行或复制模板行
+                // 实际实现中需要更复杂的逻辑来处理列表数据
+            }
+        }
+    }
+
+    /**
+     * 创建一个新的Excel模板
+     * 
+     * @param outputPath 输出路径
+     * @param sheets 工作表信息，键为工作表名称，值为列名列表
+     * @throws IOException IO异常
+     */
+    public void createTemplate(String outputPath, Map<String, List<String>> sheets) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            // 创建工作表和表头
+            for (Map.Entry<String, List<String>> entry : sheets.entrySet()) {
+                String sheetName = entry.getKey();
+                List<String> columns = entry.getValue();
+                
+                Sheet sheet = workbook.createSheet(sheetName);
+                
+                // 创建表头样式
+                CellStyle headerStyle = createHeaderStyle(workbook);
+                
+                // 创建表头行
+                Row headerRow = sheet.createRow(0);
+                for (int i = 0; i < columns.size(); i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(columns.get(i));
+                    cell.setCellStyle(headerStyle);
+                    sheet.setColumnWidth(i, 256 * 15); // 设置列宽
+                }
+                
+                // 设置过滤区域
+                if (!columns.isEmpty()) {
+                    sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, columns.size() - 1));
+                }
+            }
+            
+            // 保存模板
+            try (FileOutputStream outputStream = new FileOutputStream(outputPath)) {
+                workbook.write(outputStream);
+            }
+            
+            AppLogger.info("创建Excel模板: " + outputPath);
+        }
+    }
+    
+    /**
+     * 创建表头单元格样式
+     */
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        
+        // 设置背景色
+        style.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        
+        // 设置边框
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        
+        // 设置对齐方式
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        
+        // 设置字体
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        
+        return style;
+    }
+    
+    /**
+     * 根据模板填充数据
+     * 
+     * @param templatePath 模板路径
+     * @param outputPath 输出路径
+     * @param sheetData 工作表数据，键为工作表名称，值为行数据列表
+     * @throws IOException IO异常
+     */
+    public void fillTemplate(String templatePath, String outputPath, 
+            Map<String, List<Map<String, Object>>> sheetData) throws IOException {
+        
+        try (FileInputStream fis = new FileInputStream(templatePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+            
+            // 创建单元格样式
+            CellStyle dateCellStyle = workbook.createCellStyle();
+            CreationHelper createHelper = workbook.getCreationHelper();
+            dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("yyyy-MM-dd"));
+            
+            // 处理每个工作表
+            for (Map.Entry<String, List<Map<String, Object>>> entry : sheetData.entrySet()) {
+                String sheetName = entry.getKey();
+                List<Map<String, Object>> rowDataList = entry.getValue();
+                
+                // 获取工作表
+                Sheet sheet = workbook.getSheet(sheetName);
+                if (sheet == null) {
+                    AppLogger.warning("工作表不存在: " + sheetName);
+                    continue;
+                }
+                
+                // 获取表头行和列名
+                Row headerRow = sheet.getRow(0);
+                if (headerRow == null) {
+                    AppLogger.warning("表头行不存在: " + sheetName);
+                    continue;
+                }
+                
+                // 填充数据行
+                int rowNum = 1; // 从第二行开始（第一行是表头）
+                for (Map<String, Object> rowData : rowDataList) {
+                    Row dataRow = sheet.createRow(rowNum++);
+                    
+                    // 遍历表头列，获取列名并填充数据
+                    for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                        Cell headerCell = headerRow.getCell(i);
+                        if (headerCell == null) continue;
+                        
+                        // 获取列名和相应的数据
+                        String columnName = headerCell.getStringCellValue();
+                        Object value = rowData.get(columnName);
+                        if (value == null) continue;
+                        
+                        // 创建数据单元格
+                        Cell dataCell = dataRow.createCell(i);
+                        
+                        // 根据数据类型设置单元格值
+                        setCellValueByType(dataCell, value, dateCellStyle);
+                    }
+                }
+                
+                // 调整列宽以适应内容
+                for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                    sheet.autoSizeColumn(i);
+                }
+            }
+            
+            // 保存填充后的工作簿
+            try (FileOutputStream fos = new FileOutputStream(outputPath)) {
+                workbook.write(fos);
+            }
+            
+            AppLogger.info("填充Excel模板: " + outputPath);
+        }
+    }
+    
+    /**
+     * 根据值类型设置单元格值
+     */
+    private void setCellValueByType(Cell cell, Object value, CellStyle dateCellStyle) {
+        if (value instanceof String) {
+            cell.setCellValue((String) value);
+        } else if (value instanceof Integer) {
+            cell.setCellValue((Integer) value);
+        } else if (value instanceof Double) {
+            cell.setCellValue((Double) value);
+        } else if (value instanceof Boolean) {
+            cell.setCellValue((Boolean) value);
+        } else if (value instanceof Date) {
+            cell.setCellValue((Date) value);
+            cell.setCellStyle(dateCellStyle);
+        } else {
+            cell.setCellValue(value.toString());
+        }
+    }
+    
+    /**
+     * 读取Excel数据
+     * 
+     * @param filePath Excel文件路径
+     * @return 工作表数据，键为工作表名称，值为行数据列表
+     * @throws IOException IO异常
+     */
+    public Map<String, List<Map<String, Object>>> readExcelData(String filePath) throws IOException {
+        Map<String, List<Map<String, Object>>> result = new java.util.HashMap<>();
+        
+        try (FileInputStream fis = new FileInputStream(filePath);
+             Workbook workbook = WorkbookFactory.create(fis)) {
+            
+            // 遍历工作表
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                String sheetName = sheet.getSheetName();
+                
+                List<Map<String, Object>> sheetData = new java.util.ArrayList<>();
+                
+                // 获取表头行和列名
+                Row headerRow = sheet.getRow(0);
+                if (headerRow == null) continue;
+                
+                // 读取表头列名
+                List<String> headers = new java.util.ArrayList<>();
+                for (int j = 0; j < headerRow.getLastCellNum(); j++) {
+                    Cell cell = headerRow.getCell(j);
+                    headers.add(cell != null ? cell.getStringCellValue() : "列" + (j + 1));
+                }
+                
+                // 读取数据行
+                for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+                    Row dataRow = sheet.getRow(rowIndex);
+                    if (dataRow == null) continue;
+                    
+                    Map<String, Object> rowData = new java.util.HashMap<>();
+                    
+                    // 读取每个单元格的值
+                    for (int colIndex = 0; colIndex < headers.size(); colIndex++) {
+                        Cell cell = dataRow.getCell(colIndex);
+                        if (cell == null) continue;
+                        
+                        String header = headers.get(colIndex);
+                        Object value = getCellValue(cell);
+                        
+                        rowData.put(header, value);
+                    }
+                    
+                    // 添加行数据
+                    if (!rowData.isEmpty()) {
+                        sheetData.add(rowData);
+                    }
+                }
+                
+                // 添加工作表数据
+                if (!sheetData.isEmpty()) {
+                    result.put(sheetName, sheetData);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 获取单元格值
+     */
+    private Object getCellValue(Cell cell) {
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue();
+                } else {
+                    double value = cell.getNumericCellValue();
+                    // 如果是整数，返回Integer
+                    if (value == Math.floor(value)) {
+                        return (int) value;
+                    }
+                    return value;
+                }
+            case BOOLEAN:
+                return cell.getBooleanCellValue();
+            case FORMULA:
+                // 获取公式计算结果
+                switch (cell.getCachedFormulaResultType()) {
+                    case STRING:
+                        return cell.getStringCellValue();
+                    case NUMERIC:
+                        if (DateUtil.isCellDateFormatted(cell)) {
+                            return cell.getDateCellValue();
+                        } else {
+                            return cell.getNumericCellValue();
+                        }
+                    case BOOLEAN:
+                        return cell.getBooleanCellValue();
+                    default:
+                        return null;
+                }
+            default:
+                return null;
+        }
+    }
+    
+    /**
+     * 将列表数据转换为Map格式的数据，以便于填充模板
+     * 
+     * @param data 列表数据
+     * @param keyField 作为键的字段名称
+     * @return 转换后的Map格式数据
+     */
+    public Map<String, Object> convertToMap(List<Map<String, Object>> data, String keyField) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        
+        for (Map<String, Object> item : data) {
+            Object key = item.get(keyField);
+            if (key != null) {
+                result.put(key.toString(), item);
+            }
+        }
+        
+        return result;
     }
 } 
