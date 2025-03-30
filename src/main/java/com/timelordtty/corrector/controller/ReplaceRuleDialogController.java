@@ -62,7 +62,7 @@ public class ReplaceRuleDialogController implements Initializable {
         // 设置表格选择模式为单选
         ruleTableView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         
-        // 设置表格数据
+        // 确保表格数据正确绑定
         ruleTableView.setItems(ruleList);
         
         // 设置表格选择事件
@@ -122,7 +122,14 @@ public class ReplaceRuleDialogController implements Initializable {
         }
         
         // 添加规则
-        ruleList.add(new ReplaceRule(originalText, replacementText));
+        ReplaceRule newRule = new ReplaceRule(originalText, replacementText);
+        ruleList.add(newRule);
+        
+        // 刷新表格视图确保显示新添加的规则
+        ruleTableView.refresh();
+        
+        // 滚动到新添加的行
+        ruleTableView.scrollTo(newRule);
         
         // 清空输入框
         originalTextField.clear();

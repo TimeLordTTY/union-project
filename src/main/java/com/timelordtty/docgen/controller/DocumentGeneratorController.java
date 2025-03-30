@@ -1475,4 +1475,159 @@ public class DocumentGeneratorController {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 处理生成模板按钮点击事件
+     */
+    @FXML
+    private void handleGenerateTemplate() {
+        try {
+            AppLogger.info("开始生成模板...");
+            
+            if (isWordMode) {
+                // 生成Word模板
+                generateWordTemplate();
+            } else {
+                // 生成Excel模板
+                generateExcelTemplate();
+            }
+            
+            showInfo("成功", "模板生成成功！");
+        } catch (Exception e) {
+            AppLogger.error("生成模板失败: " + e.getMessage(), e);
+            showError("错误", "生成模板失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 生成Word模板
+     */
+    private void generateWordTemplate() throws Exception {
+        // 检查是否已有字段定义
+        if (objectFieldItemsContainer.getChildren().isEmpty() && listFieldItemsContainer.getChildren().isEmpty()) {
+            showError("错误", "请先添加字段定义！");
+            return;
+        }
+        
+        // 创建临时文件名
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        File templateFile = new File(baseDir + "/templates/word/自动生成模板_" + timeStamp + ".docx");
+        
+        // 准备字段列表
+        List<String> objectFields = getObjectFieldNames();
+        List<String> listFields = getListFieldNames();
+        
+        // 创建基础模板
+        String templateContent = generateWordTemplateContent(objectFields, listFields);
+        wordEditor.setText(templateContent);
+        handleSaveTemplate(); // 保存模板到文件
+        
+        // 更新UI
+        templateNameLabel.setText(templateFile.getName());
+        updatePreview();
+    }
+    
+    /**
+     * 生成简单的Word模板内容
+     */
+    private String generateWordTemplateContent(List<String> objectFields, List<String> listFields) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("==== 自动生成的Word模板 ====\n\n");
+        
+        // 添加对象字段占位符
+        builder.append("【对象字段】\n");
+        for (String field : objectFields) {
+            builder.append("${").append(field).append("}\n");
+        }
+        builder.append("\n");
+        
+        // 添加列表字段占位符
+        builder.append("【列表字段】\n");
+        for (String listField : listFields) {
+            builder.append("列表名: ${").append(listField).append("[*]}\n");
+        }
+        
+        return builder.toString();
+    }
+    
+    /**
+     * 生成Excel模板
+     */
+    private void generateExcelTemplate() throws Exception {
+        // 检查是否已有字段定义
+        if (objectFieldItemsContainer.getChildren().isEmpty() && listFieldItemsContainer.getChildren().isEmpty()) {
+            showError("错误", "请先添加字段定义！");
+            return;
+        }
+        
+        // 创建临时文件名
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String templateFilePath = baseDir + "/templates/excel/自动生成模板_" + timeStamp + ".xlsx";
+        
+        // 准备字段列表映射
+        Map<String, List<String>> fieldMap = new HashMap<>();
+        
+        // 添加对象字段
+        List<String> objectFields = getObjectFieldNames();
+        fieldMap.put("对象字段", objectFields);
+        
+        // 添加每个列表字段
+        List<String> listFields = getListFieldNames();
+        for (String listName : listFields) {
+            // 为每个列表添加一些默认字段
+            List<String> columnNames = new ArrayList<>();
+            columnNames.add("ID");
+            columnNames.add("名称");
+            columnNames.add("描述");
+            fieldMap.put(listName, columnNames);
+        }
+        
+        // 调用服务创建Excel模板
+        excelTemplateService.createTemplate(templateFilePath, fieldMap);
+        
+        // 加载生成的模板
+        loadTemplate(new File(templateFilePath));
+        
+        // 更新UI
+        templateNameLabel.setText(new File(templateFilePath).getName());
+        updatePreview();
+    }
+    
+    /**
+     * 获取所有对象字段名称
+     */
+    private List<String> getObjectFieldNames() {
+        List<String> fieldNames = new ArrayList<>();
+        for (Node node : objectFieldItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox hbox = (HBox) node;
+                for (Node child : hbox.getChildren()) {
+                    if (child instanceof Label) {
+                        fieldNames.add(((Label) child).getText());
+                        break;
+                    }
+                }
+            }
+        }
+        return fieldNames;
+    }
+    
+    /**
+     * 获取所有列表字段名称
+     */
+    private List<String> getListFieldNames() {
+        List<String> fieldNames = new ArrayList<>();
+        for (Node node : listFieldItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox hbox = (HBox) node;
+                for (Node child : hbox.getChildren()) {
+                    if (child instanceof Label) {
+                        fieldNames.add(((Label) child).getText());
+                        break;
+                    }
+                }
+            }
+        }
+        return fieldNames;
+    }
 }

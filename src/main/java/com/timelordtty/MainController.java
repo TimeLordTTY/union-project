@@ -1,5 +1,6 @@
 package com.timelordtty;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Timer;
@@ -621,26 +622,9 @@ public class MainController {
     private void handleDocGenToolClick() {
         try {
             AppLogger.info("打开文档生成工具");
-            
-            // 记录FXML文件详细信息
-            String fxmlPath = "/fxml/DocumentGeneratorView.fxml";
-            java.net.URL url = getClass().getResource(fxmlPath);
-            AppLogger.info("文档生成工具FXML URL: " + (url != null ? url.toString() : "null"));
-            
-            // 检查控制器类是否存在
-            try {
-                Class<?> controllerClass = Class.forName("com.timelordtty.docgen.controller.DocumentGeneratorController");
-                AppLogger.info("DocumentGeneratorController类存在: " + controllerClass.getName());
-            } catch (ClassNotFoundException e) {
-                AppLogger.error("DocumentGeneratorController类不存在!", e);
-            }
-            
             loadTool("文档生成", "/fxml/DocumentGeneratorView.fxml");
         } catch (Exception e) {
             AppLogger.error("打开文档生成工具失败: " + e.getMessage(), e);
-            AppLogger.error("异常类型: " + e.getClass().getName());
-            AppLogger.error("异常堆栈: ", e);
-            showError("无法加载工具", "加载文档生成工具失败: " + e.getMessage());
         }
     }
     
@@ -671,18 +655,20 @@ public class MainController {
             ClassLoader cl = getClass().getClassLoader();
             AppLogger.info("使用类加载器: " + cl);
             
-            // 创建FXML加载器，不手动设置控制器，使用FXML文件中定义的控制器
-            FXMLLoader loader = new FXMLLoader();
-            AppLogger.info("创建了FXMLLoader实例: " + loader);
-
             // 加载方法1: 使用URL
             java.net.URL url = getClass().getResource(fxmlPath);
             if (url != null) {
                 AppLogger.info("使用URL加载FXML: " + url);
+                // 创建FXMLLoader并设置location
+                FXMLLoader loader = new FXMLLoader();
                 loader.setLocation(url);
+                
                 try {
+                    // 加载FXML内容
                     javafx.scene.Parent toolView = loader.load();
                     AppLogger.info("URL方式成功加载FXML, 控制器: " + loader.getController());
+                    
+                    // 处理加载后的视图
                     handleToolViewAfterLoad(toolView, title, fxmlPath);
                     return;
                 } catch (Exception e) {
@@ -697,10 +683,16 @@ public class MainController {
             url = getClass().getClassLoader().getResource(fxmlPath.substring(1));
             if (url != null) {
                 AppLogger.info("使用类加载器URL加载FXML: " + url);
+                // 创建FXMLLoader并设置location
+                FXMLLoader loader = new FXMLLoader();
                 loader.setLocation(url);
+                
                 try {
+                    // 加载FXML内容
                     javafx.scene.Parent toolView = loader.load();
                     AppLogger.info("类加载器方式成功加载FXML, 控制器: " + loader.getController());
+                    
+                    // 处理加载后的视图
                     handleToolViewAfterLoad(toolView, title, fxmlPath);
                     return;
                 } catch (Exception e) {
@@ -714,29 +706,45 @@ public class MainController {
             // 加载方法3: 使用InputStream
             try (InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath)) {
                 if (fxmlStream != null) {
-                    AppLogger.info("使用输入流加载FXML，流大小: " + fxmlStream.available() + " 字节");
+                    // 创建临时字节数组来存储FXML内容
+                    byte[] fxmlBytes = fxmlStream.readAllBytes();
+                    AppLogger.info("使用输入流加载FXML，流大小: " + fxmlBytes.length + " 字节");
                     
-                    // 确保CSS样式表能被正确加载
-                    loader.setClassLoader(getClass().getClassLoader());
-                    
-                    try {
-                        javafx.scene.Parent toolView = loader.load(fxmlStream);
-                        AppLogger.info("输入流方式成功加载FXML, 控制器: " + loader.getController());
+                    // 使用新的输入流，避免流已关闭的问题
+                    try (ByteArrayInputStream bais = new ByteArrayInputStream(fxmlBytes)) {
+                        // 创建FXMLLoader
+                        FXMLLoader loader = new FXMLLoader();
                         
-                        // 手动加载CSS样式
-                        String cssPath = "/css/styles.css";
-                        url = getClass().getResource(cssPath);
-                        if (url != null && toolView.getStylesheets().isEmpty()) {
-                            toolView.getStylesheets().add(url.toExternalForm());
-                            AppLogger.info("手动添加样式表: " + url.toExternalForm());
+                        // 确保设置正确的URL，避免"Location is not set"错误
+                        url = getClass().getResource(fxmlPath);
+                        if (url != null) {
+                            loader.setLocation(url);
                         }
                         
-                        handleToolViewAfterLoad(toolView, title, fxmlPath);
-                        return;
-                    } catch (Exception e) {
-                        AppLogger.error("输入流方式加载FXML失败: " + e.getMessage(), e);
-                        AppLogger.error("异常类型: " + e.getClass().getName());
-                        AppLogger.error("异常堆栈: ", e);
+                        // 确保CSS样式表能被正确加载
+                        loader.setClassLoader(getClass().getClassLoader());
+                        
+                        try {
+                            // 加载FXML内容
+                            javafx.scene.Parent toolView = loader.load(bais);
+                            AppLogger.info("输入流方式成功加载FXML, 控制器: " + loader.getController());
+                            
+                            // 手动加载CSS样式
+                            String cssPath = "/css/styles.css";
+                            url = getClass().getResource(cssPath);
+                            if (url != null && toolView.getStylesheets().isEmpty()) {
+                                toolView.getStylesheets().add(url.toExternalForm());
+                                AppLogger.info("手动添加样式表: " + url.toExternalForm());
+                            }
+                            
+                            // 处理加载后的视图
+                            handleToolViewAfterLoad(toolView, title, fxmlPath);
+                            return;
+                        } catch (Exception e) {
+                            AppLogger.error("输入流方式加载FXML失败: " + e.getMessage(), e);
+                            AppLogger.error("异常类型: " + e.getClass().getName());
+                            AppLogger.error("异常堆栈: ", e);
+                        }
                     }
                 } else {
                     AppLogger.info("输入流为null，尝试其他加载方式");
@@ -758,44 +766,49 @@ public class MainController {
                 
                 if (file.exists()) {
                     try (java.io.FileInputStream fxmlStream = new java.io.FileInputStream(file)) {
-                        AppLogger.info("从文件系统加载FXML: " + file.getAbsolutePath() + ", 大小: " + file.length() + " 字节");
+                        // 读取文件内容到字节数组
+                        byte[] fileBytes = fxmlStream.readAllBytes();
+                        AppLogger.info("从文件系统加载FXML: " + file.getAbsolutePath() + ", 大小: " + fileBytes.length + " 字节");
                         
-                        try {
-                            javafx.scene.Parent toolView = loader.load(fxmlStream);
-                            AppLogger.info("文件系统方式成功加载FXML, 控制器: " + loader.getController());
+                        // 使用字节数组创建新的输入流
+                        try (ByteArrayInputStream bais = new ByteArrayInputStream(fileBytes)) {
+                            // 创建FXMLLoader
+                            FXMLLoader loader = new FXMLLoader();
                             
-                            // 手动加载CSS样式
-                            String cssFile = "src/main/resources/css/styles.css";
-                            if (new java.io.File(cssFile).exists()) {
-                                String cssUrl = new java.io.File(cssFile).toURI().toURL().toExternalForm();
-                                toolView.getStylesheets().add(cssUrl);
-                                AppLogger.info("手动添加样式表: " + cssUrl);
+                            // 设置location，使用file:URL协议
+                            try {
+                                java.net.URL fileUrl = file.toURI().toURL();
+                                loader.setLocation(fileUrl);
+                                AppLogger.info("设置FXMLLoader location为文件URL: " + fileUrl);
+                            } catch (Exception e) {
+                                AppLogger.error("无法将文件转换为URL: " + e.getMessage(), e);
                             }
                             
-                            handleToolViewAfterLoad(toolView, title, fxmlPath);
-                            return;
-                        } catch (Exception e) {
-                            AppLogger.error("文件系统方式加载FXML失败: " + e.getMessage(), e);
-                            AppLogger.error("异常类型: " + e.getClass().getName());
-                            AppLogger.error("异常堆栈: ", e);
+                            try {
+                                // 加载FXML
+                                javafx.scene.Parent toolView = loader.load(bais);
+                                AppLogger.info("文件系统方式成功加载FXML, 控制器: " + loader.getController());
+                                
+                                // 手动加载CSS样式
+                                String cssFile = "src/main/resources/css/styles.css";
+                                if (new java.io.File(cssFile).exists()) {
+                                    String cssUrl = new java.io.File(cssFile).toURI().toURL().toExternalForm();
+                                    toolView.getStylesheets().add(cssUrl);
+                                    AppLogger.info("手动添加样式表: " + cssUrl);
+                                }
+                                
+                                // 处理加载后的视图
+                                handleToolViewAfterLoad(toolView, title, fxmlPath);
+                                return;
+                            } catch (Exception e) {
+                                AppLogger.error("文件系统方式加载FXML失败: " + e.getMessage(), e);
+                                AppLogger.error("异常类型: " + e.getClass().getName());
+                                AppLogger.error("异常堆栈: ", e);
+                            }
                         }
                     } catch (Exception e) {
                         AppLogger.error("创建文件输入流失败: " + e.getMessage(), e);
                     }
-                }
-            }
-            
-            // 尝试最后一种方法：直接将文件内容读入内存并解析
-            String fullContent = null;
-            InputStream is = getClass().getResourceAsStream(fxmlPath);
-            if (is != null) {
-                try {
-                    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-                    fullContent = s.hasNext() ? s.next() : "";
-                    AppLogger.info("FXML文件内容长度: " + fullContent.length() + " 字符");
-                    AppLogger.info("FXML文件前100个字符: " + fullContent.substring(0, Math.min(100, fullContent.length())));
-                } catch (Exception e) {
-                    AppLogger.error("读取FXML内容失败: " + e.getMessage(), e);
                 }
             }
             
@@ -810,6 +823,30 @@ public class MainController {
             AppLogger.error("异常类型: " + e.getClass().getName());
             AppLogger.error("异常堆栈: ", e);
             showError("无法加载工具", "加载工具时发生错误: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 显示错误对话框
+     * @param title 标题
+     * @param message 消息
+     */
+    private void showError(String title, String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    /**
+     * 刷新项目管理小助手
+     */
+    public void refreshProjectCalendar() {
+        if (projectCalendarController != null) {
+            projectCalendarController.refreshAllViews();
+        } else {
+            AppLogger.warning("无法刷新项目管理小助手，未找到控制器");
         }
     }
     
@@ -967,19 +1004,6 @@ public class MainController {
     }
     
     /**
-     * 显示错误对话框
-     * @param title 标题
-     * @param message 消息
-     */
-    private void showError(String title, String message) {
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    
-    /**
      * 显示信息对话框
      * @param title 标题
      * @param message 消息
@@ -990,16 +1014,5 @@ public class MainController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-    
-    /**
-     * 刷新项目管理小助手
-     */
-    public void refreshProjectCalendar() {
-        if (projectCalendarController != null) {
-            projectCalendarController.refreshAllViews();
-        } else {
-            AppLogger.warning("无法刷新项目管理小助手，未找到控制器");
-        }
     }
 } 

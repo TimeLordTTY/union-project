@@ -14,8 +14,12 @@
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <!-- 替换规则表格 -->
-    <TableView fx:id="ruleTableView" VBox.vgrow="ALWAYS" styleClass="pink-table-view">
+    <!-- 标题标签 -->
+    <Label text="文本替换规则管理" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -theme-text; -fx-alignment: center;" maxWidth="Infinity" />
+
+    <!-- 替换规则表格 - 增加表格高度占比，设置为VBox.vgrow=ALWAYS -->
+    <TableView fx:id="ruleTableView" VBox.vgrow="ALWAYS" styleClass="pink-table-view" 
+               style="-fx-border-color: -theme-primary; -fx-border-width: 2px; -fx-border-radius: 5px;">
         <columns>
             <TableColumn fx:id="originalColumn" text="原文本" prefWidth="250"/>
             <TableColumn fx:id="replacementColumn" text="替换为" prefWidth="250"/>
@@ -25,8 +29,8 @@
         </placeholder>
     </TableView>
     
-    <!-- 添加和编辑规则的表单 -->
-    <GridPane hgap="10" vgap="10">
+    <!-- 添加和编辑规则的表单 - 减小这部分的尺寸 -->
+    <GridPane hgap="10" vgap="10" maxHeight="120">
         <padding>
             <Insets top="10" />
         </padding>
@@ -40,20 +44,20 @@
                   GridPane.rowIndex="1" GridPane.columnIndex="1" />
         
         <HBox spacing="10" alignment="CENTER_RIGHT" GridPane.rowIndex="2" GridPane.columnIndex="1">
-            <Button text="添加规则" onAction="#addRule" styleClass="add-button" style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
-            <Button text="更新选中" onAction="#updateRule" styleClass="edit-button" style="-fx-background-color: #FFC107; -fx-text-fill: white;" />
-            <Button text="删除选中" onAction="#deleteRule" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white;" />
+            <Button text="添加规则" onAction="#addRule" styleClass="add-button" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
+            <Button text="更新选中" onAction="#updateRule" styleClass="edit-button" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
+            <Button text="删除选中" onAction="#deleteRule" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
         </HBox>
     </GridPane>
     
     <HBox spacing="10" alignment="CENTER_RIGHT">
-        <Button text="上移" onAction="#moveRuleUp" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3;" />
-        <Button text="下移" onAction="#moveRuleDown" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3;" />
+        <Button text="上移" onAction="#moveRuleUp" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3; -fx-font-size: 14px; -fx-min-width: 80px; -fx-min-height: 30px;" />
+        <Button text="下移" onAction="#moveRuleDown" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3; -fx-font-size: 14px; -fx-min-width: 80px; -fx-min-height: 30px;" />
         <Region HBox.hgrow="ALWAYS" />
-        <Button text="导入规则" onAction="#importRules" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3;" />
-        <Button text="导出规则" onAction="#exportRules" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3;" />
-        <Button text="清空规则" onAction="#clearRules" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white;" />
-        <Button text="确定" onAction="#saveAndClose" defaultButton="true" style="-fx-background-color: -theme-accent; -fx-text-fill: white;" />
+        <Button text="导入规则" onAction="#importRules" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
+        <Button text="导出规则" onAction="#exportRules" style="-fx-background-color: -theme-light; -fx-text-fill: -theme-text; -fx-border-color: -theme-border; -fx-border-radius: 3; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
+        <Button text="清空规则" onAction="#clearRules" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-size: 14px; -fx-min-width: 100px; -fx-min-height: 30px;" />
+        <Button text="确定" onAction="#saveAndClose" defaultButton="true" style="-fx-background-color: -theme-accent; -fx-text-fill: white; -fx-font-size: 14px; -fx-min-width: 80px; -fx-min-height: 30px;" />
     </HBox>
     
     <Label text="说明: 可以使用Java正则表达式作为查找文本，例如 \d+ 匹配任意数字" style="-fx-font-style: italic; -fx-text-fill: #666666;"/>
