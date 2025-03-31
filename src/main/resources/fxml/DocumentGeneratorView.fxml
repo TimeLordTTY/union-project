@@ -56,19 +56,21 @@
             <!-- 字段定义内容区域 -->
             <VBox spacing="10" VBox.vgrow="ALWAYS">
                 <TextField fx:id="objectFieldInput" promptText="输入字段名称" />
-                <Button text="添加字段" onAction="#handleAddField" 
+                <Button text="添加字段" onAction="#handleAddObjectField" 
                         style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
                 
                 <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
-                    <VBox fx:id="objectFieldItemsContainer" spacing="10" />
+                    <VBox fx:id="objectFieldItemsContainer" spacing="10" onMouseClicked="#handleFieldItemClick" />
                 </ScrollPane>
                 
-                <TextField fx:id="listFieldInput" promptText="输入列表名称" />
-                <Button text="添加列表" onAction="#handleAddListField" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+                <HBox spacing="10">
+                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" />
+                    <Button text="添加列表" onAction="#handleAddListField" 
+                            style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+                </HBox>
                 
                 <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
-                    <VBox fx:id="listFieldItemsContainer" spacing="10" />
+                    <VBox fx:id="listFieldItemsContainer" spacing="10" onMouseClicked="#handleListItemClick" />
                 </ScrollPane>
             </VBox>
         </VBox>
@@ -100,7 +102,7 @@
                           wrapText="true" visible="true" styleClass="template-editor" VBox.vgrow="ALWAYS" />
                 
                 <!-- Excel模式下的表格编辑器 -->
-                <TableView fx:id="excelEditor" visible="false" styleClass="template-editor">
+                <TableView fx:id="excelEditor" visible="false" styleClass="template-editor" editable="true">
                     <!-- 表格列会动态添加 -->
                 </TableView>
             </StackPane>
@@ -116,8 +118,6 @@
             <!-- 上方按钮区域 -->
             <HBox spacing="10">
                 <Button text="导入数据" onAction="#handleImportData" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
-                <Button text="保存数据" onAction="#handleSaveData" 
                         style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
             </HBox>
             
@@ -166,21 +166,5 @@
                 </StackPane>
             </ScrollPane>
         </VBox>
-        
-        <!-- 隐藏控件用于绑定数据 -->
-        <fx:define>
-            <ToggleGroup fx:id="modeToggleGroup"/>
-        </fx:define>
-        
-        <!-- 隐藏的RadioButton用于维持原有功能 -->
-        <HBox visible="false" GridPane.columnIndex="0" GridPane.rowIndex="1">
-            <RadioButton fx:id="wordModeRadio" text="Word" selected="true" 
-                         onAction="#handleWordModeSelect" toggleGroup="$modeToggleGroup"/>
-            <RadioButton fx:id="excelModeRadio" text="Excel" 
-                         onAction="#handleExcelModeSelect" toggleGroup="$modeToggleGroup"/>
-        </HBox>
-        
-        <!-- 隐藏的标签用于显示模板名称 -->
-        <Label fx:id="templateNameLabel" text="无" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="1" />
     </GridPane>
 </VBox> 

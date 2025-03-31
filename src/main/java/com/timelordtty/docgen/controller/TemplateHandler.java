@@ -34,7 +34,19 @@ public class TemplateHandler {
      * @throws Exception 如果加载失败
      */
     public String loadWordTemplate(File file) throws Exception {
-        return wordTemplateService.readDocxContent(file.getAbsolutePath());
+        try {
+            AppLogger.info("加载Word模板: " + file.getAbsolutePath());
+            String content = wordTemplateService.readDocxContent(file.getAbsolutePath());
+            
+            // 处理表格格式，确保保持一致性
+            content = content.replace("\r\n", "\n"); // 统一换行符
+            
+            AppLogger.info("Word模板加载成功");
+            return content;
+        } catch (Exception e) {
+            AppLogger.error("加载Word模板失败", e);
+            throw e;
+        }
     }
     
     /**
@@ -56,7 +68,18 @@ public class TemplateHandler {
      * @throws Exception 如果保存失败
      */
     public void saveWordTemplate(String filePath, String content) throws Exception {
-        wordTemplateService.saveDocxTemplate(filePath, content);
+        try {
+            AppLogger.info("保存Word模板: " + filePath);
+            
+            // 处理表格格式，确保保持一致性
+            content = content.replace("\r\n", "\n"); // 统一换行符
+            
+            wordTemplateService.saveDocxTemplate(filePath, content);
+            AppLogger.info("Word模板保存成功");
+        } catch (Exception e) {
+            AppLogger.error("保存Word模板失败", e);
+            throw e;
+        }
     }
     
     /**
@@ -257,6 +280,8 @@ public class TemplateHandler {
      */
     public String generateWordTemplateContent(List<String> objectFields, List<String> listFields) {
         StringBuilder builder = new StringBuilder();
+        
+        // 使用更精简的标题
         builder.append("== 文档模板 ==\n\n");
         
         // 添加对象字段表格
@@ -264,9 +289,13 @@ public class TemplateHandler {
             builder.append("【基本信息】\n");
             builder.append("[TABLE_START]\n");
             
+            // 添加表头
+            builder.append("[ROW_START][CELL_START]字段名称[CELL_END][CELL_START]值[CELL_END][ROW_END]\n");
+            
+            // 添加字段行
             for (String field : objectFields) {
-                builder.append("[ROW_START][CELL_START]").append(field).append(" [CELL_END]");
-                builder.append("[CELL_START]{{").append(field).append("}} [CELL_END][ROW_END]\n");
+                builder.append("[ROW_START][CELL_START]").append(field).append("[CELL_END]");
+                builder.append("[CELL_START]{{").append(field).append("}}[CELL_END][ROW_END]\n");
             }
             
             builder.append("[TABLE_END]\n\n");
@@ -281,30 +310,26 @@ public class TemplateHandler {
                 // 表头行
                 builder.append("[ROW_START]");
                 // 默认添加ID、名称、描述三个基本字段
-                builder.append("[CELL_START]ID [CELL_END]");
-                builder.append("[CELL_START]名称 [CELL_END]");
-                builder.append("[CELL_START]描述 [CELL_END]");
+                builder.append("[CELL_START]ID[CELL_END]");
+                builder.append("[CELL_START]名称[CELL_END]");
+                builder.append("[CELL_START]描述[CELL_END]");
                 builder.append("[ROW_END]\n");
                 
                 // 示例数据行
                 builder.append("[ROW_START]");
-                builder.append("[CELL_START]{{").append(listName).append(".id}} [CELL_END]");
-                builder.append("[CELL_START]{{").append(listName).append(".name}} [CELL_END]");
-                builder.append("[CELL_START]{{").append(listName).append(".description}} [CELL_END]");
+                builder.append("[CELL_START]{{").append(listName).append(".id}}[CELL_END]");
+                builder.append("[CELL_START]{{").append(listName).append(".name}}[CELL_END]");
+                builder.append("[CELL_START]{{").append(listName).append(".description}}[CELL_END]");
                 builder.append("[ROW_END]\n");
                 
                 builder.append("[TABLE_END]\n\n");
-            }
-        }
-        
-        // 添加带循环的列表示例
-        if (!listFields.isEmpty()) {
-            builder.append("【带循环的列表示例】\n");
-            
-            for (String listName : listFields) {
+                
+                // 添加带循环的列表示例
+                builder.append("循环示例:\n");
                 builder.append("{{#").append(listName).append("}}\n");
-                builder.append("  - 名称: {{").append(listName).append(".name}}\n");
-                builder.append("  - 描述: {{").append(listName).append(".description}}\n");
+                builder.append("- ID: {{").append(listName).append(".id}}\n");
+                builder.append("- 名称: {{").append(listName).append(".name}}\n");
+                builder.append("- 描述: {{").append(listName).append(".description}}\n");
                 builder.append("{{/").append(listName).append("}}\n\n");
             }
         }
