@@ -90,11 +90,15 @@ public class FieldManager {
         // 创建字段UI组件
         HBox fieldItem = new HBox();
         fieldItem.setAlignment(Pos.CENTER_LEFT);
-        fieldItem.setSpacing(10);
-        fieldItem.setPadding(new Insets(3)); // 减小内边距，使字段展示更紧凑
-        fieldItem.getStyleClass().add("field-item");
+        fieldItem.setSpacing(2);
+        fieldItem.setPadding(new Insets(0, 2, 0, 2)); // 极小的内边距
+        fieldItem.getStyleClass().addAll("field-item", "compact-hbox");
+        fieldItem.setMinHeight(20);
+        fieldItem.setMaxHeight(20);
+        fieldItem.setPrefHeight(20);
         
         Label nameLabel = new Label(fieldName);
+        nameLabel.getStyleClass().add("field-label");
         HBox.setHgrow(nameLabel, Priority.ALWAYS);
         
         // 为nameLabel添加悬浮提示
@@ -102,6 +106,7 @@ public class FieldManager {
         Tooltip.install(nameLabel, nameTooltip);
         
         Label placeholderLabel = new Label("{{" + fieldName + "}}");
+        placeholderLabel.getStyleClass().add("field-label");
         placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
         
         // 为占位符标签添加悬浮提示
@@ -110,6 +115,9 @@ public class FieldManager {
         
         Button deleteButton = new Button("×");
         deleteButton.getStyleClass().add("operation-delete-button");
+        deleteButton.setMinSize(18, 18);
+        deleteButton.setMaxSize(18, 18);
+        deleteButton.setPrefSize(18, 18);
         deleteButton.setOnAction(e -> {
             objectFieldItemsContainer.getChildren().remove(fieldItem);
             fieldDataMap.remove(fieldName);
@@ -153,17 +161,23 @@ public class FieldManager {
         // 创建数据输入UI组件
         HBox dataItem = new HBox();
         dataItem.setAlignment(Pos.CENTER_LEFT);
-        dataItem.setSpacing(10);
-        dataItem.setPadding(new Insets(3)); // 减小内边距，使字段展示更紧凑
+        dataItem.setSpacing(2);
+        dataItem.setPadding(new Insets(0, 2, 0, 2)); // 极小的内边距
+        dataItem.getStyleClass().addAll("data-field-container", "compact-hbox");
+        dataItem.setMinHeight(20);
+        dataItem.setMaxHeight(20);
+        dataItem.setPrefHeight(20);
         
         Label nameLabel = new Label(fieldName + ":");
-        nameLabel.setPrefWidth(120);
+        nameLabel.getStyleClass().add("field-label");
+        nameLabel.setPrefWidth(100);
         
         // 添加悬浮提示
         Tooltip fieldTooltip = new Tooltip("字段名: " + fieldName);
         Tooltip.install(nameLabel, fieldTooltip);
         
         TextField valueField = new TextField();
+        valueField.getStyleClass().add("reduced-height-field");
         HBox.setHgrow(valueField, Priority.ALWAYS);
         
         // 添加失焦保存功能
@@ -191,13 +205,19 @@ public class FieldManager {
         // 创建数据输入UI组件
         HBox dataItem = new HBox();
         dataItem.setAlignment(Pos.CENTER_LEFT);
-        dataItem.setSpacing(10);
-        dataItem.setPadding(new Insets(5));
+        dataItem.setSpacing(2);
+        dataItem.setPadding(new Insets(0, 2, 0, 2)); // 极小的内边距
+        dataItem.getStyleClass().addAll("data-field-container", "compact-hbox");
+        dataItem.setMinHeight(20);
+        dataItem.setMaxHeight(20);
+        dataItem.setPrefHeight(20);
         
         Label nameLabel = new Label(fieldName + ":");
-        nameLabel.setPrefWidth(120);
+        nameLabel.getStyleClass().add("field-label");
+        nameLabel.setPrefWidth(100);
         
         TextField valueField = new TextField(fieldValue);
+        valueField.getStyleClass().add("reduced-height-field");
         HBox.setHgrow(valueField, Priority.ALWAYS);
         valueField.textProperty().addListener((obs, oldVal, newVal) -> {
             fieldDataMap.put(fieldName, newVal);

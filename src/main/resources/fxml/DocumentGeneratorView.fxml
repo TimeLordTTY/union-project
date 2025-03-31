@@ -58,19 +58,19 @@
             <Label text="字段定义" style="-fx-font-size: 16; -fx-font-weight: bold;" />
             
             <!-- 字段定义内容区域 -->
-            <VBox spacing="4" VBox.vgrow="ALWAYS">
-                <HBox spacing="4">
+            <VBox spacing="2" VBox.vgrow="ALWAYS">
+                <HBox spacing="2">
                     <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS" styleClass="reduced-height-field" />
-                    <Button text="+" onAction="#handleAddObjectField" minHeight="24" maxHeight="24" styleClass="operation-add-button" />
+                    <Button text="+" onAction="#handleAddObjectField" minHeight="20" maxHeight="20" styleClass="operation-add-button" />
                 </HBox>
                 
                 <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
-                    <VBox fx:id="objectFieldItemsContainer" spacing="2" onMouseClicked="#handleFieldItemClick" />
+                    <VBox fx:id="objectFieldItemsContainer" spacing="1" onMouseClicked="#handleFieldItemClick" />
                 </ScrollPane>
                 
-                <HBox spacing="4">
+                <HBox spacing="2">
                     <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" styleClass="reduced-height-field" />
-                    <Button text="+" onAction="#handleAddListField" minHeight="24" maxHeight="24" styleClass="operation-add-button" />
+                    <Button text="+" onAction="#handleAddListField" minHeight="20" maxHeight="20" styleClass="operation-add-button" />
                 </HBox>
                 
                 <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
@@ -129,9 +129,9 @@
             <Label text="数据填充" style="-fx-font-size: 16; -fx-font-weight: bold;" />
             
             <!-- 数据填充内容区域 -->
-            <VBox spacing="4" VBox.vgrow="ALWAYS">
+            <VBox spacing="2" VBox.vgrow="ALWAYS">
                 <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" minHeight="100" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
-                    <VBox fx:id="objectDataItemsContainer" spacing="2" />
+                    <VBox fx:id="objectDataItemsContainer" spacing="1" />
                 </ScrollPane>
                 
                 <!-- 表头部分 -->
@@ -140,7 +140,7 @@
                 </HBox>
                 
                 <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
-                    <VBox fx:id="listDataItemsContainer" spacing="2" />
+                    <VBox fx:id="listDataItemsContainer" spacing="1" />
                 </ScrollPane>
             </VBox>
         </VBox>

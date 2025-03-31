@@ -813,10 +813,13 @@
 
 .field-item {
     -fx-background-color: -pink-background;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 8px 12px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 0px 4px;
     -fx-spacing: 5px;
+    -fx-min-height: 20px;
+    -fx-max-height: 20px;
+    -fx-pref-height: 20px;
 }
 
 .placeholder-note {
@@ -1358,41 +1361,61 @@
     -fx-background-radius: 6px;
 }
 
-/* 操作按钮样式 - 新增按钮 */
-.operation-add-button {
-    -fx-background-color: #4CAF50;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-min-width: 24px;
-    -fx-min-height: 24px;
-    -fx-max-width: 24px;
-    -fx-max-height: 24px;
-    -fx-background-radius: 4px;
-    -fx-padding: 0;
-    -fx-font-size: 14px;
-    -fx-content-display: center;
-    -fx-cursor: hand;
-}
-
-/* 操作按钮样式 - 删除按钮 */
-.operation-delete-button {
-    -fx-background-color: #F44336;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-min-width: 24px;
-    -fx-min-height: 24px;
-    -fx-max-width: 24px;
-    -fx-max-height: 24px;
-    -fx-background-radius: 4px;
-    -fx-padding: 0;
-    -fx-font-size: 14px;
-    -fx-content-display: center;
-    -fx-cursor: hand;
-}
-
 /* 减小字段定义和数据填充文本框行高 */
 .reduced-height-field {
-    -fx-min-height: 22px;
-    -fx-max-height: 22px;
-    -fx-pref-height: 22px;
+    -fx-min-height: 20px !important;
+    -fx-max-height: 20px !important;
+    -fx-pref-height: 20px !important;
+    -fx-alignment: center-left;
+}
+
+/* 减小字段容器行高 */
+.field-item {
+    -fx-min-height: 20px !important;
+    -fx-max-height: 20px !important;
+    -fx-pref-height: 20px !important;
+    -fx-padding: 0 4px !important;
+    -fx-background-radius: 3px !important;
+}
+
+/* 减小数据填充字段容器高度 */
+.data-field-container {
+    -fx-min-height: 20px !important;
+    -fx-max-height: 20px !important;
+    -fx-pref-height: 20px !important;
+    -fx-padding: 0 4px !important;
+}
+
+/* 确保标签高度适合低行高 */
+.field-label {
+    -fx-min-height: 20px !important;
+    -fx-max-height: 20px !important;
+    -fx-pref-height: 20px !important;
+    -fx-alignment: center-left;
+}
+
+/* 紧凑布局样式 */
+.no-margin {
+    -fx-margin: 0 !important;
+}
+
+.compact-vbox {
+    -fx-spacing: 0 !important;
+    -fx-padding: 0 !important;
+}
+
+.compact-hbox {
+    -fx-spacing: 0 !important;
+    -fx-padding: 0 !important;
+}
+
+/* 调整文档生成器容器边距 */
+.doc-generator-container VBox {
+    -fx-spacing: 2;
+}
+
+/* 确保滚动面板中的项目紧凑排列 */
+.field-scroll-pane .field-item {
+    -fx-margin: 0;
+    -fx-padding: 0 4px;
 }
