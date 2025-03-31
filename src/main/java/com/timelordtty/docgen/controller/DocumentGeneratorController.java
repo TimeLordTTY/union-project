@@ -1,65 +1,32 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.service.ExcelTemplateService;
 import com.timelordtty.docgen.service.WordTemplateService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TablePosition;
-import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
-import javafx.stage.Stage;
 
 /**
  * 文档生成器控制器
@@ -106,6 +73,11 @@ public class DocumentGeneratorController {
     private Map<String, String> fieldDataMap = new HashMap<>();
     private Map<String, List<Map<String, String>>> listFieldDataMap = new HashMap<>();
     
+    // 辅助类
+    private TemplateHandler templateHandler;
+    private FieldManager fieldManager;
+    private DataHandler dataHandler;
+    
     /**
      * 初始化控制器
      */
@@ -119,6 +91,17 @@ public class DocumentGeneratorController {
         
         // 设置基础目录
         baseDir = System.getProperty("user.dir");
+        
+        // 初始化辅助类
+        templateHandler = new TemplateHandler();
+        fieldManager = new FieldManager(
+            objectFieldItemsContainer, 
+            listFieldItemsContainer, 
+            objectDataItemsContainer, 
+            listDataItemsContainer,
+            this::updatePreview
+        );
+        dataHandler = new DataHandler(baseDir);
         
         // 初始化模板类型下拉框
         templateTypeComboBox.getSelectionModel().select(0); // 默认选择Word
@@ -291,7 +274,7 @@ public class DocumentGeneratorController {
         String fieldName = objectFieldInput.getText().trim();
         
         if (fieldName.isEmpty()) {
-            showError("添加字段失败", "字段名不能为空");
+            UIHelper.showError("添加字段失败", "字段名不能为空");
             return;
         }
         
@@ -299,72 +282,7 @@ public class DocumentGeneratorController {
         objectFieldInput.clear();
         
         // 添加到字段列表
-        addObjectField(fieldName);
-        
-        // 更新UI
-        updateFieldUIAndData();
-    }
-    
-    /**
-     * 添加普通字段到UI
-     */
-    private void addObjectField(String fieldName) {
-        // 创建字段UI组件
-        HBox fieldItem = new HBox();
-        fieldItem.setAlignment(Pos.CENTER_LEFT);
-        fieldItem.setSpacing(10);
-        fieldItem.setPadding(new Insets(5));
-        fieldItem.getStyleClass().add("field-item");
-        
-        Label nameLabel = new Label(fieldName);
-        HBox.setHgrow(nameLabel, Priority.ALWAYS);
-        
-        Label placeholderLabel = new Label("{{" + fieldName + "}}");
-        placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
-        
-        Button deleteButton = new Button("×");
-        deleteButton.getStyleClass().add("icon-button");
-        deleteButton.setOnAction(e -> {
-            objectFieldItemsContainer.getChildren().remove(fieldItem);
-            fieldDataMap.remove(fieldName);
-            updateFieldUIAndData();
-        });
-        
-        fieldItem.getChildren().addAll(nameLabel, placeholderLabel, deleteButton);
-        objectFieldItemsContainer.getChildren().add(fieldItem);
-        
-        // 添加数据填充字段
-        addObjectDataField(fieldName);
-        
-        // 更新预览
-        updatePreview();
-    }
-    
-    /**
-     * 添加数据填充字段
-     */
-    private void addObjectDataField(String fieldName) {
-        // 创建数据输入UI组件
-        HBox dataItem = new HBox();
-        dataItem.setAlignment(Pos.CENTER_LEFT);
-        dataItem.setSpacing(10);
-        dataItem.setPadding(new Insets(5));
-        
-        Label nameLabel = new Label(fieldName + ":");
-        nameLabel.setPrefWidth(120);
-        
-        TextField valueField = new TextField();
-        HBox.setHgrow(valueField, Priority.ALWAYS);
-        valueField.textProperty().addListener((obs, oldVal, newVal) -> {
-            fieldDataMap.put(fieldName, newVal);
-            updatePreview();
-        });
-        
-        // 初始默认值
-        fieldDataMap.put(fieldName, "");
-        
-        dataItem.getChildren().addAll(nameLabel, valueField);
-        objectDataItemsContainer.getChildren().add(dataItem);
+        fieldManager.addObjectField(fieldName);
     }
     
     /**
@@ -375,7 +293,7 @@ public class DocumentGeneratorController {
         String listName = listFieldInput.getText().trim();
         
         if (listName.isEmpty()) {
-            showError("添加列表失败", "列表名不能为空");
+            UIHelper.showError("添加列表失败", "列表名不能为空");
             return;
         }
         
@@ -383,356 +301,15 @@ public class DocumentGeneratorController {
         listFieldInput.clear();
         
         // 添加列表字段
-        addListField(listName);
-        
-        // 更新UI
-        updateFieldUIAndData();
+        fieldManager.addListField(listName);
     }
     
-    /**
-     * 添加列表字段，带字段列表
-     */
-    private void addListField(String listName, List<String> fields) {
-        // 检查该列表是否已存在
-        for (javafx.scene.Node node : listFieldItemsContainer.getChildren()) {
-            if (node instanceof VBox && listName.equals(node.getId())) {
-                return; // 已存在，不重复添加
-            }
-        }
-        
-        // 初始化列表数据结构
-        if (!listFieldDataMap.containsKey(listName)) {
-            listFieldDataMap.put(listName, new ArrayList<>());
-        }
-        
-        // 创建列表字段UI组件
-        VBox listContainer = new VBox();
-        listContainer.setId(listName);
-        listContainer.setSpacing(10);
-        listContainer.setPadding(new Insets(10));
-        listContainer.getStyleClass().add("list-field-container");
-        
-        // 标题行
-        HBox headerRow = new HBox();
-        headerRow.setAlignment(Pos.CENTER_LEFT);
-        headerRow.setSpacing(10);
-        
-        Label titleLabel = new Label(listName);
-        titleLabel.getStyleClass().add("list-field-title");
-        
-        Button removeButton = new Button("×");
-        removeButton.getStyleClass().add("icon-button");
-        removeButton.setOnAction(e -> {
-            // 移除该列表
-            listFieldItemsContainer.getChildren().remove(listContainer);
-            listFieldDataMap.remove(listName);
-            
-            // 查找并移除数据容器
-            for (javafx.scene.Node node : listDataItemsContainer.getChildren()) {
-                if (node instanceof VBox && node.getId() != null && node.getId().equals("list_" + listName)) {
-                    listDataItemsContainer.getChildren().remove(node);
-                    break;
-                }
-            }
-            
-            // 更新预览
-            updatePreview();
-        });
-        
-        headerRow.getChildren().addAll(titleLabel, removeButton);
-        listContainer.getChildren().add(headerRow);
-        
-        // 创建表格来管理列表字段 - 去掉表头
-        TableView<String> fieldsTable = new TableView<>();
-        fieldsTable.setPrefHeight(150);
-        fieldsTable.getStyleClass().addAll("list-table", "no-header");
-        
-        TableColumn<String, String> fieldNameColumn = new TableColumn<>("字段名");
-        fieldNameColumn.setVisible(false); // 隐藏表头
-        fieldNameColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
-        fieldNameColumn.setPrefWidth(200);
-        
-        TableColumn<String, Void> actionsColumn = new TableColumn<>("操作");
-        actionsColumn.setVisible(false); // 隐藏表头
-        actionsColumn.setPrefWidth(100);
-        actionsColumn.setCellFactory(col -> {
-            return new javafx.scene.control.TableCell<String, Void>() {
-                private final HBox container = new HBox();
-                private final Button addButton = new Button("+");
-                private final Button removeButton = new Button("×");
-                
-                {
-                    container.getStyleClass().add("btn-group-horizontal");
-                    addButton.getStyleClass().add("icon-button");
-                    removeButton.getStyleClass().add("icon-button");
-                    
-                    addButton.setOnAction(event -> {
-                        // 显示添加新字段的对话框
-                        String field = getTableRow().getItem();
-                        TextInputDialog dialog = new TextInputDialog();
-                        dialog.setTitle("添加字段");
-                        dialog.setHeaderText("添加列表字段");
-                        dialog.setContentText("请输入新字段名:");
-                        
-                        dialog.showAndWait().ifPresent(name -> {
-                            if (!name.isEmpty()) {
-                                ObservableList<String> items = fieldsTable.getItems();
-                                items.add(name);
-                                
-                                // 同步更新到数据表格
-                                updateListDataTable(listName);
-                                
-                                // 更新预览
-                                updatePreview();
-                            }
-                        });
-                    });
-                    
-                    removeButton.setOnAction(event -> {
-                        String field = getTableRow().getItem();
-                        if (field != null) {
-                            fieldsTable.getItems().remove(field);
-                            
-                            // 同步更新到数据表格
-                            updateListDataTable(listName);
-                            
-                            // 更新预览
-                            updatePreview();
-                        }
-                    });
-                    
-                    container.getChildren().addAll(addButton, removeButton);
-                }
-                
-                @Override
-                protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    
-                    if (empty) {
-                        setGraphic(null);
-                    } else {
-                        setGraphic(container);
-                    }
-                }
-            };
-        });
-        
-        fieldsTable.getColumns().addAll(fieldNameColumn, actionsColumn);
-        
-        // 添加初始字段列表
-        if (fields != null && !fields.isEmpty()) {
-            ObservableList<String> items = FXCollections.observableArrayList(fields);
-            fieldsTable.setItems(items);
-        } else {
-            fieldsTable.setItems(FXCollections.observableArrayList());
-        }
-        
-        listContainer.getChildren().add(fieldsTable);
-        listFieldItemsContainer.getChildren().add(listContainer);
-        
-        // 创建数据填充表格
-        createListDataTable(listName);
-    }
-
-    /**
-     * 创建列表数据表格
-     */
-    private void createListDataTable(String listName) {
-        // 获取列表字段
-        List<String> listFields = new ArrayList<>();
-        for (javafx.scene.Node node : listFieldItemsContainer.getChildren()) {
-            if (node instanceof VBox && listName.equals(node.getId())) {
-                VBox container = (VBox) node;
-                for (javafx.scene.Node child : container.getChildren()) {
-                    if (child instanceof TableView) {
-                        @SuppressWarnings("unchecked")
-                        TableView<String> fieldsTable = (TableView<String>) child;
-                        listFields.addAll(fieldsTable.getItems());
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-        
-        // 创建列表数据容器
-        VBox tableContainer = new VBox();
-        tableContainer.setSpacing(10);
-        tableContainer.setPadding(new Insets(10));
-        tableContainer.setId("list_" + listName);
-        tableContainer.getStyleClass().add("list-field-container");
-        
-        // 标题
-        Label titleLabel = new Label(listName + " 数据");
-        titleLabel.getStyleClass().add("list-field-title");
-        tableContainer.getChildren().add(titleLabel);
-        
-        if (listFields.isEmpty()) {
-            // 如果没有字段，显示提示信息
-            Label emptyLabel = new Label("请先在字段定义中添加列表字段");
-            emptyLabel.setStyle("-fx-text-fill: #999999;");
-            tableContainer.getChildren().add(emptyLabel);
-        } else {
-            // 创建表格
-            TableView<Map<String, String>> dataTable = new TableView<>();
-            dataTable.setId("table_" + listName);
-            dataTable.getStyleClass().add("list-table");
-            
-            // 设置行工厂，添加按钮直接显示在每行的末尾
-            dataTable.setRowFactory(tv -> {
-                TableRow<Map<String, String>> row = new TableRow<>();
-                HBox buttonContainer = new HBox(5);
-                buttonContainer.setAlignment(Pos.CENTER_RIGHT);
-                
-                Button addRowButton = new Button("+");
-                addRowButton.getStyleClass().add("icon-button");
-                addRowButton.setOnAction(e -> {
-                    int index = row.getIndex();
-                    Map<String, String> emptyRow = new HashMap<>();
-                    if (index >= 0 && index < dataTable.getItems().size()) {
-                        // 在当前行后面添加
-                        listFieldDataMap.get(listName).add(index + 1, emptyRow);
-                    } else {
-                        // 添加到末尾
-                        listFieldDataMap.get(listName).add(emptyRow);
-                    }
-                    updateListDataTable(listName);
-                    updatePreview();
-                });
-                
-                Button deleteRowButton = new Button("×");
-                deleteRowButton.getStyleClass().add("icon-button");
-                deleteRowButton.setOnAction(e -> {
-                    int index = row.getIndex();
-                    if (index >= 0 && index < dataTable.getItems().size()) {
-                        listFieldDataMap.get(listName).remove(index);
-                        updateListDataTable(listName);
-                        updatePreview();
-                    }
-                });
-                
-                buttonContainer.getChildren().addAll(addRowButton, deleteRowButton);
-                row.graphicProperty().bind(Bindings.when(row.emptyProperty())
-                        .then((javafx.scene.Node)null)
-                        .otherwise(buttonContainer));
-                return row;
-            });
-            
-            // 添加列
-            for (String field : listFields) {
-                TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
-                column.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getOrDefault(field, "")));
-                column.setCellFactory(tc -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
-                    private final TextField textField = new TextField();
-                    
-                    {
-                        textField.setOnAction(e -> commitEdit(textField.getText()));
-                        textField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-                            if (!isNowFocused) {
-                                commitEdit(textField.getText());
-                            }
-                        });
-                    }
-                    
-                    @Override
-                    protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty) {
-                            setGraphic(null);
-                            setText(null);
-                        } else {
-                            textField.setText(item == null ? "" : item);
-                            setGraphic(textField);
-                            setText(null);
-                        }
-                    }
-                    
-                    @Override
-                    public void commitEdit(String newValue) {
-                        Map<String, String> rowData = getTableView().getItems().get(getIndex());
-                        rowData.put(field, newValue);
-                        updatePreview();
-                    }
-                });
-                dataTable.getColumns().add(column);
-            }
-            
-            tableContainer.getChildren().add(dataTable);
-            
-            // 添加"添加行"按钮
-            Button addRowButton = new Button("添加行");
-            addRowButton.getStyleClass().add("action-button");
-            addRowButton.setOnAction(e -> {
-                // 在数据模型中添加空行
-                if (listFieldDataMap.containsKey(listName)) {
-                    Map<String, String> emptyRow = new HashMap<>();
-                    listFieldDataMap.get(listName).add(emptyRow);
-                    
-                    // 刷新表格
-                    updateListDataTable(listName);
-                    
-                    // 更新预览
-                    updatePreview();
-                }
-            });
-            
-            HBox buttonRow = new HBox(10);
-            buttonRow.setAlignment(Pos.CENTER);
-            buttonRow.getChildren().add(addRowButton);
-            tableContainer.getChildren().add(buttonRow);
-        }
-        
-        // 添加到UI
-        listDataItemsContainer.getChildren().add(tableContainer);
-        
-        // 初始化表格列和数据
-        updateListDataTable(listName);
-    }
-
-    /**
-     * 更新列表数据表格
-     */
-    private void updateListDataTable(String listName) {
-        // 查找并更新数据表格
-        for (javafx.scene.Node node : listDataItemsContainer.getChildren()) {
-            if (node instanceof VBox && node.getId() != null && node.getId().equals("list_" + listName)) {
-                VBox container = (VBox) node;
-                
-                // 找到表格
-                for (javafx.scene.Node child : container.getChildren()) {
-                    if (child instanceof TableView) {
-                        @SuppressWarnings("unchecked")
-                        TableView<Map<String, String>> dataTable = (TableView<Map<String, String>>) child;
-                        
-                        // 获取列表中的所有字段
-                        List<String> listFields = new ArrayList<>();
-                        for (TableColumn<Map<String, String>, ?> column : dataTable.getColumns()) {
-                            listFields.add(column.getText());
-                        }
-                        
-                        // 确保数据模型存在
-                        if (!listFieldDataMap.containsKey(listName)) {
-                            listFieldDataMap.put(listName, new ArrayList<>());
-                        }
-                        
-                        // 更新表格数据
-                        ObservableList<Map<String, String>> data = FXCollections.observableArrayList(listFieldDataMap.get(listName));
-                        dataTable.setItems(data);
-                        
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-    }
-
     /**
      * 加载模板
      */
     private void loadTemplate(File file) {
         if (file == null || !file.exists()) {
-            showError("错误", "模板文件不存在");
+            UIHelper.showError("错误", "模板文件不存在");
             return;
         }
         
@@ -742,15 +319,15 @@ public class DocumentGeneratorController {
         try {
             if (isWordMode) {
                 // 加载Word模板
-                String content = wordTemplateService.readDocxContent(file.getAbsolutePath());
+                String content = templateHandler.loadWordTemplate(file);
                 wordEditor.setText(content);
-                analyzeWordTemplate(content);
+                analyzeTemplate(content);
                 
                 // 更新预览 - 使用空值填充所有占位符
                 updatePreview();
             } else {
                 // 加载Excel模板
-                List<List<String>> content = excelTemplateService.readExcelContent(file.getAbsolutePath());
+                List<List<String>> content = templateHandler.loadExcelTemplate(file);
                 loadExcelData(content);
                 analyzeExcelTemplate(content);
                 
@@ -760,58 +337,63 @@ public class DocumentGeneratorController {
         } catch (Exception e) {
             AppLogger.info("加载模板失败: " + e.getMessage());
             e.printStackTrace();
-            showError("加载失败", "无法加载模板文件: " + e.getMessage());
+            UIHelper.showError("加载失败", "无法加载模板文件: " + e.getMessage());
         }
     }
-
+    
+    /**
+     * 分析Word模板内容并添加字段
+     */
+    private void analyzeTemplate(String content) {
+        // 清空现有字段
+        fieldManager.clearAll();
+        
+        // 使用TemplateHandler分析模板
+        Map<String, Object> analysisResult = templateHandler.analyzeWordTemplate(content);
+        
+        // 提取字段
+        @SuppressWarnings("unchecked")
+        Set<String> objectFields = (Set<String>) analysisResult.get("objectFields");
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> listFields = (Map<String, List<String>>) analysisResult.get("listFields");
+        
+        // 添加到UI
+        for (String field : objectFields) {
+            fieldManager.addObjectField(field);
+        }
+        
+        for (Map.Entry<String, List<String>> entry : listFields.entrySet()) {
+            fieldManager.addListField(entry.getKey(), entry.getValue());
+        }
+    }
+    
+    /**
+     * 更新预览内容
+     */
+    private void updatePreview() {
+        if (isWordMode) {
+            updateWordPreview();
+        } else {
+            updateExcelPreview();
+        }
+    }
+    
     /**
      * 更新Word预览
      */
     private void updateWordPreview() {
         String content = wordEditor.getText();
         
-        // 替换普通字段占位符
-        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            String value = entry.getValue() != null ? entry.getValue() : "";
-            content = content.replace(placeholder, value);
-        }
+        // 使用TemplateHandler处理模板
+        String processedContent = templateHandler.processWordTemplate(
+            content, 
+            fieldManager.getFieldDataMap(), 
+            fieldManager.getListFieldDataMap()
+        );
         
-        // 替换列表字段占位符
-        for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
-            String listName = entry.getKey();
-            List<Map<String, String>> listItems = entry.getValue();
-            
-            // 查找列表区域
-            Pattern listPattern = Pattern.compile("\\{\\{#" + listName + "\\}\\}(.*?)\\{\\{/" + listName + "\\}\\}", Pattern.DOTALL);
-            Matcher listMatcher = listPattern.matcher(content);
-            
-            if (listMatcher.find()) {
-                String listTemplate = listMatcher.group(1);
-                StringBuilder replacement = new StringBuilder();
-                
-                // 为列表中的每个项生成内容
-                for (Map<String, String> item : listItems) {
-                    String itemContent = listTemplate;
-                    
-                    // 替换该项的所有字段
-                    for (Map.Entry<String, String> field : item.entrySet()) {
-                        String fieldPlaceholder = "{{" + listName + "." + field.getKey() + "}}";
-                        String fieldValue = field.getValue() != null ? field.getValue() : "";
-                        itemContent = itemContent.replace(fieldPlaceholder, fieldValue);
-                    }
-                    
-                    replacement.append(itemContent);
-                }
-                
-                // 替换整个列表区域
-                content = content.replace(listMatcher.group(0), replacement.toString());
-            }
-        }
-        
-        wordPreviewArea.setText(content);
+        wordPreviewArea.setText(processedContent);
     }
-
+    
     /**
      * 处理导出字段
      */
@@ -819,109 +401,14 @@ public class DocumentGeneratorController {
     private void handleExportFields() {
         try {
             if (isWordMode && wordEditor.getText().isEmpty()) {
-                showError("导出失败", "请先导入或编辑模板");
+                UIHelper.showError("导出失败", "请先导入或编辑模板");
                 return;
             }
             
-            // 创建文件选择器
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("导出字段定义");
-            
-            // 设置默认输出目录
-            File defaultDir = new File(baseDir);
-            fileChooser.setInitialDirectory(defaultDir);
-            
-            // 设置默认文件名
-            String defaultFileName = "字段定义_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
-            fileChooser.setInitialFileName(defaultFileName);
-            
-            // 设置文件类型
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("JSON文件", "*.json"));
-            
-            // 显示保存对话框
-            File outputFile = fileChooser.showSaveDialog(null);
-            if (outputFile != null) {
-                // 导出字段定义
-                Map<String, Object> fieldDefinitions = new HashMap<>();
-                
-                // 添加普通字段
-                Set<String> objectFields = new HashSet<>();
-                for (Node node : objectFieldItemsContainer.getChildren()) {
-                    if (node instanceof HBox) {
-                        HBox fieldItem = (HBox) node;
-                        for (Node child : fieldItem.getChildren()) {
-                            if (child instanceof Label) {
-                                Label fieldNameLabel = (Label) child;
-                                String fieldName = fieldNameLabel.getText();
-                                if (fieldName != null && !fieldName.isEmpty()) {
-                                    objectFields.add(fieldName);
-                                }
-                                break; // 只处理第一个Label
-                            }
-                        }
-                    }
-                }
-                fieldDefinitions.put("objectFields", objectFields);
-                
-                // 添加列表字段
-                Map<String, List<String>> listFields = new HashMap<>();
-                for (Node node : listFieldItemsContainer.getChildren()) {
-                    if (node instanceof VBox) {
-                        VBox listItem = (VBox) node;
-                        String listName = null;
-                        List<String> fields = new ArrayList<>();
-                        
-                        // 获取列表名称
-                        for (Node child : listItem.getChildren()) {
-                            if (child instanceof HBox) {
-                                HBox headerBox = (HBox) child;
-                                for (Node headerChild : headerBox.getChildren()) {
-                                    if (headerChild instanceof Label) {
-                                        Label listNameLabel = (Label) headerChild;
-                                        listName = listNameLabel.getText();
-                                        break;
-                                    }
-                                }
-                                break; // 只处理第一个HBox
-                            }
-                        }
-                        
-                        // 获取列表字段
-                        if (listName != null && !listName.isEmpty()) {
-                            for (Node child : listItem.getChildren()) {
-                                if (child instanceof VBox) {
-                                    VBox fieldsBox = (VBox) child;
-                                    for (Node fieldNode : fieldsBox.getChildren()) {
-                                        if (fieldNode instanceof HBox) {
-                                            HBox fieldBox = (HBox) fieldNode;
-                                            for (Node fieldChild : fieldBox.getChildren()) {
-                                                if (fieldChild instanceof Label) {
-                                                    Label fieldNameLabel = (Label) fieldChild;
-                                                    String fieldName = fieldNameLabel.getText();
-                                                    if (fieldName != null && !fieldName.isEmpty()) {
-                                                        fields.add(fieldName);
-                                                    }
-                                                    break; // 只处理第一个Label
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            listFields.put(listName, fields);
-                        }
-                    }
-                }
-                fieldDefinitions.put("listFields", listFields);
-                
-                // 将字段定义转换为JSON并保存
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.writerWithDefaultPrettyPrinter().writeValue(outputFile, fieldDefinitions);
-                
-                showInfo("成功", "字段定义已导出: " + outputFile.getAbsolutePath());
-            }
+            // 使用DataHandler导出字段定义
+            dataHandler.exportFieldDefinitions(objectFieldItemsContainer, listFieldItemsContainer);
         } catch (Exception e) {
-            showError("导出失败", "导出字段定义时出错: " + e.getMessage());
+            UIHelper.showError("导出失败", "导出字段定义时出错: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1031,10 +518,10 @@ public class DocumentGeneratorController {
         
         String fieldName = objectFieldInput.getText().trim();
         if (!fieldName.isEmpty()) {
-            addObjectField(fieldName);
+            fieldManager.addObjectField(fieldName);
             objectFieldInput.clear();
         } else {
-            showError("输入错误", "请输入字段名称");
+            UIHelper.showError("输入错误", "请输入字段名称");
         }
     }
 
@@ -1045,7 +532,7 @@ public class DocumentGeneratorController {
     private void handleGenerateDocument() {
         try {
             if (currentTemplateFile == null) {
-                showError("错误", "请先选择模板文件");
+                UIHelper.showError("错误", "请先选择模板文件");
                 return;
             }
             
@@ -1075,17 +562,15 @@ public class DocumentGeneratorController {
                 if (isWordMode) {
                     // 生成Word文档
                     String content = wordPreviewArea.getText();
-                    wordTemplateService.saveDocxTemplate(content, outputFile.getAbsolutePath());
+                    templateHandler.saveWordDocument(content, outputFile.getAbsolutePath());
                 } else {
-                    // 生成Excel文档
-                    // 这里应该实现Excel数据的保存，具体实现根据实际需求编写
-                    // excelTemplateService.saveExcelContent(...);
+                    // 生成Excel文档 - 这里留给后续实现
                 }
                 
-                showInfo("成功", "文档已生成: " + outputFile.getAbsolutePath());
+                UIHelper.showInfo("成功", "文档已生成: " + outputFile.getAbsolutePath());
             }
         } catch (Exception e) {
-            showError("生成失败", "生成文档时出错: " + e.getMessage());
+            UIHelper.showError("生成失败", "生成文档时出错: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1095,88 +580,9 @@ public class DocumentGeneratorController {
      */
     @FXML
     private void handleSaveData() {
-        try {
-            if (fieldDataMap.isEmpty() && listFieldDataMap.isEmpty()) {
-                showError("错误", "没有数据可保存");
-                return;
-            }
-            
-            // 创建文件选择器
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("保存数据");
-            
-            // 设置默认输出目录
-            File defaultDir = new File(baseDir);
-            fileChooser.setInitialDirectory(defaultDir);
-            
-            // 设置默认文件名
-            String defaultFileName = "数据_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
-            fileChooser.setInitialFileName(defaultFileName);
-            
-            // 设置文件类型
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("JSON文件", "*.json"));
-            
-            // 显示保存对话框
-            File outputFile = fileChooser.showSaveDialog(null);
-            if (outputFile != null) {
-                // 这里应该实现数据的保存逻辑，例如使用Jackson或Gson保存为JSON
-                // 此处简化为仅显示成功消息
-                showInfo("成功", "数据已保存: " + outputFile.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            showError("保存失败", "保存数据时出错: " + e.getMessage());
-            e.printStackTrace();
-        }
+        dataHandler.saveData(fieldManager);
     }
 
-    /**
-     * 显示错误对话框
-     */
-    private void showError(String title, String message) {
-        Alert alert = new Alert(AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    
-    /**
-     * 显示信息对话框
-     */
-    private void showInfo(String title, String message) {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-    
-    /**
-     * 更新UI和数据
-     */
-    private void updateFieldUIAndData() {
-        // 更新所有数据和UI
-        updatePreview();
-    }
-    
-    /**
-     * 更新预览内容
-     */
-    private void updatePreview() {
-        if (isWordMode) {
-            updateWordPreview();
-        } else {
-            updateExcelPreview();
-        }
-    }
-    
-    /**
-     * 更新Excel预览
-     */
-    private void updateExcelPreview() {
-        // 简化实现，实际应用中需要更复杂的Excel处理逻辑
-    }
-    
     /**
      * 处理选择模板
      */
@@ -1187,9 +593,25 @@ public class DocumentGeneratorController {
         
         // 设置默认目录为项目的templates目录
         File defaultDir = new File(baseDir);
-        File templatesDir = new File(defaultDir.getParentFile(), "templates");
+        File templatesDir = new File(defaultDir, "templates");
+        
+        // 检查templates目录并选择子目录
         if (templatesDir.exists() && templatesDir.isDirectory()) {
-            fileChooser.setInitialDirectory(templatesDir);
+            if (isWordMode) {
+                File wordDir = new File(templatesDir, "word");
+                if (wordDir.exists() && wordDir.isDirectory()) {
+                    fileChooser.setInitialDirectory(wordDir);
+                } else {
+                    fileChooser.setInitialDirectory(templatesDir);
+                }
+            } else {
+                File excelDir = new File(templatesDir, "excel");
+                if (excelDir.exists() && excelDir.isDirectory()) {
+                    fileChooser.setInitialDirectory(excelDir);
+                } else {
+                    fileChooser.setInitialDirectory(templatesDir);
+                }
+            }
         } else if (defaultDir.exists()) {
             fileChooser.setInitialDirectory(defaultDir);
         }
@@ -1208,232 +630,83 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 添加简单列表字段
-     */
-    private void addListField(String listName) {
-        addListField(listName, new ArrayList<>());
-    }
-    
-    /**
-     * 分析Word模板内容，提取字段和列表
-     */
-    private void analyzeWordTemplate(String content) {
-        AppLogger.info("分析Word模板内容");
-        
-        // 清空现有字段
-        objectFieldItemsContainer.getChildren().clear();
-        listFieldItemsContainer.getChildren().clear();
-        objectDataItemsContainer.getChildren().clear();
-        listDataItemsContainer.getChildren().clear();
-        
-        fieldDataMap.clear();
-        listFieldDataMap.clear();
-        
-        // 正则表达式匹配{{字段名}}格式的占位符
-        Pattern fieldPattern = Pattern.compile("\\{\\{([^{}]+)\\}\\}");
-        Matcher matcher = fieldPattern.matcher(content);
-        
-        Set<String> objectFields = new HashSet<>();
-        Map<String, List<String>> listFields = new HashMap<>();
-        
-        while (matcher.find()) {
-            String placeholder = matcher.group(1);
-            
-            // 检查是否是列表字段 (格式如: listName.fieldName)
-            if (placeholder.contains(".")) {
-                String[] parts = placeholder.split("\\.", 2);
-                String listName = parts[0];
-                String fieldName = parts[1];
-                
-                if (parts.length == 2 && !listName.trim().isEmpty() && !fieldName.trim().isEmpty()) {
-                    // 添加列表字段
-                    if (!listFields.containsKey(listName)) {
-                        listFields.put(listName, new ArrayList<>());
-                    }
-                    if (!listFields.get(listName).contains(fieldName)) {
-                        listFields.get(listName).add(fieldName);
-                    }
-                }
-            } else if (!placeholder.startsWith("#") && !placeholder.startsWith("/")) {
-                // 添加普通字段 (排除#listName和/listName格式)
-                objectFields.add(placeholder);
-            }
-        }
-        
-        // 查找列表的开始和结束标记 {{#listName}} ... {{/listName}}
-        Pattern listPattern = Pattern.compile("\\{\\{#([^{}]+)\\}\\}.*?\\{\\{/\\1\\}\\}", Pattern.DOTALL);
-        Matcher listMatcher = listPattern.matcher(content);
-        
-        while (listMatcher.find()) {
-            String listName = listMatcher.group(1);
-            if (!listFields.containsKey(listName)) {
-                listFields.put(listName, new ArrayList<>());
-            }
-            
-            // 检查列表内部是否有未识别的字段
-            String listContent = listMatcher.group(0);
-            Matcher fieldInListMatcher = fieldPattern.matcher(listContent);
-            
-            while (fieldInListMatcher.find()) {
-                String placeholder = fieldInListMatcher.group(1);
-                if (placeholder.contains(".")) {
-                    String[] parts = placeholder.split("\\.", 2);
-                    if (parts.length == 2 && parts[0].equals(listName)) {
-                        String fieldName = parts[1];
-                        if (!listFields.get(listName).contains(fieldName)) {
-                            listFields.get(listName).add(fieldName);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 添加到UI
-        for (String field : objectFields) {
-            addObjectField(field);
-        }
-        
-        for (Map.Entry<String, List<String>> entry : listFields.entrySet()) {
-            addListField(entry.getKey(), entry.getValue());
-        }
-    }
-    
-    /**
      * 处理导入数据
      */
     @FXML
     private void handleImportData() {
-        try {
-            // 创建文件选择器
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("导入数据");
-            
-            // 设置默认目录
-            File defaultDir = new File(baseDir);
-            fileChooser.setInitialDirectory(defaultDir);
-            
-            // 设置文件类型
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("JSON文件", "*.json"));
-            
-            // 显示打开对话框
-            File selectedFile = fileChooser.showOpenDialog(null);
-            if (selectedFile != null) {
-                // 读取JSON文件
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode rootNode = mapper.readTree(selectedFile);
-                
-                // 清空当前数据
-                fieldDataMap.clear();
-                listFieldDataMap.clear();
-                objectDataItemsContainer.getChildren().clear();
-                listDataItemsContainer.getChildren().clear();
-                
-                // 加载普通字段数据
-                if (rootNode.has("objectFields")) {
-                    JsonNode objectFieldsNode = rootNode.get("objectFields");
-                    Iterator<Map.Entry<String, JsonNode>> fields = objectFieldsNode.fields();
-                    while (fields.hasNext()) {
-                        Map.Entry<String, JsonNode> field = fields.next();
-                        String fieldName = field.getKey();
-                        String fieldValue = field.getValue().asText();
-                        fieldDataMap.put(fieldName, fieldValue);
-                        addObjectDataField(fieldName, fieldValue);
-                    }
-                }
-                
-                // 加载列表字段数据
-                if (rootNode.has("listFields")) {
-                    JsonNode listFieldsNode = rootNode.get("listFields");
-                    Iterator<Map.Entry<String, JsonNode>> lists = listFieldsNode.fields();
-                    while (lists.hasNext()) {
-                        Map.Entry<String, JsonNode> list = lists.next();
-                        String listName = list.getKey();
-                        JsonNode listItems = list.getValue();
-                        
-                        List<Map<String, String>> itemsList = new ArrayList<>();
-                        for (JsonNode item : listItems) {
-                            Map<String, String> itemMap = new HashMap<>();
-                            Iterator<Map.Entry<String, JsonNode>> itemFields = item.fields();
-                            while (itemFields.hasNext()) {
-                                Map.Entry<String, JsonNode> itemField = itemFields.next();
-                                String fieldName = itemField.getKey();
-                                String fieldValue = itemField.getValue().asText();
-                                itemMap.put(fieldName, fieldValue);
-                            }
-                            itemsList.add(itemMap);
-                        }
-                        
-                        listFieldDataMap.put(listName, itemsList);
-                        addListDataField(listName, itemsList);
-                    }
-                }
-                
-                showInfo("成功", "数据已导入: " + selectedFile.getAbsolutePath());
-                updatePreview();
-            }
-        } catch (Exception e) {
-            showError("导入失败", "导入数据时出错: " + e.getMessage());
-            e.printStackTrace();
+        if (dataHandler.importData(fieldManager)) {
+            updatePreview();
         }
     }
     
     /**
-     * 添加对象数据字段
-     */
-    private void addObjectDataField(String fieldName, String fieldValue) {
-        // 创建数据输入UI组件
-        HBox dataItem = new HBox();
-        dataItem.setAlignment(Pos.CENTER_LEFT);
-        dataItem.setSpacing(10);
-        dataItem.setPadding(new Insets(5));
-        
-        Label nameLabel = new Label(fieldName + ":");
-        nameLabel.setPrefWidth(120);
-        
-        TextField valueField = new TextField(fieldValue);
-        HBox.setHgrow(valueField, Priority.ALWAYS);
-        valueField.textProperty().addListener((obs, oldVal, newVal) -> {
-            fieldDataMap.put(fieldName, newVal);
-            updatePreview();
-        });
-        
-        dataItem.getChildren().addAll(nameLabel, valueField);
-        objectDataItemsContainer.getChildren().add(dataItem);
-    }
-    
-    /**
-     * 添加列表数据字段
-     */
-    private void addListDataField(String listName, List<Map<String, String>> itemsList) {
-        // 实现列表数据字段添加逻辑
-    }
-    
-    /**
      * 加载Excel数据
+     * 
+     * @param data Excel数据
      */
     private void loadExcelData(List<List<String>> data) {
         // 清空当前数据
         excelEditor.getItems().clear();
         excelEditor.getColumns().clear();
         
-        // 简化实现，实际应用中需要更复杂的Excel处理逻辑
+        // 创建列
+        for (int i = 0; i < data.get(0).size(); i++) {
+            final int colIndex = i;
+            TableColumn<ObservableList<String>, String> column = new TableColumn<>(getColumnName(i));
+            column.setCellValueFactory(param -> {
+                ObservableList<String> row = param.getValue();
+                return row.size() > colIndex ? new SimpleStringProperty(row.get(colIndex)) : new SimpleStringProperty("");
+            });
+            excelEditor.getColumns().add(column);
+        }
+        
+        // 创建数据行
+        ObservableList<ObservableList<String>> tableData = FXCollections.observableArrayList();
+        for (List<String> row : data) {
+            tableData.add(FXCollections.observableArrayList(row));
+        }
+        excelEditor.setItems(tableData);
+    }
+    
+    /**
+     * 获取Excel列名（A, B, C, ...）
+     * 
+     * @param index 列索引
+     * @return 列名
+     */
+    private String getColumnName(int index) {
+        StringBuilder name = new StringBuilder();
+        while (index >= 0) {
+            name.insert(0, (char) ('A' + index % 26));
+            index = index / 26 - 1;
+        }
+        return name.toString();
     }
     
     /**
      * 分析Excel模板
+     * 
+     * @param content Excel内容
      */
     private void analyzeExcelTemplate(List<List<String>> content) {
-        // 实现Excel模板分析逻辑
+        // 此处留给后续实现
     }
     
     /**
-     * 处理保存模板功能
+     * 更新Excel预览
+     */
+    private void updateExcelPreview() {
+        // 此处留给后续实现
+    }
+    
+    /**
+     * 处理保存模板
      */
     @FXML
     private void handleSaveTemplate() {
         try {
             if (isWordMode && wordEditor.getText().isEmpty()) {
-                showError("保存失败", "请先导入或编辑模板");
+                UIHelper.showError("保存失败", "请先导入或编辑模板");
                 return;
             }
             
@@ -1443,13 +716,24 @@ public class DocumentGeneratorController {
             
             // 设置默认输出目录
             File defaultDir = new File(baseDir);
-            fileChooser.setInitialDirectory(defaultDir);
+            File templatesDir = new File(defaultDir, "templates");
             
-            // 设置默认文件名和类型
             if (isWordMode) {
+                File wordDir = new File(templatesDir, "word");
+                if (wordDir.exists() && wordDir.isDirectory()) {
+                    fileChooser.setInitialDirectory(wordDir);
+                } else {
+                    fileChooser.setInitialDirectory(templatesDir);
+                }
                 fileChooser.setInitialFileName("模板.docx");
                 fileChooser.getExtensionFilters().add(new ExtensionFilter("Word文档", "*.docx"));
             } else {
+                File excelDir = new File(templatesDir, "excel");
+                if (excelDir.exists() && excelDir.isDirectory()) {
+                    fileChooser.setInitialDirectory(excelDir);
+                } else {
+                    fileChooser.setInitialDirectory(templatesDir);
+                }
                 fileChooser.setInitialFileName("模板.xlsx");
                 fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel表格", "*.xlsx"));
             }
@@ -1460,18 +744,18 @@ public class DocumentGeneratorController {
                 if (isWordMode) {
                     // 保存Word模板
                     String content = wordEditor.getText();
-                    wordTemplateService.saveDocxTemplate(outputFile.getAbsolutePath(), content);
+                    templateHandler.saveWordTemplate(outputFile.getAbsolutePath(), content);
                 } else {
                     // 保存Excel模板
                     // TODO: 实现Excel模板保存
-                    showError("未实现", "Excel模板保存功能尚未实现");
+                    UIHelper.showError("未实现", "Excel模板保存功能尚未实现");
                     return;
                 }
                 
-                showInfo("成功", "模板已保存: " + outputFile.getAbsolutePath());
+                UIHelper.showInfo("成功", "模板已保存: " + outputFile.getAbsolutePath());
             }
         } catch (Exception e) {
-            showError("保存失败", "保存模板时出错: " + e.getMessage());
+            UIHelper.showError("保存失败", "保存模板时出错: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -1492,10 +776,10 @@ public class DocumentGeneratorController {
                 generateExcelTemplate();
             }
             
-            showInfo("成功", "模板生成成功！");
+            UIHelper.showInfo("成功", "模板生成成功！");
         } catch (Exception e) {
             AppLogger.error("生成模板失败: " + e.getMessage(), e);
-            showError("错误", "生成模板失败: " + e.getMessage());
+            UIHelper.showError("错误", "生成模板失败: " + e.getMessage());
         }
     }
     
@@ -1504,8 +788,11 @@ public class DocumentGeneratorController {
      */
     private void generateWordTemplate() throws Exception {
         // 检查是否已有字段定义
-        if (objectFieldItemsContainer.getChildren().isEmpty() && listFieldItemsContainer.getChildren().isEmpty()) {
-            showError("错误", "请先添加字段定义！");
+        List<String> objectFields = fieldManager.getObjectFieldNames();
+        List<String> listFields = fieldManager.getListFieldNames();
+        
+        if (objectFields.isEmpty() && listFields.isEmpty()) {
+            UIHelper.showError("错误", "请先添加字段定义！");
             return;
         }
         
@@ -1513,12 +800,8 @@ public class DocumentGeneratorController {
         String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         File templateFile = new File(baseDir + "/templates/word/自动生成模板_" + timeStamp + ".docx");
         
-        // 准备字段列表
-        List<String> objectFields = getObjectFieldNames();
-        List<String> listFields = getListFieldNames();
-        
         // 创建基础模板
-        String templateContent = generateWordTemplateContent(objectFields, listFields);
+        String templateContent = templateHandler.generateWordTemplateContent(objectFields, listFields);
         wordEditor.setText(templateContent);
         handleSaveTemplate(); // 保存模板到文件
         
@@ -1528,35 +811,15 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 生成简单的Word模板内容
-     */
-    private String generateWordTemplateContent(List<String> objectFields, List<String> listFields) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("==== 自动生成的Word模板 ====\n\n");
-        
-        // 添加对象字段占位符
-        builder.append("【对象字段】\n");
-        for (String field : objectFields) {
-            builder.append("${").append(field).append("}\n");
-        }
-        builder.append("\n");
-        
-        // 添加列表字段占位符
-        builder.append("【列表字段】\n");
-        for (String listField : listFields) {
-            builder.append("列表名: ${").append(listField).append("[*]}\n");
-        }
-        
-        return builder.toString();
-    }
-    
-    /**
      * 生成Excel模板
      */
     private void generateExcelTemplate() throws Exception {
         // 检查是否已有字段定义
-        if (objectFieldItemsContainer.getChildren().isEmpty() && listFieldItemsContainer.getChildren().isEmpty()) {
-            showError("错误", "请先添加字段定义！");
+        List<String> objectFields = fieldManager.getObjectFieldNames();
+        List<String> listFields = fieldManager.getListFieldNames();
+        
+        if (objectFields.isEmpty() && listFields.isEmpty()) {
+            UIHelper.showError("错误", "请先添加字段定义！");
             return;
         }
         
@@ -1568,11 +831,9 @@ public class DocumentGeneratorController {
         Map<String, List<String>> fieldMap = new HashMap<>();
         
         // 添加对象字段
-        List<String> objectFields = getObjectFieldNames();
         fieldMap.put("对象字段", objectFields);
         
         // 添加每个列表字段
-        List<String> listFields = getListFieldNames();
         for (String listName : listFields) {
             // 为每个列表添加一些默认字段
             List<String> columnNames = new ArrayList<>();
@@ -1583,7 +844,7 @@ public class DocumentGeneratorController {
         }
         
         // 调用服务创建Excel模板
-        excelTemplateService.createTemplate(templateFilePath, fieldMap);
+        templateHandler.generateExcelTemplate(templateFilePath, fieldMap);
         
         // 加载生成的模板
         loadTemplate(new File(templateFilePath));
@@ -1591,43 +852,5 @@ public class DocumentGeneratorController {
         // 更新UI
         templateNameLabel.setText(new File(templateFilePath).getName());
         updatePreview();
-    }
-    
-    /**
-     * 获取所有对象字段名称
-     */
-    private List<String> getObjectFieldNames() {
-        List<String> fieldNames = new ArrayList<>();
-        for (Node node : objectFieldItemsContainer.getChildren()) {
-            if (node instanceof HBox) {
-                HBox hbox = (HBox) node;
-                for (Node child : hbox.getChildren()) {
-                    if (child instanceof Label) {
-                        fieldNames.add(((Label) child).getText());
-                        break;
-                    }
-                }
-            }
-        }
-        return fieldNames;
-    }
-    
-    /**
-     * 获取所有列表字段名称
-     */
-    private List<String> getListFieldNames() {
-        List<String> fieldNames = new ArrayList<>();
-        for (Node node : listFieldItemsContainer.getChildren()) {
-            if (node instanceof HBox) {
-                HBox hbox = (HBox) node;
-                for (Node child : hbox.getChildren()) {
-                    if (child instanceof Label) {
-                        fieldNames.add(((Label) child).getText());
-                        break;
-                    }
-                }
-            }
-        }
-        return fieldNames;
     }
 }
