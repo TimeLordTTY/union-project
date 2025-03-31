@@ -9,10 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.service.ExcelTemplateService;
 import com.timelordtty.docgen.service.WordTemplateService;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -28,16 +34,10 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
-import javafx.stage.Window;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import javafx.application.Platform;
-import javafx.scene.control.cell.TextFieldTableCell;
 
 /**
  * 文档生成器控制器
@@ -1191,39 +1191,62 @@ public class DocumentGeneratorController {
                 Label fieldLabel = (Label) clickedNode;
                 fieldName = fieldLabel.getText();
                 
-                // 排除不是字段的标签（如标题等）
-                if (fieldName.equals("列表字段") || fieldName.contains("添加") || 
-                    fieldName.equals("字段名") || fieldName.equals("占位符") || 
-                    fieldName.equals("操作")) {
-                    return;
+                // 如果是占位符格式，直接使用该文本
+                if (fieldName.startsWith("{{") && fieldName.endsWith("}}")) {
+                    // 直接使用占位符文本
+                    if (fieldName.contains("#")) {
+                        isList = true;
+                    }
+                } else {
+                    // 排除不是字段的标签（如标题等）
+                    if (fieldName.equals("列表字段") || fieldName.contains("添加") || 
+                        fieldName.equals("字段名") || fieldName.equals("占位符") || 
+                        fieldName.equals("操作")) {
+                        return;
+                    }
+                    
+                    // 如果不包含点，认为是列表名
+                    isList = !fieldName.contains(".");
                 }
-                
-                // 如果不包含点，认为是列表名
-                isList = !fieldName.contains(".");
             } 
             // 处理TableCell节点（列表属性）
             else if (clickedNode instanceof TableCell) {
                 TableCell<?, ?> cell = (TableCell<?, ?>) clickedNode;
-                if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("占位符")) {
-                    // 从占位符列获取完整占位符
-                    fieldName = cell.getItem() != null ? cell.getItem().toString() : null;
-                } else if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("字段名")) {
-                    // 从字段名列获取属性名，需要构建完整的列表字段占位符
-                    String attrName = cell.getItem() != null ? cell.getItem().toString() : null;
-                    if (attrName != null && !attrName.isEmpty()) {
-                        // 寻找所属的列表名
-                        Node parent = cell.getParent();
-                        while (parent != null && !(parent instanceof VBox && parent.getId() != null)) {
-                            parent = parent.getParent();
-                        }
-                        
-                        if (parent != null) {
-                            String listName = parent.getId();
-                            fieldName = listName + "." + attrName;
+                if (cell.getItem() != null) {
+                    String cellText = cell.getItem().toString();
+                    
+                    // 判断是否为占位符格式（被列格式化后的文本）
+                    if (cellText.startsWith("{{") && cellText.endsWith("}}")) {
+                        fieldName = cellText;
+                        isList = false; // 列表属性占位符不是列表标记
+                    } else {
+                        // 处理普通文本单元格
+                        if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("占位符")) {
+                            // 从占位符列获取完整占位符
+                            fieldName = cellText;
+                            isList = false; // 列表属性占位符不是列表标记
+                        } else if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("字段名")) {
+                            // 从字段名列获取属性名，需要构建完整的列表字段占位符
+                            String attrName = cellText;
+                            if (attrName != null && !attrName.isEmpty()) {
+                                // 寻找所属的列表名
+                                Node parent = cell.getParent();
+                                while (parent != null && !(parent instanceof VBox && parent.getId() != null)) {
+                                    parent = parent.getParent();
+                                }
+                                
+                                if (parent != null) {
+                                    String listName = parent.getId();
+                                    fieldName = "{{" + listName + "." + attrName + "}}";
+                                }
+                            }
+                        } else {
+                            // 其他列不处理
+                            return;
                         }
                     }
                 } else {
-                    // 其他列不处理
+                    // 单元格内容为空
                     return;
                 }
             }
@@ -1239,13 +1262,21 @@ public class DocumentGeneratorController {
                 
                 if (isList) {
                     // 插入列表开始和结束标记
-                    String listTemplate = "{{#" + fieldName + "}}\n" +
-                                         "    列表项内容 - 在这里添加列表字段\n" +
-                                         "{{/" + fieldName + "}}";
+                    String listTemplate;
+                    if (fieldName.startsWith("{{#") && fieldName.endsWith("}}")) {
+                        // 已经是完整的标记，直接插入
+                        String listName = fieldName.substring(3, fieldName.length() - 2);
+                        listTemplate = fieldName + "\n    列表项内容 - 在这里添加列表字段\n{{/" + listName + "}}";
+                    } else {
+                        // 生成标记
+                        listTemplate = "{{#" + fieldName + "}}\n" +
+                                       "    列表项内容 - 在这里添加列表字段\n" +
+                                       "{{/" + fieldName + "}}";
+                    }
                     wordEditor.insertText(caretPosition, listTemplate);
                 } else {
-                    // 插入列表字段的占位符
-                    String placeholder = "{{" + fieldName + "}}";
+                    // 插入列表字段的占位符，如果已经是占位符格式就直接插入
+                    String placeholder = fieldName.startsWith("{{") ? fieldName : "{{" + fieldName + "}}";
                     wordEditor.insertText(caretPosition, placeholder);
                 }
             } else {
@@ -1262,8 +1293,8 @@ public class DocumentGeneratorController {
                             // Excel中不支持列表循环，只能插入属性占位符
                             rowData.set(col, fieldName);
                         } else {
-                            // 插入属性占位符
-                            String placeholder = "{{" + fieldName + "}}";
+                            // 插入属性占位符，如果已经是占位符格式就直接插入
+                            String placeholder = fieldName.startsWith("{{") ? fieldName : "{{" + fieldName + "}}";
                             rowData.set(col, placeholder);
                         }
                         

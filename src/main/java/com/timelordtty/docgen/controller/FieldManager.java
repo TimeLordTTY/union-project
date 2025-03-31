@@ -165,6 +165,8 @@ public class FieldManager {
         
         TextField valueField = new TextField();
         HBox.setHgrow(valueField, Priority.ALWAYS);
+        
+        // 添加失焦保存功能
         valueField.textProperty().addListener((obs, oldVal, newVal) -> {
             fieldDataMap.put(fieldName, newVal);
             if (updatePreviewCallback != null) {
@@ -297,6 +299,22 @@ public class FieldManager {
         fieldsTable.setPrefHeight(120); // 减少表格高度
         fieldsTable.setFixedCellSize(24); // 设置单元格固定高度
         
+        // 隐藏表头
+        fieldsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        fieldsTable.getStyleClass().add("no-header");
+        fieldsTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
+                          + "-fx-control-inner-background: white; "
+                          + "-fx-table-header-border-color: transparent; "
+                          + "-fx-table-cell-border-color: transparent; "
+                          + "-fx-scroll-bar-visible: false;");
+        
+        // 使用CSS样式隐藏表头
+        fieldsTable.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (fieldsTable.lookup(".column-header-background") != null) {
+                fieldsTable.lookup(".column-header-background").setStyle("-fx-max-height: 0; -fx-pref-height: 0; -fx-min-height: 0;");
+            }
+        });
+        
         TableColumn<String, String> fieldNameColumn = new TableColumn<>("字段名");
         fieldNameColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
         fieldNameColumn.setCellFactory(TextFieldTableCell.forTableColumn());
@@ -319,6 +337,24 @@ public class FieldManager {
         
         TableColumn<String, String> placeholderColumn = new TableColumn<>("占位符");
         placeholderColumn.setCellValueFactory(data -> new SimpleStringProperty("{{" + listName + "." + data.getValue() + "}}"));
+        placeholderColumn.setCellFactory(param -> new javafx.scene.control.TableCell<String, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    // 使用与其他占位符相同的灰色斜体样式
+                    setText(item);
+                    setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
+                    
+                    // 为占位符单元格添加工具提示
+                    Tooltip tooltip = new Tooltip(item);
+                    Tooltip.install(this, tooltip);
+                }
+            }
+        });
         placeholderColumn.setPrefWidth(150);
         
         TableColumn<String, Void> actionColumn = new TableColumn<>("操作");
@@ -470,7 +506,7 @@ public class FieldManager {
                         
                         // 重新添加标题
                         Label titleLabel = new Label(listName);
-                        titleLabel.getStyleClass().add("list-data-title");
+                        titleLabel.getStyleClass().add("list-field-title");
                         
                         // 为标题添加悬浮提示
                         Tooltip titleTooltip = new Tooltip("列表名: " + listName + "\n占位符示例: {{#" + listName + "}} {{" + listName + ".字段名}} {{/" + listName + "}}");
@@ -482,34 +518,101 @@ public class FieldManager {
                         TableView<Map<String, String>> dataTable = new TableView<>();
                         dataTable.setEditable(true);
                         
+                        // 隐藏表头
+                        dataTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                        dataTable.getStyleClass().add("no-header");
+                        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
+                                        + "-fx-control-inner-background: white; "
+                                        + "-fx-table-header-border-color: transparent; "
+                                        + "-fx-table-cell-border-color: transparent; "
+                                        + "-fx-scroll-bar-visible: false;");
+                        
+                        // 使用CSS样式隐藏表头
+                        dataTable.widthProperty().addListener((obs, oldVal, newVal) -> {
+                            if (dataTable.lookup(".column-header-background") != null) {
+                                dataTable.lookup(".column-header-background").setStyle("-fx-max-height: 0; -fx-pref-height: 0; -fx-min-height: 0;");
+                            }
+                        });
+                        
                         // 为每个字段创建一个列
                         for (String field : fields) {
                             TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
                             column.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().get(field)));
-                            column.setCellFactory(TextFieldTableCell.forTableColumn());
-                            column.setOnEditCommit(event -> {
-                                Map<String, String> rowData = event.getRowValue();
-                                rowData.put(event.getTableColumn().getText(), event.getNewValue());
-                                if (updatePreviewCallback != null) {
-                                    updatePreviewCallback.run();
+                            
+                            // 使用支持失焦保存的TextFieldTableCell
+                            column.setCellFactory(col -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
+                                private final TextField textField = new TextField();
+                                
+                                {
+                                    // 失焦时保存
+                                    textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                                        if (!newVal) {
+                                            commitEdit(textField.getText());
+                                        }
+                                    });
+                                    
+                                    // 回车键保存
+                                    textField.setOnAction(e -> commitEdit(textField.getText()));
+                                }
+                                
+                                @Override
+                                protected void updateItem(String item, boolean empty) {
+                                    super.updateItem(item, empty);
+                                    if (empty) {
+                                        setText(null);
+                                        setGraphic(null);
+                                    } else if (isEditing()) {
+                                        setText(null);
+                                        textField.setText(item == null ? "" : item);
+                                        setGraphic(textField);
+                                    } else {
+                                        setText(item == null ? "" : item);
+                                        setGraphic(null);
+                                    }
+                                }
+                                
+                                @Override
+                                public void startEdit() {
+                                    super.startEdit();
+                                    textField.setText(getItem() == null ? "" : getItem());
+                                    setText(null);
+                                    setGraphic(textField);
+                                    textField.requestFocus();
+                                }
+                                
+                                @Override
+                                public void cancelEdit() {
+                                    super.cancelEdit();
+                                    setText(getItem());
+                                    setGraphic(null);
+                                }
+                                
+                                @Override
+                                public void commitEdit(String newValue) {
+                                    super.commitEdit(newValue);
+                                    Map<String, String> rowData = getTableView().getItems().get(getIndex());
+                                    rowData.put(column.getText(), newValue);
+                                    
+                                    if (updatePreviewCallback != null) {
+                                        updatePreviewCallback.run();
+                                    }
                                 }
                             });
+                            
                             column.setPrefWidth(100);
                             dataTable.getColumns().add(column);
                         }
                         
                         // 添加操作列
                         TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("操作");
-                        actionColumn.setPrefWidth(80);
+                        actionColumn.setPrefWidth(60);
                         
                         actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
                             private final Button addButton = new Button("+");
-                            private final Button deleteButton = new Button("×");
-                            private final HBox actionBox = new HBox(5, addButton, deleteButton);
+                            private final HBox actionBox = new HBox(5, addButton);
                             
                             {
                                 addButton.getStyleClass().add("icon-button");
-                                deleteButton.getStyleClass().add("icon-button");
                                 
                                 // 添加按钮动作
                                 addButton.setOnAction(event -> {
@@ -531,22 +634,6 @@ public class FieldManager {
                                         updatePreviewCallback.run();
                                     }
                                 });
-                                
-                                // 删除按钮动作
-                                deleteButton.setOnAction(event -> {
-                                    int rowIndex = getIndex();
-                                    
-                                    if (listFieldDataMap.get(listName).size() > 1) {
-                                        listFieldDataMap.get(listName).remove(rowIndex);
-                                        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
-                                        
-                                        if (updatePreviewCallback != null) {
-                                            updatePreviewCallback.run();
-                                        }
-                                    } else {
-                                        UIHelper.showWarning("警告", "至少需要保留一行数据");
-                                    }
-                                });
                             }
                             
                             @Override
@@ -561,7 +648,15 @@ public class FieldManager {
                         });
                         dataTable.getColumns().add(actionColumn);
                         
+                        // 设置表格样式
                         dataTable.setPrefHeight(120); // 减少表格高度
+                        dataTable.setFixedCellSize(24); // 设置单元格固定高度
+                        
+                        // 允许表格直接滚动，不显示滚动条
+                        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
+                                        + "-fx-control-inner-background: white; "
+                                        + "-fx-hide-scrollbar: true;");
+                        
                         tableContainer.getChildren().add(dataTable);
                         
                         // 确保每个字段都在数据中存在
@@ -639,18 +734,87 @@ public class FieldManager {
         TableView<Map<String, String>> dataTable = new TableView<>();
         dataTable.setEditable(true);
         
+        // 隐藏表头
+        dataTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        dataTable.getStyleClass().add("no-header");
+        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
+                          + "-fx-control-inner-background: white; "
+                          + "-fx-table-header-border-color: transparent; "
+                          + "-fx-table-cell-border-color: transparent; "
+                          + "-fx-scroll-bar-visible: false;");
+        
+        // 使用CSS样式隐藏表头
+        dataTable.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (dataTable.lookup(".column-header-background") != null) {
+                dataTable.lookup(".column-header-background").setStyle("-fx-max-height: 0; -fx-pref-height: 0; -fx-min-height: 0;");
+            }
+        });
+        
         // 为每个字段创建一个列
         for (String field : listFields) {
             TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
             column.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().get(field)));
-            column.setCellFactory(TextFieldTableCell.forTableColumn());
-            column.setOnEditCommit(event -> {
-                Map<String, String> rowData = event.getRowValue();
-                rowData.put(event.getTableColumn().getText(), event.getNewValue());
-                if (updatePreviewCallback != null) {
-                    updatePreviewCallback.run();
+            
+            // 使用支持失焦保存的TextFieldTableCell
+            column.setCellFactory(col -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
+                private final TextField textField = new TextField();
+                
+                {
+                    // 失焦时保存
+                    textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                        if (!newVal) {
+                            commitEdit(textField.getText());
+                        }
+                    });
+                    
+                    // 回车键保存
+                    textField.setOnAction(e -> commitEdit(textField.getText()));
+                }
+                
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setText(null);
+                        setGraphic(null);
+                    } else if (isEditing()) {
+                        setText(null);
+                        textField.setText(item == null ? "" : item);
+                        setGraphic(textField);
+                    } else {
+                        setText(item == null ? "" : item);
+                        setGraphic(null);
+                    }
+                }
+                
+                @Override
+                public void startEdit() {
+                    super.startEdit();
+                    textField.setText(getItem() == null ? "" : getItem());
+                    setText(null);
+                    setGraphic(textField);
+                    textField.requestFocus();
+                }
+                
+                @Override
+                public void cancelEdit() {
+                    super.cancelEdit();
+                    setText(getItem());
+                    setGraphic(null);
+                }
+                
+                @Override
+                public void commitEdit(String newValue) {
+                    super.commitEdit(newValue);
+                    Map<String, String> rowData = getTableView().getItems().get(getIndex());
+                    rowData.put(column.getText(), newValue);
+                    
+                    if (updatePreviewCallback != null) {
+                        updatePreviewCallback.run();
+                    }
                 }
             });
+            
             column.setPrefWidth(100);
             dataTable.getColumns().add(column);
         }
@@ -705,7 +869,9 @@ public class FieldManager {
         dataTable.setFixedCellSize(24); // 设置单元格固定高度
         
         // 允许表格直接滚动，不显示滚动条
-        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white;");
+        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
+                         + "-fx-control-inner-background: white; "
+                         + "-fx-hide-scrollbar: true;");
         
         tableContainer.getChildren().add(dataTable);
         listDataItemsContainer.getChildren().add(tableContainer);
