@@ -21,19 +21,19 @@
                     </Label>
                     <Region HBox.hgrow="ALWAYS" />
                     <Button fx:id="addProjectButton" mnemonicParsing="false" onAction="#handleAddProject" 
-                            text="+" styleClass="add-button" style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="+" styleClass="operation-add-button">
                         <tooltip>
                             <Tooltip text="添加一个新项目" />
                         </tooltip>
                     </Button>
                     <Button fx:id="editProjectButton" mnemonicParsing="false" onAction="#handleEditProject" 
-                            text="✎" styleClass="edit-button" style="-fx-background-color: #FFC107; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="✎" styleClass="operation-add-button" style="-fx-background-color: #FFC107;">
                         <tooltip>
                             <Tooltip text="编辑所选的项目" />
                         </tooltip>
                     </Button>
                     <Button fx:id="deleteProjectButton" mnemonicParsing="false" onAction="#handleDeleteProject" 
-                            text="✕" styleClass="delete-button" style="-fx-background-color: #F44336; -fx-text-fill: white; -fx-font-weight: bold;">
+                            text="×" styleClass="operation-delete-button">
                         <tooltip>
                             <Tooltip text="删除所选的项目" />
                         </tooltip>

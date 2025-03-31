@@ -109,7 +109,7 @@ public class FieldManager {
         Tooltip.install(placeholderLabel, placeholderTooltip);
         
         Button deleteButton = new Button("×");
-        deleteButton.getStyleClass().add("icon-button");
+        deleteButton.getStyleClass().add("operation-delete-button");
         deleteButton.setOnAction(e -> {
             objectFieldItemsContainer.getChildren().remove(fieldItem);
             fieldDataMap.remove(fieldName);
@@ -268,7 +268,7 @@ public class FieldManager {
         Tooltip.install(placeholderLabel, placeholderTooltip);
         
         Button removeListButton = new Button("×");
-        removeListButton.getStyleClass().add("icon-button");
+        removeListButton.getStyleClass().add("operation-delete-button");
         removeListButton.setOnAction(e -> {
             // 移除该列表的所有相关组件
             listFieldItemsContainer.getChildren().remove(listContainer);
@@ -365,8 +365,8 @@ public class FieldManager {
             private final HBox actionBox = new HBox(5, addButton, deleteButton);
             
             {
-                addButton.getStyleClass().add("icon-button");
-                deleteButton.getStyleClass().add("icon-button");
+                addButton.getStyleClass().add("operation-add-button");
+                deleteButton.getStyleClass().add("operation-delete-button");
                 
                 // 添加按钮动作：在当前行后添加新字段
                 addButton.setOnAction(event -> {
@@ -601,8 +601,8 @@ public class FieldManager {
                             private final HBox actionBox = new HBox(5, addButton, deleteButton);
                             
                             {
-                                addButton.getStyleClass().addAll("icon-button", "add-button");
-                                deleteButton.getStyleClass().addAll("icon-button", "delete-button");
+                                addButton.getStyleClass().add("operation-add-button");
+                                deleteButton.getStyleClass().add("operation-delete-button");
                                 
                                 // 添加按钮动作
                                 addButton.setOnAction(event -> {
@@ -810,8 +810,8 @@ public class FieldManager {
             private final HBox actionBox = new HBox(5, addButton, deleteButton);
             
             {
-                addButton.getStyleClass().addAll("icon-button", "add-button");
-                deleteButton.getStyleClass().addAll("icon-button", "delete-button");
+                addButton.getStyleClass().add("operation-add-button");
+                deleteButton.getStyleClass().add("operation-delete-button");
                 
                 // 添加按钮动作
                 addButton.setOnAction(event -> {

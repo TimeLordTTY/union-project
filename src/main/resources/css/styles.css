@@ -1357,3 +1357,42 @@
     -fx-background-color: #fff5f8;
     -fx-background-radius: 6px;
 }
+
+/* 操作按钮样式 - 新增按钮 */
+.operation-add-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-min-width: 24px;
+    -fx-min-height: 24px;
+    -fx-max-width: 24px;
+    -fx-max-height: 24px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+    -fx-font-size: 14px;
+    -fx-content-display: center;
+    -fx-cursor: hand;
+}
+
+/* 操作按钮样式 - 删除按钮 */
+.operation-delete-button {
+    -fx-background-color: #F44336;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-min-width: 24px;
+    -fx-min-height: 24px;
+    -fx-max-width: 24px;
+    -fx-max-height: 24px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+    -fx-font-size: 14px;
+    -fx-content-display: center;
+    -fx-cursor: hand;
+}
+
+/* 减小字段定义和数据填充文本框行高 */
+.reduced-height-field {
+    -fx-min-height: 22px;
+    -fx-max-height: 22px;
+    -fx-pref-height: 22px;
+}

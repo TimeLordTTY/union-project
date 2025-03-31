@@ -60,8 +60,8 @@
             <!-- 字段定义内容区域 -->
             <VBox spacing="4" VBox.vgrow="ALWAYS">
                 <HBox spacing="4">
-                    <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS" minHeight="24" maxHeight="24" />
-                    <Button text="添加字段" onAction="#handleAddObjectField" minHeight="24" maxHeight="24" />
+                    <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS" styleClass="reduced-height-field" />
+                    <Button text="+" onAction="#handleAddObjectField" minHeight="24" maxHeight="24" styleClass="operation-add-button" />
                 </HBox>
                 
                 <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
@@ -69,8 +69,8 @@
                 </ScrollPane>
                 
                 <HBox spacing="4">
-                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" minHeight="24" maxHeight="24" />
-                    <Button text="添加列表" onAction="#handleAddListField" minHeight="24" maxHeight="24" />
+                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" styleClass="reduced-height-field" />
+                    <Button text="+" onAction="#handleAddListField" minHeight="24" maxHeight="24" styleClass="operation-add-button" />
                 </HBox>
                 
                 <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
