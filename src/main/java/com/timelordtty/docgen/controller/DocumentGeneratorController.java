@@ -17,6 +17,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -177,35 +178,42 @@ public class DocumentGeneratorController {
      * 设置Excel编辑器
      */
     private void setupExcelEditor() {
-        // 初始化一个简单的Excel编辑器布局
-        TableColumn<ObservableList<String>, String> col1 = new TableColumn<>("A");
-        TableColumn<ObservableList<String>, String> col2 = new TableColumn<>("B");
-        TableColumn<ObservableList<String>, String> col3 = new TableColumn<>("C");
+        // 清除现有列
+        excelEditor.getColumns().clear();
+        excelEditor.getItems().clear();
         
-        col1.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 0 ? new SimpleStringProperty(row.get(0)) : new SimpleStringProperty("");
-        });
+        // 创建默认Excel表格结构（5列，10行）
+        int defaultColumns = 5;
+        int defaultRows = 10;
         
-        col2.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 1 ? new SimpleStringProperty(row.get(1)) : new SimpleStringProperty("");
-        });
+        // 创建列
+        for (int i = 0; i < defaultColumns; i++) {
+            final int colIndex = i;
+            String columnLabel = getColumnName(i);
+            
+            TableColumn<ObservableList<String>, String> column = new TableColumn<>(columnLabel);
+            column.setCellValueFactory(data -> {
+                ObservableList<String> row = data.getValue();
+                return row.size() > colIndex ? new SimpleStringProperty(row.get(colIndex)) : new SimpleStringProperty("");
+            });
+            
+            column.setPrefWidth(100);
+            excelEditor.getColumns().add(column);
+        }
         
-        col3.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 2 ? new SimpleStringProperty(row.get(2)) : new SimpleStringProperty("");
-        });
-        
-        excelEditor.getColumns().addAll(col1, col2, col3);
-        
-        // 添加一些默认行
+        // 创建行
         ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
-        data.add(FXCollections.observableArrayList("", "", ""));
-        data.add(FXCollections.observableArrayList("", "", ""));
-        data.add(FXCollections.observableArrayList("", "", ""));
-        
+        for (int i = 0; i < defaultRows; i++) {
+            ObservableList<String> row = FXCollections.observableArrayList();
+            for (int j = 0; j < defaultColumns; j++) {
+                row.add("");
+            }
+            data.add(row);
+        }
         excelEditor.setItems(data);
+        
+        // 设置表格可编辑
+        excelEditor.setEditable(true);
         
         // 同样设置预览表格
         setupExcelPreview();
@@ -215,33 +223,44 @@ public class DocumentGeneratorController {
      * 设置Excel预览表格
      */
     private void setupExcelPreview() {
-        TableColumn<ObservableList<String>, String> col1 = new TableColumn<>("A");
-        TableColumn<ObservableList<String>, String> col2 = new TableColumn<>("B");
-        TableColumn<ObservableList<String>, String> col3 = new TableColumn<>("C");
+        // 清除现有列
+        excelPreviewArea.getColumns().clear();
+        excelPreviewArea.getItems().clear();
         
-        col1.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 0 ? new SimpleStringProperty(row.get(0)) : new SimpleStringProperty("");
-        });
+        // 使用与编辑器相同的列数
+        int columnCount = excelEditor.getColumns().size();
         
-        col2.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 1 ? new SimpleStringProperty(row.get(1)) : new SimpleStringProperty("");
-        });
+        // 创建列
+        for (int i = 0; i < columnCount; i++) {
+            final int colIndex = i;
+            String columnLabel = getColumnName(i);
+            
+            TableColumn<ObservableList<String>, String> column = new TableColumn<>(columnLabel);
+            column.setCellValueFactory(data -> {
+                ObservableList<String> row = data.getValue();
+                return row.size() > colIndex ? new SimpleStringProperty(row.get(colIndex)) : new SimpleStringProperty("");
+            });
+            
+            column.setPrefWidth(100);
+            excelPreviewArea.getColumns().add(column);
+        }
         
-        col3.setCellValueFactory(data -> {
-            ObservableList<String> row = data.getValue();
-            return row.size() > 2 ? new SimpleStringProperty(row.get(2)) : new SimpleStringProperty("");
-        });
-        
-        excelPreviewArea.getColumns().addAll(col1, col2, col3);
-        
+        // 为预览创建空数据
         ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
-        data.add(FXCollections.observableArrayList("", "", ""));
-        data.add(FXCollections.observableArrayList("", "", ""));
-        data.add(FXCollections.observableArrayList("", "", ""));
+        int rowCount = Math.max(excelEditor.getItems().size(), 3);
+        
+        for (int i = 0; i < rowCount; i++) {
+            ObservableList<String> row = FXCollections.observableArrayList();
+            for (int j = 0; j < columnCount; j++) {
+                row.add("");
+            }
+            data.add(row);
+        }
         
         excelPreviewArea.setItems(data);
+        
+        // 预览不可编辑
+        excelPreviewArea.setEditable(false);
     }
     
     /**
@@ -395,21 +414,58 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 处理导出字段
+     * 处理导出字段按钮点击事件
      */
     @FXML
     private void handleExportFields() {
         try {
-            if (isWordMode && wordEditor.getText().isEmpty()) {
-                UIHelper.showError("导出失败", "请先导入或编辑模板");
-                return;
+            // 获取字段定义
+            List<String> objectFields = fieldManager.getObjectFieldNames();
+            Map<String, List<String>> listFields = new HashMap<>();
+            
+            // 收集列表字段
+            for (String listName : fieldManager.getListFieldNames()) {
+                List<String> fields = new ArrayList<>();
+                for (Node node : listFieldItemsContainer.getChildren()) {
+                    if (node instanceof VBox && listName.equals(node.getId())) {
+                        VBox container = (VBox) node;
+                        for (Node child : container.getChildren()) {
+                            if (child instanceof TableView) {
+                                @SuppressWarnings("unchecked")
+                                TableView<String> fieldsTable = (TableView<String>) child;
+                                fields.addAll(fieldsTable.getItems());
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                listFields.put(listName, fields);
             }
             
-            // 使用DataHandler导出字段定义
-            dataHandler.exportFieldDefinitions(objectFieldItemsContainer, listFieldItemsContainer);
+            // 创建文件选择器
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("导出字段定义");
+            
+            // 设置初始目录
+            File exportDir = new File(baseDir);
+            if (!exportDir.exists()) {
+                exportDir.mkdirs();
+            }
+            fileChooser.setInitialDirectory(exportDir);
+            fileChooser.setInitialFileName("fields_" + getCurrentTimeString() + ".xlsx");
+            fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel 文件", "*.xlsx"));
+            
+            // 显示保存对话框
+            File outputFile = fileChooser.showSaveDialog(wordEditor.getScene().getWindow());
+            if (outputFile != null) {
+                // 使用Excel服务导出字段
+                dataHandler.exportFieldsToExcel(objectFields, listFields, outputFile.getAbsolutePath());
+                UIHelper.showInfo("导出成功", "字段已导出到: " + outputFile.getName());
+            }
         } catch (Exception e) {
-            UIHelper.showError("导出失败", "导出字段定义时出错: " + e.getMessage());
-            e.printStackTrace();
+            AppLogger.error("导出字段失败", e);
+            UIHelper.showError("导出失败", "导出字段时发生错误: " + e.getMessage());
         }
     }
     
@@ -526,13 +582,18 @@ public class DocumentGeneratorController {
     }
 
     /**
-     * 处理生成文档
+     * 处理生成文档按钮点击事件
      */
     @FXML
     private void handleGenerateDocument() {
         try {
-            if (currentTemplateFile == null) {
-                UIHelper.showError("错误", "请先选择模板文件");
+            // 获取字段数据
+            Map<String, String> fieldDataMap = fieldManager.getFieldDataMap();
+            Map<String, List<Map<String, String>>> listFieldDataMap = fieldManager.getListFieldDataMap();
+            
+            // 检查当前是否有模板
+            if (currentTemplateFile == null || !currentTemplateFile.exists()) {
+                UIHelper.showError("生成失败", "请先导入或生成模板");
                 return;
             }
             
@@ -540,39 +601,55 @@ public class DocumentGeneratorController {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("保存生成的文档");
             
-            // 设置默认输出目录
-            File defaultDir = new File(baseDir);
-            fileChooser.setInitialDirectory(defaultDir);
+            // 设置初始目录
+            File saveDir = new File(baseDir);
+            File outputDir = new File(saveDir, "output");
+            if (!outputDir.exists()) {
+                outputDir.mkdirs();
+            }
+            fileChooser.setInitialDirectory(outputDir);
             
-            // 设置默认文件名
-            String defaultFileName = "生成文档_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            
-            // 设置文件类型
+            // 设置文件类型过滤器
             if (isWordMode) {
-                fileChooser.setInitialFileName(defaultFileName + ".docx");
-                fileChooser.getExtensionFilters().add(new ExtensionFilter("Word文档", "*.docx"));
+                fileChooser.getExtensionFilters().add(new ExtensionFilter("Word 文档", "*.docx"));
+                fileChooser.setInitialFileName("document_" + getCurrentTimeString() + ".docx");
             } else {
-                fileChooser.setInitialFileName(defaultFileName + ".xlsx");
-                fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel表格", "*.xlsx"));
+                fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel 电子表格", "*.xlsx"));
+                fileChooser.setInitialFileName("document_" + getCurrentTimeString() + ".xlsx");
             }
             
             // 显示保存对话框
-            File outputFile = fileChooser.showSaveDialog(null);
+            File outputFile = fileChooser.showSaveDialog(wordEditor.getScene().getWindow());
             if (outputFile != null) {
                 if (isWordMode) {
-                    // 生成Word文档
-                    String content = wordPreviewArea.getText();
-                    templateHandler.saveWordDocument(content, outputFile.getAbsolutePath());
+                    // 读取模板内容
+                    String templateContent = wordEditor.getText();
+                    
+                    // 处理模板内容，替换所有占位符
+                    String processedContent = templateHandler.processWordTemplate(templateContent, fieldDataMap, listFieldDataMap);
+                    
+                    // 保存生成的文档
+                    templateHandler.saveWordDocument(processedContent, outputFile.getAbsolutePath());
+                    
+                    UIHelper.showInfo("生成成功", "文档已生成: " + outputFile.getName());
                 } else {
-                    // 生成Excel文档 - 这里留给后续实现
+                    // Excel模式 - 待实现
+                    UIHelper.showInfo("功能开发中", "Excel文档生成功能正在开发中");
                 }
-                
-                UIHelper.showInfo("成功", "文档已生成: " + outputFile.getAbsolutePath());
             }
         } catch (Exception e) {
-            UIHelper.showError("生成失败", "生成文档时出错: " + e.getMessage());
-            e.printStackTrace();
+            AppLogger.error("生成文档失败", e);
+            UIHelper.showError("生成失败", "生成文档时发生错误: " + e.getMessage());
         }
+    }
+
+    /**
+     * 获取当前时间字符串，用于文件名
+     */
+    private String getCurrentTimeString() {
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+        return now.format(formatter);
     }
 
     /**
@@ -669,18 +746,24 @@ public class DocumentGeneratorController {
     }
     
     /**
-     * 获取Excel列名（A, B, C, ...）
+     * 获取Excel列名
      * 
      * @param index 列索引
-     * @return 列名
+     * @return 列名（A, B, C, ...）
      */
     private String getColumnName(int index) {
-        StringBuilder name = new StringBuilder();
-        while (index >= 0) {
-            name.insert(0, (char) ('A' + index % 26));
-            index = index / 26 - 1;
+        StringBuilder columnName = new StringBuilder();
+        int temp = index;
+        
+        while (temp >= 0) {
+            int remainder = temp % 26;
+            char letter = (char) ('A' + remainder);
+            columnName.insert(0, letter);
+            temp = temp / 26 - 1;
+            if (temp < 0) break;
         }
-        return name.toString();
+        
+        return columnName.toString();
     }
     
     /**
@@ -689,74 +772,114 @@ public class DocumentGeneratorController {
      * @param content Excel内容
      */
     private void analyzeExcelTemplate(List<List<String>> content) {
-        // 此处留给后续实现
+        // 清空现有字段
+        fieldManager.clearAll();
+        
+        if (content == null || content.isEmpty()) {
+            return;
+        }
+        
+        // 分析表头行（第一行）
+        List<String> headers = content.get(0);
+        for (String header : headers) {
+            if (header != null && !header.trim().isEmpty()) {
+                // 检查是否是列表字段（格式：listName.fieldName）
+                if (header.contains(".")) {
+                    String[] parts = header.split("\\.", 2);
+                    String listName = parts[0];
+                    String fieldName = parts[1];
+                    
+                    // 添加到列表字段
+                    List<String> fields = new ArrayList<>();
+                    fields.add(fieldName);
+                    fieldManager.addListField(listName, fields);
+                } else {
+                    // 添加为普通字段
+                    fieldManager.addObjectField(header);
+                }
+            }
+        }
     }
     
     /**
      * 更新Excel预览
      */
     private void updateExcelPreview() {
-        // 此处留给后续实现
+        if (!isWordMode) {
+            // 获取当前Excel编辑器的内容
+            List<List<String>> content = getExcelEditorContent();
+            
+            // 清空预览表格
+            excelPreviewArea.getItems().clear();
+            excelPreviewArea.getColumns().clear();
+            
+            if (content.isEmpty()) {
+                return;
+            }
+            
+            // 创建列
+            for (int i = 0; i < content.get(0).size(); i++) {
+                final int colIndex = i;
+                TableColumn<ObservableList<String>, String> column = new TableColumn<>(getColumnName(i));
+                column.setCellValueFactory(data -> {
+                    ObservableList<String> row = data.getValue();
+                    return row.size() > colIndex ? new SimpleStringProperty(row.get(colIndex)) : new SimpleStringProperty("");
+                });
+                excelPreviewArea.getColumns().add(column);
+            }
+            
+            // 添加数据行
+            ObservableList<ObservableList<String>> previewData = FXCollections.observableArrayList();
+            for (List<String> row : content) {
+                previewData.add(FXCollections.observableArrayList(row));
+            }
+            excelPreviewArea.setItems(previewData);
+        }
     }
     
+    /**
+     * 获取Excel编辑器的内容
+     * 
+     * @return Excel内容的二维列表
+     */
+    private List<List<String>> getExcelEditorContent() {
+        List<List<String>> content = new ArrayList<>();
+        
+        // 获取所有行
+        for (ObservableList<String> row : excelEditor.getItems()) {
+            List<String> rowContent = new ArrayList<>(row);
+            content.add(rowContent);
+        }
+        
+        return content;
+    }
+
     /**
      * 处理保存模板
      */
     @FXML
     private void handleSaveTemplate() {
+        if (currentTemplateFile == null) {
+            UIHelper.showError("保存失败", "请先选择或导入一个模板");
+            return;
+        }
+
         try {
-            if (isWordMode && wordEditor.getText().isEmpty()) {
-                UIHelper.showError("保存失败", "请先导入或编辑模板");
-                return;
-            }
-            
-            // 创建文件选择器
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("保存模板");
-            
-            // 设置默认输出目录
-            File defaultDir = new File(baseDir);
-            File templatesDir = new File(defaultDir, "templates");
-            
             if (isWordMode) {
-                File wordDir = new File(templatesDir, "word");
-                if (wordDir.exists() && wordDir.isDirectory()) {
-                    fileChooser.setInitialDirectory(wordDir);
-                } else {
-                    fileChooser.setInitialDirectory(templatesDir);
-                }
-                fileChooser.setInitialFileName("模板.docx");
-                fileChooser.getExtensionFilters().add(new ExtensionFilter("Word文档", "*.docx"));
+                String content = wordEditor.getText();
+                templateHandler.saveWordTemplate(currentTemplateFile.getAbsolutePath(), content);
             } else {
-                File excelDir = new File(templatesDir, "excel");
-                if (excelDir.exists() && excelDir.isDirectory()) {
-                    fileChooser.setInitialDirectory(excelDir);
-                } else {
-                    fileChooser.setInitialDirectory(templatesDir);
-                }
-                fileChooser.setInitialFileName("模板.xlsx");
-                fileChooser.getExtensionFilters().add(new ExtensionFilter("Excel表格", "*.xlsx"));
+                // Excel模式的保存逻辑
+                List<List<String>> content = getExcelEditorContent();
+                excelTemplateService.saveExcelTemplate(currentTemplateFile.getAbsolutePath(), content);
             }
             
-            // 显示保存对话框
-            File outputFile = fileChooser.showSaveDialog(null);
-            if (outputFile != null) {
-                if (isWordMode) {
-                    // 保存Word模板
-                    String content = wordEditor.getText();
-                    templateHandler.saveWordTemplate(outputFile.getAbsolutePath(), content);
-                } else {
-                    // 保存Excel模板
-                    // TODO: 实现Excel模板保存
-                    UIHelper.showError("未实现", "Excel模板保存功能尚未实现");
-                    return;
-                }
-                
-                UIHelper.showInfo("成功", "模板已保存: " + outputFile.getAbsolutePath());
-            }
+            // 使用模态对话框显示成功消息
+            UIHelper.showInfo("保存成功", "模板已保存");
+            
         } catch (Exception e) {
+            AppLogger.error("保存模板失败", e);
             UIHelper.showError("保存失败", "保存模板时出错: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -775,8 +898,6 @@ public class DocumentGeneratorController {
                 // 生成Excel模板
                 generateExcelTemplate();
             }
-            
-            UIHelper.showInfo("成功", "模板生成成功！");
         } catch (Exception e) {
             AppLogger.error("生成模板失败: " + e.getMessage(), e);
             UIHelper.showError("错误", "生成模板失败: " + e.getMessage());

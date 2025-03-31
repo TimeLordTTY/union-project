@@ -76,13 +76,53 @@ public class WordTemplateService {
     public void saveDocxTemplate(String filePath, String content) throws IOException {
         // 创建新文档
         try (XWPFDocument document = new XWPFDocument()) {
-            // 简化实现：仅创建包含内容的段落
-            String[] paragraphs = content.split("\n");
+            // 解析内容，处理表格标记和普通段落
+            String[] lines = content.split("\n");
+            boolean inTable = false;
+            XWPFTable currentTable = null;
+            XWPFTableRow currentRow = null;
             
-            for (String paragraph : paragraphs) {
-                XWPFParagraph p = document.createParagraph();
-                XWPFRun run = p.createRun();
-                run.setText(paragraph);
+            for (String line : lines) {
+                if (line.contains("[TABLE_START]")) {
+                    inTable = true;
+                    currentTable = document.createTable();
+                    continue;
+                } else if (line.contains("[TABLE_END]")) {
+                    inTable = false;
+                    currentTable = null;
+                    continue;
+                }
+                
+                if (inTable) {
+                    if (line.contains("[ROW_START]")) {
+                        if (currentTable != null) {
+                            currentRow = currentTable.createRow();
+                        }
+                        
+                        // 提取单元格内容
+                        String[] cellContents = line.split("\\[CELL_START\\]");
+                        for (int i = 1; i < cellContents.length; i++) {
+                            String cellContent = cellContents[i].split("\\[CELL_END\\]")[0].trim();
+                            if (currentRow != null && i-1 < currentRow.getTableCells().size()) {
+                                XWPFTableCell cell = currentRow.getCell(i-1);
+                                if (cell == null && currentRow.getTableCells().size() < i) {
+                                    cell = currentRow.createCell();
+                                }
+                                if (cell != null) {
+                                    XWPFParagraph para = cell.getParagraphs().isEmpty() ? 
+                                        cell.addParagraph() : cell.getParagraphs().get(0);
+                                    XWPFRun run = para.createRun();
+                                    run.setText(cellContent);
+                                }
+                            }
+                        }
+                    }
+                } else if (!line.trim().isEmpty() && !line.contains("[ROW_END]")) {
+                    // 普通段落
+                    XWPFParagraph para = document.createParagraph();
+                    XWPFRun run = para.createRun();
+                    run.setText(line);
+                }
             }
             
             // 保存文档

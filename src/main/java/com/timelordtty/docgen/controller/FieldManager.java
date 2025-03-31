@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import com.timelordtty.AppLogger;
-
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -21,11 +21,8 @@ import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.beans.binding.Bindings;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.scene.control.TableRow;
+import javafx.stage.Modality;
+import javafx.stage.Window;
 
 /**
  * 字段管理器，负责管理文档生成器的字段和数据
@@ -254,121 +251,129 @@ public class FieldManager {
         Button removeButton = new Button("×");
         removeButton.getStyleClass().add("icon-button");
         removeButton.setOnAction(e -> {
-            // 移除该列表
             listFieldItemsContainer.getChildren().remove(listContainer);
             listFieldDataMap.remove(listName);
             
-            // 查找并移除数据容器
+            // 移除数据填充中对应的列表
             for (Node node : listDataItemsContainer.getChildren()) {
-                if (node instanceof VBox && node.getId() != null && node.getId().equals("list_" + listName)) {
+                if (node instanceof VBox && ("list_" + listName).equals(node.getId())) {
                     listDataItemsContainer.getChildren().remove(node);
                     break;
                 }
             }
             
-            // 更新预览
             if (updatePreviewCallback != null) {
                 updatePreviewCallback.run();
             }
         });
         
-        headerRow.getChildren().addAll(titleLabel, removeButton);
-        listContainer.getChildren().add(headerRow);
-        
-        // 创建表格来管理列表字段 - 去掉表头
-        TableView<String> fieldsTable = new TableView<>();
-        fieldsTable.setPrefHeight(150);
-        fieldsTable.getStyleClass().addAll("list-table", "no-header");
-        
-        TableColumn<String, String> fieldNameColumn = new TableColumn<>("字段名");
-        fieldNameColumn.setVisible(false); // 隐藏表头
-        fieldNameColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
-        fieldNameColumn.setPrefWidth(200);
-        
-        TableColumn<String, Void> actionsColumn = new TableColumn<>("操作");
-        actionsColumn.setVisible(false); // 隐藏表头
-        actionsColumn.setPrefWidth(100);
-        actionsColumn.setCellFactory(col -> {
-            return new javafx.scene.control.TableCell<String, Void>() {
-                private final HBox container = new HBox();
-                private final Button addButton = new Button("+");
-                private final Button removeButton = new Button("×");
+        // 创建添加字段按钮
+        Button addFieldButton = new Button("添加属性");
+        addFieldButton.getStyleClass().add("small-button");
+        addFieldButton.setOnAction(e -> {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("添加列表属性");
+            dialog.setHeaderText(null);
+            dialog.setContentText("请输入属性名称:");
+            
+            // 确保对话框是模态的
+            Window activeWindow = null;
+            try {
+                activeWindow = javafx.stage.Stage.getWindows().stream()
+                    .filter(Window::isFocused)
+                    .findFirst()
+                    .orElse(null);
+            } catch (Exception ex) {
+                // 忽略异常
+            }
+            
+            if (activeWindow != null) {
+                dialog.initOwner(activeWindow);
+            }
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            
+            Optional<String> result = dialog.showAndWait();
+            if (result.isPresent() && !result.get().trim().isEmpty()) {
+                String fieldName = result.get().trim();
                 
-                {
-                    container.getStyleClass().add("btn-group-horizontal");
-                    addButton.getStyleClass().add("icon-button");
-                    removeButton.getStyleClass().add("icon-button");
-                    
-                    addButton.setOnAction(event -> {
-                        // 显示添加新字段的对话框
-                        String field = getTableRow().getItem();
-                        TextInputDialog dialog = new TextInputDialog();
-                        dialog.setTitle("添加字段");
-                        dialog.setHeaderText("添加列表字段");
-                        dialog.setContentText("请输入新字段名:");
-                        
-                        dialog.showAndWait().ifPresent(name -> {
-                            if (!name.isEmpty()) {
-                                ObservableList<String> items = fieldsTable.getItems();
-                                items.add(name);
-                                
-                                // 同步更新到数据表格
-                                updateListDataTable(listName);
-                                
-                                // 更新预览
-                                if (updatePreviewCallback != null) {
-                                    updatePreviewCallback.run();
-                                }
-                            }
-                        });
-                    });
-                    
-                    removeButton.setOnAction(event -> {
-                        String field = getTableRow().getItem();
-                        if (field != null) {
-                            fieldsTable.getItems().remove(field);
-                            
-                            // 同步更新到数据表格
-                            updateListDataTable(listName);
-                            
-                            // 更新预览
-                            if (updatePreviewCallback != null) {
-                                updatePreviewCallback.run();
-                            }
-                        }
-                    });
-                    
-                    container.getChildren().addAll(addButton, removeButton);
-                }
-                
-                @Override
-                protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    
-                    if (empty) {
-                        setGraphic(null);
-                    } else {
-                        setGraphic(container);
+                // 获取列表的字段表格
+                TableView<String> fieldsTable = null;
+                for (Node child : listContainer.getChildren()) {
+                    if (child instanceof TableView) {
+                        @SuppressWarnings("unchecked")
+                        TableView<String> table = (TableView<String>) child;
+                        fieldsTable = table;
+                        break;
                     }
                 }
-            };
+                
+                if (fieldsTable != null) {
+                    // 检查字段是否已存在
+                    if (!fieldsTable.getItems().contains(fieldName)) {
+                        fieldsTable.getItems().add(fieldName);
+                        
+                        // 更新数据表格
+                        updateListDataTable(listName);
+                    }
+                }
+            }
         });
         
-        fieldsTable.getColumns().addAll(fieldNameColumn, actionsColumn);
+        headerRow.getChildren().addAll(titleLabel, addFieldButton, removeButton);
+        listContainer.getChildren().add(headerRow);
         
-        // 添加初始字段列表
-        if (fields != null && !fields.isEmpty()) {
-            ObservableList<String> items = FXCollections.observableArrayList(fields);
-            fieldsTable.setItems(items);
-        } else {
-            fieldsTable.setItems(FXCollections.observableArrayList());
-        }
+        // 创建字段列表表格
+        TableView<String> fieldsTable = new TableView<>();
+        fieldsTable.setEditable(true);
+        fieldsTable.setPrefHeight(150); // 设置合适的高度
+        
+        TableColumn<String, String> fieldColumn = new TableColumn<>("属性名称");
+        fieldColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
+        fieldsTable.getColumns().add(fieldColumn);
+        
+        // 添加字段删除列
+        TableColumn<String, Void> deleteColumn = new TableColumn<>("");
+        deleteColumn.setPrefWidth(50);
+        deleteColumn.setCellFactory(param -> new javafx.scene.control.TableCell<String, Void>() {
+            private final Button deleteButton = new Button("×");
+            
+            {
+                deleteButton.getStyleClass().add("icon-button");
+                deleteButton.setOnAction(event -> {
+                    String fieldName = getTableView().getItems().get(getIndex());
+                    getTableView().getItems().remove(getIndex());
+                    
+                    // 更新数据表格
+                    updateListDataTable(listName);
+                });
+            }
+            
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(deleteButton);
+                }
+            }
+        });
+        fieldsTable.getColumns().add(deleteColumn);
+        
+        // 添加初始字段
+        ObservableList<String> fieldItems = FXCollections.observableArrayList(fields);
+        fieldsTable.setItems(fieldItems);
         
         listContainer.getChildren().add(fieldsTable);
         listFieldItemsContainer.getChildren().add(listContainer);
         
         // 创建数据填充表格
         createListDataTable(listName);
+        
+        // 更新预览
+        if (updatePreviewCallback != null) {
+            updatePreviewCallback.run();
+        }
     }
     
     /**
@@ -402,137 +407,168 @@ public class FieldManager {
         tableContainer.getStyleClass().add("list-field-container");
         
         // 标题
-        Label titleLabel = new Label(listName + " 数据");
-        titleLabel.getStyleClass().add("list-field-title");
-        tableContainer.getChildren().add(titleLabel);
+        HBox headerRow = new HBox();
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        headerRow.setSpacing(10);
         
-        if (listFields.isEmpty()) {
-            // 如果没有字段，显示提示信息
-            Label emptyLabel = new Label("请先在字段定义中添加列表字段");
-            emptyLabel.setStyle("-fx-text-fill: #999999;");
-            tableContainer.getChildren().add(emptyLabel);
-        } else {
-            // 创建表格
-            TableView<Map<String, String>> dataTable = new TableView<>();
-            dataTable.setId("table_" + listName);
-            dataTable.getStyleClass().add("list-table");
-            
-            // 设置行工厂，添加按钮直接显示在每行的末尾
-            dataTable.setRowFactory(tv -> {
-                TableRow<Map<String, String>> row = new TableRow<>();
-                HBox buttonContainer = new HBox(5);
-                buttonContainer.setAlignment(Pos.CENTER_RIGHT);
-                
-                Button addRowButton = new Button("+");
-                addRowButton.getStyleClass().add("icon-button");
-                addRowButton.setOnAction(e -> {
-                    int index = row.getIndex();
-                    Map<String, String> emptyRow = new HashMap<>();
-                    if (index >= 0 && index < dataTable.getItems().size()) {
-                        // 在当前行后面添加
-                        listFieldDataMap.get(listName).add(index + 1, emptyRow);
-                    } else {
-                        // 添加到末尾
-                        listFieldDataMap.get(listName).add(emptyRow);
-                    }
-                    updateListDataTable(listName);
-                    if (updatePreviewCallback != null) {
-                        updatePreviewCallback.run();
-                    }
-                });
-                
-                Button deleteRowButton = new Button("×");
-                deleteRowButton.getStyleClass().add("icon-button");
-                deleteRowButton.setOnAction(e -> {
-                    int index = row.getIndex();
-                    if (index >= 0 && index < dataTable.getItems().size()) {
-                        listFieldDataMap.get(listName).remove(index);
-                        updateListDataTable(listName);
-                        if (updatePreviewCallback != null) {
-                            updatePreviewCallback.run();
-                        }
-                    }
-                });
-                
-                buttonContainer.getChildren().addAll(addRowButton, deleteRowButton);
-                row.graphicProperty().bind(Bindings.when(row.emptyProperty())
-                        .then((Node)null)
-                        .otherwise(buttonContainer));
-                return row;
+        Label titleLabel = new Label(listName);
+        titleLabel.getStyleClass().add("list-field-title");
+        
+        headerRow.getChildren().add(titleLabel);
+        tableContainer.getChildren().add(headerRow);
+        
+        // 创建数据表格
+        TableView<Map<String, String>> dataTable = new TableView<>();
+        dataTable.setEditable(true);
+        dataTable.setId("data_table_" + listName);
+        
+        // 根据字段创建列
+        for (String field : listFields) {
+            TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
+            column.setCellValueFactory(data -> {
+                Map<String, String> rowData = data.getValue();
+                String value = rowData.get(field);
+                return new SimpleStringProperty(value);
             });
             
-            // 添加列
-            for (String field : listFields) {
-                TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
-                column.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getOrDefault(field, "")));
-                column.setCellFactory(tc -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
-                    private final TextField textField = new TextField();
-                    
-                    {
-                        textField.setOnAction(e -> commitEdit(textField.getText()));
-                        textField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
-                            if (!isNowFocused) {
-                                commitEdit(textField.getText());
-                            }
-                        });
-                    }
-                    
-                    @Override
-                    protected void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty) {
-                            setGraphic(null);
-                            setText(null);
-                        } else {
-                            textField.setText(item == null ? "" : item);
-                            setGraphic(textField);
-                            setText(null);
+            // 设置单元格编辑工厂
+            column.setCellFactory(col -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
+                private final TextField textField = new TextField();
+                
+                {
+                    textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                        if (!newVal) {
+                            commitEdit(textField.getText());
                         }
-                    }
+                    });
                     
-                    @Override
-                    public void commitEdit(String newValue) {
-                        Map<String, String> rowData = getTableView().getItems().get(getIndex());
+                    textField.setOnKeyPressed(e -> {
+                        if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                            commitEdit(textField.getText());
+                        }
+                    });
+                }
+                
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setText(null);
+                        setGraphic(null);
+                    } else if (isEditing()) {
+                        setText(null);
+                        textField.setText(item == null ? "" : item);
+                        setGraphic(textField);
+                    } else {
+                        setText(item == null ? "" : item);
+                        setGraphic(null);
+                    }
+                }
+                
+                @Override
+                public void startEdit() {
+                    super.startEdit();
+                    textField.setText(getItem() == null ? "" : getItem());
+                    setText(null);
+                    setGraphic(textField);
+                    textField.requestFocus();
+                }
+                
+                @Override
+                public void cancelEdit() {
+                    super.cancelEdit();
+                    setText(getItem());
+                    setGraphic(null);
+                }
+                
+                @Override
+                public void commitEdit(String newValue) {
+                    super.commitEdit(newValue);
+                    int row = getTableRow().getIndex();
+                    if (row >= 0 && row < getTableView().getItems().size()) {
+                        Map<String, String> rowData = getTableView().getItems().get(row);
                         rowData.put(field, newValue);
-                        if (updatePreviewCallback != null) {
-                            updatePreviewCallback.run();
+                        
+                        // 更新模型数据
+                        if (listFieldDataMap.containsKey(listName) && 
+                            row < listFieldDataMap.get(listName).size()) {
+                            listFieldDataMap.get(listName).get(row).put(field, newValue);
+                            
+                            if (updatePreviewCallback != null) {
+                                updatePreviewCallback.run();
+                            }
                         }
-                    }
-                });
-                dataTable.getColumns().add(column);
-            }
-            
-            tableContainer.getChildren().add(dataTable);
-            
-            // 添加"添加行"按钮
-            Button addRowButton = new Button("添加行");
-            addRowButton.getStyleClass().add("action-button");
-            addRowButton.setOnAction(e -> {
-                // 在数据模型中添加空行
-                if (listFieldDataMap.containsKey(listName)) {
-                    Map<String, String> emptyRow = new HashMap<>();
-                    listFieldDataMap.get(listName).add(emptyRow);
-                    
-                    // 刷新表格
-                    updateListDataTable(listName);
-                    
-                    // 更新预览
-                    if (updatePreviewCallback != null) {
-                        updatePreviewCallback.run();
                     }
                 }
             });
             
-            HBox buttonRow = new HBox(10);
-            buttonRow.setAlignment(Pos.CENTER);
-            buttonRow.getChildren().add(addRowButton);
-            tableContainer.getChildren().add(buttonRow);
+            dataTable.getColumns().add(column);
         }
         
-        // 添加到UI
+        // 添加操作列
+        TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("");
+        actionColumn.setPrefWidth(50);
+        actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
+            private final Button addButton = new Button("+");
+            
+            {
+                addButton.getStyleClass().add("icon-button");
+                
+                addButton.setOnAction(event -> {
+                    int rowIndex = getIndex();
+                    
+                    // 创建新行（复制当前行的数据）
+                    Map<String, String> newRowData = new HashMap<>();
+                    Map<String, String> currentRowData = getTableView().getItems().get(rowIndex);
+                    
+                    // 初始化所有字段为空
+                    for (String field : listFields) {
+                        newRowData.put(field, "");
+                    }
+                    
+                    // 在当前行之后插入新行
+                    listFieldDataMap.get(listName).add(rowIndex + 1, newRowData);
+                    updateListDataTable(listName);
+                    
+                    if (updatePreviewCallback != null) {
+                        updatePreviewCallback.run();
+                    }
+                });
+            }
+            
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(addButton);
+                }
+            }
+        });
+        dataTable.getColumns().add(actionColumn);
+        
+        dataTable.setPrefHeight(200);
+        tableContainer.getChildren().add(dataTable);
         listDataItemsContainer.getChildren().add(tableContainer);
         
-        // 初始化表格列和数据
+        // 添加一行默认数据
+        if (listFields.size() > 0) {
+            Map<String, String> rowData = new HashMap<>();
+            // 为每个字段创建默认空值
+            for (String field : listFields) {
+                rowData.put(field, "");
+            }
+            
+            if (!listFieldDataMap.containsKey(listName)) {
+                listFieldDataMap.put(listName, new ArrayList<>());
+            }
+            
+            listFieldDataMap.get(listName).clear(); // 清除现有数据
+            listFieldDataMap.get(listName).add(rowData); // 只添加一行
+        }
+        
+        // 更新数据表格
         updateListDataTable(listName);
     }
     

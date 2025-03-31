@@ -83,7 +83,55 @@ public class TemplateHandler {
         Set<String> objectFields = new HashSet<>();
         Map<String, List<String>> listFields = new HashMap<>();
         
-        // 正则表达式匹配{{字段名}}格式的占位符
+        // 首先处理表格中的占位符
+        int tableStart = -1;
+        while ((tableStart = content.indexOf("[TABLE_START]", tableStart + 1)) != -1) {
+            int tableEnd = content.indexOf("[TABLE_END]", tableStart);
+            if (tableEnd == -1) break;
+            
+            String tableContent = content.substring(tableStart, tableEnd + "[TABLE_END]".length());
+            
+            // 分析表格中的所有单元格
+            int cellStart = -1;
+            while ((cellStart = tableContent.indexOf("[CELL_START]", cellStart + 1)) != -1) {
+                int cellEnd = tableContent.indexOf("[CELL_END]", cellStart);
+                if (cellEnd == -1) break;
+                
+                String cellContent = tableContent.substring(cellStart + "[CELL_START]".length(), cellEnd);
+                
+                // 在单元格内查找占位符
+                Pattern pattern = Pattern.compile("\\{\\{([^{}]+)\\}\\}");
+                Matcher matcher = pattern.matcher(cellContent);
+                
+                while (matcher.find()) {
+                    String placeholder = matcher.group(1);
+                    
+                    // 处理普通字段
+                    if (!placeholder.contains(".") && !placeholder.startsWith("#") && !placeholder.startsWith("/")) {
+                        objectFields.add(placeholder);
+                    } 
+                    // 处理列表字段
+                    else if (placeholder.contains(".")) {
+                        String[] parts = placeholder.split("\\.", 2);
+                        if (parts.length == 2) {
+                            String listName = parts[0];
+                            String fieldName = parts[1];
+                            
+                            if (!listName.trim().isEmpty() && !fieldName.trim().isEmpty()) {
+                                if (!listFields.containsKey(listName)) {
+                                    listFields.put(listName, new ArrayList<>());
+                                }
+                                if (!listFields.get(listName).contains(fieldName)) {
+                                    listFields.get(listName).add(fieldName);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 正则表达式匹配{{字段名}}格式的占位符 (处理非表格内容)
         Pattern fieldPattern = Pattern.compile("\\{\\{([^{}]+)\\}\\}");
         Matcher matcher = fieldPattern.matcher(content);
         
@@ -141,6 +189,8 @@ public class TemplateHandler {
         
         result.put("objectFields", objectFields);
         result.put("listFields", listFields);
+        
+        AppLogger.info("分析结果 - 对象字段: " + objectFields.size() + ", 列表字段: " + listFields.size());
         return result;
     }
     
@@ -207,21 +257,56 @@ public class TemplateHandler {
      */
     public String generateWordTemplateContent(List<String> objectFields, List<String> listFields) {
         StringBuilder builder = new StringBuilder();
-        builder.append("==== 自动生成的Word模板 ====\n\n");
+        builder.append("== 文档模板 ==\n\n");
         
-        // 添加对象字段占位符
-        builder.append("【对象字段】\n");
-        for (String field : objectFields) {
-            builder.append("{{").append(field).append("}}\n");
+        // 添加对象字段表格
+        if (!objectFields.isEmpty()) {
+            builder.append("【基本信息】\n");
+            builder.append("[TABLE_START]\n");
+            
+            for (String field : objectFields) {
+                builder.append("[ROW_START][CELL_START]").append(field).append(" [CELL_END]");
+                builder.append("[CELL_START]{{").append(field).append("}} [CELL_END][ROW_END]\n");
+            }
+            
+            builder.append("[TABLE_END]\n\n");
         }
-        builder.append("\n");
         
-        // 添加列表字段占位符
-        builder.append("【列表字段】\n");
-        for (String listName : listFields) {
-            builder.append("{{#").append(listName).append("}}\n");
-            builder.append("  列表项: {{").append(listName).append(".name}}\n");
-            builder.append("{{/").append(listName).append("}}\n\n");
+        // 添加列表字段表格
+        if (!listFields.isEmpty()) {
+            for (String listName : listFields) {
+                builder.append("【").append(listName).append("】\n");
+                builder.append("[TABLE_START]\n");
+                
+                // 表头行
+                builder.append("[ROW_START]");
+                // 默认添加ID、名称、描述三个基本字段
+                builder.append("[CELL_START]ID [CELL_END]");
+                builder.append("[CELL_START]名称 [CELL_END]");
+                builder.append("[CELL_START]描述 [CELL_END]");
+                builder.append("[ROW_END]\n");
+                
+                // 示例数据行
+                builder.append("[ROW_START]");
+                builder.append("[CELL_START]{{").append(listName).append(".id}} [CELL_END]");
+                builder.append("[CELL_START]{{").append(listName).append(".name}} [CELL_END]");
+                builder.append("[CELL_START]{{").append(listName).append(".description}} [CELL_END]");
+                builder.append("[ROW_END]\n");
+                
+                builder.append("[TABLE_END]\n\n");
+            }
+        }
+        
+        // 添加带循环的列表示例
+        if (!listFields.isEmpty()) {
+            builder.append("【带循环的列表示例】\n");
+            
+            for (String listName : listFields) {
+                builder.append("{{#").append(listName).append("}}\n");
+                builder.append("  - 名称: {{").append(listName).append(".name}}\n");
+                builder.append("  - 描述: {{").append(listName).append(".description}}\n");
+                builder.append("{{/").append(listName).append("}}\n\n");
+            }
         }
         
         return builder.toString();
