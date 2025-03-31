@@ -620,12 +620,13 @@ public class MainController {
      */
     @FXML
     private void handleDocGenToolClick() {
-        try {
-            AppLogger.info("打开文档生成工具");
-            loadTool("文档生成", "/fxml/DocumentGeneratorView.fxml");
-        } catch (Exception e) {
-            AppLogger.error("打开文档生成工具失败: " + e.getMessage(), e);
-        }
+        AppLogger.info("点击文档生成工具按钮");
+        // 切换到文档生成器
+        loadTool("文档生成", "/fxml/DocumentGeneratorView.fxml");
+        // 直接将扩展状态设为true，确保总是以全窗口模式展示
+        isExpanded = true;
+        // 调用animateOpen确保UI状态与isExpanded一致
+        animateOpen();
     }
     
     /**

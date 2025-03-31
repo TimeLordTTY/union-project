@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+
+import com.timelordtty.docgen.UIHelper;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -17,12 +17,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.Tooltip;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Window;
 
 /**
  * 字段管理器，负责管理文档生成器的字段和数据
@@ -92,14 +91,22 @@ public class FieldManager {
         HBox fieldItem = new HBox();
         fieldItem.setAlignment(Pos.CENTER_LEFT);
         fieldItem.setSpacing(10);
-        fieldItem.setPadding(new Insets(5));
+        fieldItem.setPadding(new Insets(3)); // 减小内边距，使字段展示更紧凑
         fieldItem.getStyleClass().add("field-item");
         
         Label nameLabel = new Label(fieldName);
         HBox.setHgrow(nameLabel, Priority.ALWAYS);
         
+        // 为nameLabel添加悬浮提示
+        Tooltip nameTooltip = new Tooltip("字段名: " + fieldName + "\n占位符: {{" + fieldName + "}}");
+        Tooltip.install(nameLabel, nameTooltip);
+        
         Label placeholderLabel = new Label("{{" + fieldName + "}}");
         placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
+        
+        // 为占位符标签添加悬浮提示
+        Tooltip placeholderTooltip = new Tooltip("{{" + fieldName + "}}");
+        Tooltip.install(placeholderLabel, placeholderTooltip);
         
         Button deleteButton = new Button("×");
         deleteButton.getStyleClass().add("icon-button");
@@ -147,10 +154,14 @@ public class FieldManager {
         HBox dataItem = new HBox();
         dataItem.setAlignment(Pos.CENTER_LEFT);
         dataItem.setSpacing(10);
-        dataItem.setPadding(new Insets(5));
+        dataItem.setPadding(new Insets(3)); // 减小内边距，使字段展示更紧凑
         
         Label nameLabel = new Label(fieldName + ":");
         nameLabel.setPrefWidth(120);
+        
+        // 添加悬浮提示
+        Tooltip fieldTooltip = new Tooltip("字段名: " + fieldName);
+        Tooltip.install(nameLabel, fieldTooltip);
         
         TextField valueField = new TextField();
         HBox.setHgrow(valueField, Priority.ALWAYS);
@@ -206,16 +217,6 @@ public class FieldManager {
      * @param listName 列表名称
      */
     public void addListField(String listName) {
-        addListField(listName, new ArrayList<>());
-    }
-    
-    /**
-     * 添加列表字段，带字段列表
-     * 
-     * @param listName 列表名称
-     * @param fields 字段列表
-     */
-    public void addListField(String listName, List<String> fields) {
         if (listName == null || listName.trim().isEmpty()) {
             UIHelper.showError("添加列表失败", "列表名不能为空");
             return;
@@ -228,6 +229,9 @@ public class FieldManager {
             }
         }
         
+        //
+        /* 第1部分: 创建列表字段容器 */
+        
         // 初始化列表数据结构
         if (!listFieldDataMap.containsKey(listName)) {
             listFieldDataMap.put(listName, new ArrayList<>());
@@ -236,8 +240,8 @@ public class FieldManager {
         // 创建列表字段UI组件
         VBox listContainer = new VBox();
         listContainer.setId(listName);
-        listContainer.setSpacing(10);
-        listContainer.setPadding(new Insets(10));
+        listContainer.setSpacing(3); // 减少间距，使显示更紧凑
+        listContainer.setPadding(new Insets(3)); // 减少内边距
         listContainer.getStyleClass().add("list-field-container");
         
         // 标题行
@@ -248,103 +252,121 @@ public class FieldManager {
         Label titleLabel = new Label(listName);
         titleLabel.getStyleClass().add("list-field-title");
         
-        Button removeButton = new Button("×");
-        removeButton.getStyleClass().add("icon-button");
-        removeButton.setOnAction(e -> {
+        // 为列表标题添加悬浮提示
+        Tooltip listTooltip = new Tooltip("列表名: " + listName + "\n占位符: {{#" + listName + "}} {{/" + listName + "}}");
+        Tooltip.install(titleLabel, listTooltip);
+        
+        // 添加列表占位符
+        Label placeholderLabel = new Label("{{#" + listName + "}} {{/" + listName + "}}");
+        placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
+        HBox.setHgrow(placeholderLabel, Priority.ALWAYS);
+        
+        // 为占位符标签添加悬浮提示
+        Tooltip placeholderTooltip = new Tooltip("{{#" + listName + "}} {{/" + listName + "}}");
+        Tooltip.install(placeholderLabel, placeholderTooltip);
+        
+        Button removeListButton = new Button("×");
+        removeListButton.getStyleClass().add("icon-button");
+        removeListButton.setOnAction(e -> {
+            // 移除该列表的所有相关组件
             listFieldItemsContainer.getChildren().remove(listContainer);
-            listFieldDataMap.remove(listName);
             
-            // 移除数据填充中对应的列表
-            for (Node node : listDataItemsContainer.getChildren()) {
-                if (node instanceof VBox && ("list_" + listName).equals(node.getId())) {
-                    listDataItemsContainer.getChildren().remove(node);
+            // 从数据容器中移除对应的表格
+            for (int i = 0; i < listDataItemsContainer.getChildren().size(); i++) {
+                Node node = listDataItemsContainer.getChildren().get(i);
+                if (node instanceof VBox && node.getId() != null && node.getId().equals(listName + "_data")) {
+                    listDataItemsContainer.getChildren().remove(i);
                     break;
                 }
             }
+            
+            // 清除列表数据
+            listFieldDataMap.remove(listName);
             
             if (updatePreviewCallback != null) {
                 updatePreviewCallback.run();
             }
         });
         
-        // 创建添加字段按钮
-        Button addFieldButton = new Button("添加属性");
-        addFieldButton.getStyleClass().add("small-button");
-        addFieldButton.setOnAction(e -> {
-            TextInputDialog dialog = new TextInputDialog();
-            dialog.setTitle("添加列表属性");
-            dialog.setHeaderText(null);
-            dialog.setContentText("请输入属性名称:");
-            
-            // 确保对话框是模态的
-            Window activeWindow = null;
-            try {
-                activeWindow = javafx.stage.Stage.getWindows().stream()
-                    .filter(Window::isFocused)
-                    .findFirst()
-                    .orElse(null);
-            } catch (Exception ex) {
-                // 忽略异常
-            }
-            
-            if (activeWindow != null) {
-                dialog.initOwner(activeWindow);
-            }
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            
-            Optional<String> result = dialog.showAndWait();
-            if (result.isPresent() && !result.get().trim().isEmpty()) {
-                String fieldName = result.get().trim();
-                
-                // 获取列表的字段表格
-                TableView<String> fieldsTable = null;
-                for (Node child : listContainer.getChildren()) {
-                    if (child instanceof TableView) {
-                        @SuppressWarnings("unchecked")
-                        TableView<String> table = (TableView<String>) child;
-                        fieldsTable = table;
-                        break;
-                    }
-                }
-                
-                if (fieldsTable != null) {
-                    // 检查字段是否已存在
-                    if (!fieldsTable.getItems().contains(fieldName)) {
-                        fieldsTable.getItems().add(fieldName);
-                        
-                        // 更新数据表格
-                        updateListDataTable(listName);
-                    }
-                }
-            }
-        });
-        
-        headerRow.getChildren().addAll(titleLabel, addFieldButton, removeButton);
+        headerRow.getChildren().addAll(titleLabel, placeholderLabel, removeListButton);
         listContainer.getChildren().add(headerRow);
         
-        // 创建字段列表表格
+        // 添加字段输入功能
         TableView<String> fieldsTable = new TableView<>();
         fieldsTable.setEditable(true);
-        fieldsTable.setPrefHeight(150); // 设置合适的高度
+        fieldsTable.setPrefHeight(120); // 减少表格高度
+        fieldsTable.setFixedCellSize(24); // 设置单元格固定高度
         
-        TableColumn<String, String> fieldColumn = new TableColumn<>("属性名称");
-        fieldColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
-        fieldsTable.getColumns().add(fieldColumn);
+        TableColumn<String, String> fieldNameColumn = new TableColumn<>("字段名");
+        fieldNameColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue()));
+        fieldNameColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+        fieldNameColumn.setOnEditCommit(event -> {
+            int index = event.getTablePosition().getRow();
+            String oldValue = event.getOldValue();
+            String newValue = event.getNewValue();
+            
+            // 更新表格数据
+            fieldsTable.getItems().set(index, newValue);
+            
+            // 更新列表数据中的字段名
+            updateListFieldName(listName, oldValue, newValue);
+            
+            if (updatePreviewCallback != null) {
+                updatePreviewCallback.run();
+            }
+        });
+        fieldNameColumn.setPrefWidth(150);
         
-        // 添加字段删除列
-        TableColumn<String, Void> deleteColumn = new TableColumn<>("");
-        deleteColumn.setPrefWidth(50);
-        deleteColumn.setCellFactory(param -> new javafx.scene.control.TableCell<String, Void>() {
+        TableColumn<String, String> placeholderColumn = new TableColumn<>("占位符");
+        placeholderColumn.setCellValueFactory(data -> new SimpleStringProperty("{{" + listName + "." + data.getValue() + "}}"));
+        placeholderColumn.setPrefWidth(150);
+        
+        TableColumn<String, Void> actionColumn = new TableColumn<>("操作");
+        actionColumn.setPrefWidth(80);
+        actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<String, Void>() {
+            private final Button addButton = new Button("+");
             private final Button deleteButton = new Button("×");
+            private final HBox actionBox = new HBox(5, addButton, deleteButton);
             
             {
+                addButton.getStyleClass().add("icon-button");
                 deleteButton.getStyleClass().add("icon-button");
-                deleteButton.setOnAction(event -> {
-                    String fieldName = getTableView().getItems().get(getIndex());
-                    getTableView().getItems().remove(getIndex());
+                
+                // 添加按钮动作：在当前行后添加新字段
+                addButton.setOnAction(event -> {
+                    int rowIndex = getIndex();
+                    String newField = "新字段" + (fieldsTable.getItems().size() + 1);
                     
-                    // 更新数据表格
-                    updateListDataTable(listName);
+                    // 在指定位置插入新行
+                    fieldsTable.getItems().add(rowIndex + 1, newField);
+                    
+                    // 更新列表数据表格
+                    updateListDataTableFields(listName);
+                    
+                    if (updatePreviewCallback != null) {
+                        updatePreviewCallback.run();
+                    }
+                });
+                
+                // 删除按钮动作
+                deleteButton.setOnAction(event -> {
+                    int rowIndex = getIndex();
+                    String fieldToRemove = fieldsTable.getItems().get(rowIndex);
+                    
+                    // 检查是否至少保留一个字段
+                    if (fieldsTable.getItems().size() > 1) {
+                        // 移除字段
+                        fieldsTable.getItems().remove(rowIndex);
+                        
+                        // 更新列表数据表格
+                        removeFieldFromListData(listName, fieldToRemove);
+                        
+                        if (updatePreviewCallback != null) {
+                            updatePreviewCallback.run();
+                        }
+                    } else {
+                        UIHelper.showWarning("警告", "至少需要保留一个字段");
+                    }
                 });
             }
             
@@ -354,20 +376,20 @@ public class FieldManager {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(deleteButton);
+                    setGraphic(actionBox);
                 }
             }
         });
-        fieldsTable.getColumns().add(deleteColumn);
         
-        // 添加初始字段
-        ObservableList<String> fieldItems = FXCollections.observableArrayList(fields);
-        fieldsTable.setItems(fieldItems);
+        fieldsTable.getColumns().addAll(fieldNameColumn, placeholderColumn, actionColumn);
+        
+        // 添加默认字段
+        fieldsTable.setItems(FXCollections.observableArrayList("id", "name", "description"));
         
         listContainer.getChildren().add(fieldsTable);
         listFieldItemsContainer.getChildren().add(listContainer);
         
-        // 创建数据填充表格
+        // 创建列表数据表格
         createListDataTable(listName);
         
         // 更新预览
@@ -377,17 +399,224 @@ public class FieldManager {
     }
     
     /**
+     * 从列表数据中移除字段
+     * 
+     * @param listName 列表名称
+     * @param fieldName 字段名称
+     */
+    private void removeFieldFromListData(String listName, String fieldName) {
+        // 从数据中移除该字段
+        if (listFieldDataMap.containsKey(listName)) {
+            for (Map<String, String> item : listFieldDataMap.get(listName)) {
+                item.remove(fieldName);
+            }
+        }
+        
+        // 更新数据表格
+        updateListDataTableFields(listName);
+    }
+    
+    /**
+     * 更新列表字段名称
+     * 
+     * @param listName 列表名称
+     * @param oldName 旧字段名
+     * @param newName 新字段名
+     */
+    private void updateListFieldName(String listName, String oldName, String newName) {
+        // 更新数据中的字段名
+        if (listFieldDataMap.containsKey(listName)) {
+            for (Map<String, String> item : listFieldDataMap.get(listName)) {
+                if (item.containsKey(oldName)) {
+                    String value = item.remove(oldName);
+                    item.put(newName, value);
+                }
+            }
+        }
+        
+        // 更新数据表格
+        updateListDataTableFields(listName);
+    }
+    
+    /**
+     * 更新列表数据表格字段
+     * 
+     * @param listName 列表名称
+     */
+    private void updateListDataTableFields(String listName) {
+        // 查找数据表格容器
+        for (Node node : listDataItemsContainer.getChildren()) {
+            if (node instanceof VBox && node.getId() != null && node.getId().equals(listName + "_data")) {
+                VBox tableContainer = (VBox) node;
+                
+                // 查找字段表格
+                for (Node listNode : listFieldItemsContainer.getChildren()) {
+                    if (listNode instanceof VBox && listNode.getId() != null && listNode.getId().equals(listName)) {
+                        VBox listContainer = (VBox) listNode;
+                        List<String> fields = new ArrayList<>();
+                        
+                        // 获取所有字段
+                        for (Node child : listContainer.getChildren()) {
+                            if (child instanceof TableView) {
+                                @SuppressWarnings("unchecked")
+                                TableView<String> fieldsTable = (TableView<String>) child;
+                                fields.addAll(fieldsTable.getItems());
+                                break;
+                            }
+                        }
+                        
+                        // 重建数据表格
+                        tableContainer.getChildren().clear();
+                        
+                        // 重新添加标题
+                        Label titleLabel = new Label(listName);
+                        titleLabel.getStyleClass().add("list-data-title");
+                        
+                        // 为标题添加悬浮提示
+                        Tooltip titleTooltip = new Tooltip("列表名: " + listName + "\n占位符示例: {{#" + listName + "}} {{" + listName + ".字段名}} {{/" + listName + "}}");
+                        Tooltip.install(titleLabel, titleTooltip);
+                        
+                        tableContainer.getChildren().add(titleLabel);
+                        
+                        // 创建数据表格
+                        TableView<Map<String, String>> dataTable = new TableView<>();
+                        dataTable.setEditable(true);
+                        
+                        // 为每个字段创建一个列
+                        for (String field : fields) {
+                            TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
+                            column.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().get(field)));
+                            column.setCellFactory(TextFieldTableCell.forTableColumn());
+                            column.setOnEditCommit(event -> {
+                                Map<String, String> rowData = event.getRowValue();
+                                rowData.put(event.getTableColumn().getText(), event.getNewValue());
+                                if (updatePreviewCallback != null) {
+                                    updatePreviewCallback.run();
+                                }
+                            });
+                            column.setPrefWidth(100);
+                            dataTable.getColumns().add(column);
+                        }
+                        
+                        // 添加操作列
+                        TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("操作");
+                        actionColumn.setPrefWidth(80);
+                        
+                        actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
+                            private final Button addButton = new Button("+");
+                            private final Button deleteButton = new Button("×");
+                            private final HBox actionBox = new HBox(5, addButton, deleteButton);
+                            
+                            {
+                                addButton.getStyleClass().add("icon-button");
+                                deleteButton.getStyleClass().add("icon-button");
+                                
+                                // 添加按钮动作
+                                addButton.setOnAction(event -> {
+                                    int rowIndex = getIndex();
+                                    
+                                    // 创建新行
+                                    Map<String, String> newRowData = new HashMap<>();
+                                    
+                                    // 初始化所有字段为空
+                                    for (String fieldName : fields) {
+                                        newRowData.put(fieldName, "");
+                                    }
+                                    
+                                    // 在当前行之后插入新行
+                                    listFieldDataMap.get(listName).add(rowIndex + 1, newRowData);
+                                    dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                                    
+                                    if (updatePreviewCallback != null) {
+                                        updatePreviewCallback.run();
+                                    }
+                                });
+                                
+                                // 删除按钮动作
+                                deleteButton.setOnAction(event -> {
+                                    int rowIndex = getIndex();
+                                    
+                                    if (listFieldDataMap.get(listName).size() > 1) {
+                                        listFieldDataMap.get(listName).remove(rowIndex);
+                                        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                                        
+                                        if (updatePreviewCallback != null) {
+                                            updatePreviewCallback.run();
+                                        }
+                                    } else {
+                                        UIHelper.showWarning("警告", "至少需要保留一行数据");
+                                    }
+                                });
+                            }
+                            
+                            @Override
+                            protected void updateItem(Void item, boolean empty) {
+                                super.updateItem(item, empty);
+                                if (empty) {
+                                    setGraphic(null);
+                                } else {
+                                    setGraphic(actionBox);
+                                }
+                            }
+                        });
+                        dataTable.getColumns().add(actionColumn);
+                        
+                        dataTable.setPrefHeight(120); // 减少表格高度
+                        tableContainer.getChildren().add(dataTable);
+                        
+                        // 确保每个字段都在数据中存在
+                        for (Map<String, String> item : listFieldDataMap.get(listName)) {
+                            for (String field : fields) {
+                                if (!item.containsKey(field)) {
+                                    item.put(field, "");
+                                }
+                            }
+                        }
+                        
+                        // 设置表格数据
+                        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    /**
      * 创建列表数据表格
      * 
      * @param listName 列表名称
      */
     private void createListDataTable(String listName) {
+        // 检查数据容器中是否已有该列表的表格
+        for (Node node : listDataItemsContainer.getChildren()) {
+            if (node instanceof VBox && node.getId() != null && node.getId().equals(listName + "_data")) {
+                return; // 已存在，不重复创建
+            }
+        }
+        
+        // 创建新的表格容器
+        VBox tableContainer = new VBox();
+        tableContainer.setId(listName + "_data");
+        tableContainer.setSpacing(3); // 减少间距
+        tableContainer.setPadding(new Insets(3)); // 减少内边距
+        
+        // 创建标题
+        Label titleLabel = new Label(listName);
+        titleLabel.getStyleClass().add("list-field-title"); // 确保和字段定义部分使用相同的样式
+        
+        // 为标题添加悬浮提示
+        Tooltip titleTooltip = new Tooltip("列表名: " + listName + "\n占位符示例: {{#" + listName + "}} {{" + listName + ".字段名}} {{/" + listName + "}}");
+        Tooltip.install(titleLabel, titleTooltip);
+        
+        tableContainer.getChildren().add(titleLabel);
+        
         // 获取列表字段
         List<String> listFields = new ArrayList<>();
         for (Node node : listFieldItemsContainer.getChildren()) {
-            if (node instanceof VBox && listName.equals(node.getId())) {
-                VBox container = (VBox) node;
-                for (Node child : container.getChildren()) {
+            if (node instanceof VBox && node.getId() != null && node.getId().equals(listName)) {
+                for (Node child : ((VBox) node).getChildren()) {
                     if (child instanceof TableView) {
                         @SuppressWarnings("unchecked")
                         TableView<String> fieldsTable = (TableView<String>) child;
@@ -399,136 +628,59 @@ public class FieldManager {
             }
         }
         
-        // 创建列表数据容器
-        VBox tableContainer = new VBox();
-        tableContainer.setSpacing(10);
-        tableContainer.setPadding(new Insets(10));
-        tableContainer.setId("list_" + listName);
-        tableContainer.getStyleClass().add("list-field-container");
-        
-        // 标题
-        HBox headerRow = new HBox();
-        headerRow.setAlignment(Pos.CENTER_LEFT);
-        headerRow.setSpacing(10);
-        
-        Label titleLabel = new Label(listName);
-        titleLabel.getStyleClass().add("list-field-title");
-        
-        headerRow.getChildren().add(titleLabel);
-        tableContainer.getChildren().add(headerRow);
+        // 如果没有找到字段，添加一些默认字段
+        if (listFields.isEmpty()) {
+            listFields.add("id");
+            listFields.add("name");
+            listFields.add("description");
+        }
         
         // 创建数据表格
         TableView<Map<String, String>> dataTable = new TableView<>();
         dataTable.setEditable(true);
-        dataTable.setId("data_table_" + listName);
         
-        // 根据字段创建列
+        // 为每个字段创建一个列
         for (String field : listFields) {
             TableColumn<Map<String, String>, String> column = new TableColumn<>(field);
-            column.setCellValueFactory(data -> {
-                Map<String, String> rowData = data.getValue();
-                String value = rowData.get(field);
-                return new SimpleStringProperty(value);
-            });
-            
-            // 设置单元格编辑工厂
-            column.setCellFactory(col -> new javafx.scene.control.TableCell<Map<String, String>, String>() {
-                private final TextField textField = new TextField();
-                
-                {
-                    textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
-                        if (!newVal) {
-                            commitEdit(textField.getText());
-                        }
-                    });
-                    
-                    textField.setOnKeyPressed(e -> {
-                        if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
-                            commitEdit(textField.getText());
-                        }
-                    });
-                }
-                
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty) {
-                        setText(null);
-                        setGraphic(null);
-                    } else if (isEditing()) {
-                        setText(null);
-                        textField.setText(item == null ? "" : item);
-                        setGraphic(textField);
-                    } else {
-                        setText(item == null ? "" : item);
-                        setGraphic(null);
-                    }
-                }
-                
-                @Override
-                public void startEdit() {
-                    super.startEdit();
-                    textField.setText(getItem() == null ? "" : getItem());
-                    setText(null);
-                    setGraphic(textField);
-                    textField.requestFocus();
-                }
-                
-                @Override
-                public void cancelEdit() {
-                    super.cancelEdit();
-                    setText(getItem());
-                    setGraphic(null);
-                }
-                
-                @Override
-                public void commitEdit(String newValue) {
-                    super.commitEdit(newValue);
-                    int row = getTableRow().getIndex();
-                    if (row >= 0 && row < getTableView().getItems().size()) {
-                        Map<String, String> rowData = getTableView().getItems().get(row);
-                        rowData.put(field, newValue);
-                        
-                        // 更新模型数据
-                        if (listFieldDataMap.containsKey(listName) && 
-                            row < listFieldDataMap.get(listName).size()) {
-                            listFieldDataMap.get(listName).get(row).put(field, newValue);
-                            
-                            if (updatePreviewCallback != null) {
-                                updatePreviewCallback.run();
-                            }
-                        }
-                    }
+            column.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().get(field)));
+            column.setCellFactory(TextFieldTableCell.forTableColumn());
+            column.setOnEditCommit(event -> {
+                Map<String, String> rowData = event.getRowValue();
+                rowData.put(event.getTableColumn().getText(), event.getNewValue());
+                if (updatePreviewCallback != null) {
+                    updatePreviewCallback.run();
                 }
             });
-            
+            column.setPrefWidth(100);
             dataTable.getColumns().add(column);
         }
         
-        // 添加操作列
-        TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("");
-        actionColumn.setPrefWidth(50);
+        // 添加操作列，仅包含添加按钮
+        TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("操作");
+        actionColumn.setPrefWidth(60);
+        
         actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
             private final Button addButton = new Button("+");
+            private final HBox actionBox = new HBox(5, addButton);
             
             {
                 addButton.getStyleClass().add("icon-button");
                 
+                // 添加按钮动作
                 addButton.setOnAction(event -> {
                     int rowIndex = getIndex();
                     
-                    // 创建新行（复制当前行的数据）
+                    // 创建新行
                     Map<String, String> newRowData = new HashMap<>();
-                    Map<String, String> currentRowData = getTableView().getItems().get(rowIndex);
                     
                     // 初始化所有字段为空
-                    for (String field : listFields) {
-                        newRowData.put(field, "");
+                    for (String fieldName : listFields) {
+                        newRowData.put(fieldName, "");
                     }
                     
                     // 在当前行之后插入新行
                     listFieldDataMap.get(listName).add(rowIndex + 1, newRowData);
-                    updateListDataTable(listName);
+                    dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
                     
                     if (updatePreviewCallback != null) {
                         updatePreviewCallback.run();
@@ -542,91 +694,40 @@ public class FieldManager {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(addButton);
+                    setGraphic(actionBox);
                 }
             }
         });
         dataTable.getColumns().add(actionColumn);
         
-        dataTable.setPrefHeight(200);
+        // 设置表格样式
+        dataTable.setPrefHeight(120); // 减少表格高度
+        dataTable.setFixedCellSize(24); // 设置单元格固定高度
+        
+        // 允许表格直接滚动，不显示滚动条
+        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white;");
+        
         tableContainer.getChildren().add(dataTable);
         listDataItemsContainer.getChildren().add(tableContainer);
         
         // 添加一行默认数据
-        if (listFields.size() > 0) {
-            Map<String, String> rowData = new HashMap<>();
-            // 为每个字段创建默认空值
+        if (!listFieldDataMap.containsKey(listName) || listFieldDataMap.get(listName).isEmpty()) {
+            Map<String, String> defaultData = new HashMap<>();
             for (String field : listFields) {
-                rowData.put(field, "");
+                defaultData.put(field, "");
             }
-            
-            if (!listFieldDataMap.containsKey(listName)) {
-                listFieldDataMap.put(listName, new ArrayList<>());
-            }
-            
-            listFieldDataMap.get(listName).clear(); // 清除现有数据
-            listFieldDataMap.get(listName).add(rowData); // 只添加一行
-        }
-        
-        // 更新数据表格
-        updateListDataTable(listName);
-    }
-    
-    /**
-     * 更新列表数据表格
-     * 
-     * @param listName 列表名称
-     */
-    private void updateListDataTable(String listName) {
-        // 查找并更新数据表格
-        for (Node node : listDataItemsContainer.getChildren()) {
-            if (node instanceof VBox && node.getId() != null && node.getId().equals("list_" + listName)) {
-                VBox container = (VBox) node;
-                
-                // 找到表格
-                for (Node child : container.getChildren()) {
-                    if (child instanceof TableView) {
-                        @SuppressWarnings("unchecked")
-                        TableView<Map<String, String>> dataTable = (TableView<Map<String, String>>) child;
-                        
-                        // 获取列表中的所有字段
-                        List<String> listFields = new ArrayList<>();
-                        for (TableColumn<Map<String, String>, ?> column : dataTable.getColumns()) {
-                            listFields.add(column.getText());
-                        }
-                        
-                        // 确保数据模型存在
-                        if (!listFieldDataMap.containsKey(listName)) {
-                            listFieldDataMap.put(listName, new ArrayList<>());
-                        }
-                        
-                        // 更新表格数据
-                        ObservableList<Map<String, String>> data = FXCollections.observableArrayList(listFieldDataMap.get(listName));
-                        dataTable.setItems(data);
-                        
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-    }
-    
-    /**
-     * 添加列表数据字段
-     * 
-     * @param listName 列表名称
-     * @param itemsList 数据项列表
-     */
-    public void addListDataField(String listName, List<Map<String, String>> itemsList) {
-        if (listFieldDataMap.containsKey(listName)) {
-            listFieldDataMap.get(listName).addAll(itemsList);
+            List<Map<String, String>> dataList = new ArrayList<>();
+            dataList.add(defaultData);
+            listFieldDataMap.put(listName, dataList);
         } else {
-            listFieldDataMap.put(listName, new ArrayList<>(itemsList));
+            // 确保只保留一行数据作为默认显示
+            while (listFieldDataMap.get(listName).size() > 1) {
+                listFieldDataMap.get(listName).remove(1);
+            }
         }
         
-        // 更新UI
-        updateListDataTable(listName);
+        // 设置表格数据
+        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
     }
     
     /**
@@ -700,5 +801,58 @@ public class FieldManager {
      */
     public void setListFieldDataMap(Map<String, List<Map<String, String>>> listFieldDataMap) {
         this.listFieldDataMap = listFieldDataMap;
+    }
+
+    /**
+     * 添加列表字段，带字段列表
+     * 
+     * @param listName 列表名称
+     * @param fields 字段列表
+     */
+    public void addListField(String listName, List<String> fields) {
+        // 先添加列表
+        addListField(listName);
+        
+        // 更新列表的字段
+        for (Node node : listFieldItemsContainer.getChildren()) {
+            if (node instanceof VBox && listName.equals(node.getId())) {
+                VBox listContainer = (VBox) node;
+                
+                // 查找字段表格
+                for (Node child : listContainer.getChildren()) {
+                    if (child instanceof TableView) {
+                        @SuppressWarnings("unchecked")
+                        TableView<String> fieldsTable = (TableView<String>) child;
+                        
+                        // 清空默认字段并添加新字段
+                        fieldsTable.getItems().clear();
+                        fieldsTable.getItems().addAll(fields);
+                        
+                        // 更新数据表格
+                        updateListDataTableFields(listName);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * 添加列表数据字段
+     * 
+     * @param listName 列表名称
+     * @param itemsList 数据项列表
+     */
+    public void addListDataField(String listName, List<Map<String, String>> itemsList) {
+        if (listFieldDataMap.containsKey(listName)) {
+            listFieldDataMap.get(listName).clear();
+            listFieldDataMap.get(listName).addAll(itemsList);
+        } else {
+            listFieldDataMap.put(listName, new ArrayList<>(itemsList));
+        }
+        
+        // 更新数据表格
+        updateListDataTableFields(listName);
     }
 } 

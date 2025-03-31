@@ -1,6 +1,7 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 import com.timelordtty.AppLogger;
 import com.timelordtty.docgen.service.ExcelTemplateService;
@@ -36,11 +41,11 @@ public class TemplateHandler {
     public String loadWordTemplate(File file) throws Exception {
         try {
             AppLogger.info("加载Word模板: " + file.getAbsolutePath());
+            
+            // 读取模板内容，但保留原始格式
             String content = wordTemplateService.readDocxContent(file.getAbsolutePath());
             
-            // 处理表格格式，确保保持一致性
-            content = content.replace("\r\n", "\n"); // 统一换行符
-            
+            // 不对内容进行任何格式化处理，直接返回原始内容
             AppLogger.info("Word模板加载成功");
             return content;
         } catch (Exception e) {
@@ -71,9 +76,7 @@ public class TemplateHandler {
         try {
             AppLogger.info("保存Word模板: " + filePath);
             
-            // 处理表格格式，确保保持一致性
-            content = content.replace("\r\n", "\n"); // 统一换行符
-            
+            // 不对内容进行任何格式化处理，直接保存
             wordTemplateService.saveDocxTemplate(filePath, content);
             AppLogger.info("Word模板保存成功");
         } catch (Exception e) {
@@ -86,11 +89,48 @@ public class TemplateHandler {
      * 保存Word文档
      * 
      * @param content 文档内容
-     * @param filePath 文件路径
-     * @throws Exception 如果保存失败
+     * @param outputPath 输出路径
+     * @throws Exception 异常
      */
-    public void saveWordDocument(String content, String filePath) throws Exception {
-        wordTemplateService.saveDocxTemplate(content, filePath);
+    public void saveWordDocument(String content, String outputPath) throws Exception {
+        try {
+            AppLogger.info("保存Word文档到: " + outputPath);
+            
+            // 创建输出目录
+            File outputFile = new File(outputPath);
+            File outputDir = outputFile.getParentFile();
+            if (outputDir != null && !outputDir.exists()) {
+                outputDir.mkdirs();
+            }
+            
+            // 使用POI API保存Word文档
+            XWPFDocument document = new XWPFDocument();
+            
+            // 按行分割内容
+            String[] lines = content.split("\n");
+            for (String line : lines) {
+                // 对于空行或仅含空格的行，创建空段落
+                if (line.trim().isEmpty()) {
+                    document.createParagraph();
+                    continue;
+                }
+                
+                // 创建段落并添加文本
+                XWPFParagraph paragraph = document.createParagraph();
+                XWPFRun run = paragraph.createRun();
+                run.setText(line);
+            }
+            
+            // 保存文档
+            try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                document.write(fos);
+            }
+            
+            AppLogger.info("Word文档保存成功: " + outputPath);
+        } catch (Exception e) {
+            AppLogger.error("保存Word文档失败", e);
+            throw new Exception("保存Word文档失败: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -218,57 +258,77 @@ public class TemplateHandler {
     }
     
     /**
-     * 替换Word模板中的占位符
+     * 处理Word模板内容，替换占位符
      * 
      * @param content 模板内容
      * @param fieldDataMap 字段数据映射
      * @param listFieldDataMap 列表字段数据映射
-     * @return 替换后的内容
+     * @return 处理后的内容
      */
-    public String processWordTemplate(String content, Map<String, String> fieldDataMap, 
-                                     Map<String, List<Map<String, String>>> listFieldDataMap) {
+    public String processWordTemplate(String content, Map<String, String> fieldDataMap, Map<String, List<Map<String, String>>> listFieldDataMap) {
+        if (content == null || content.isEmpty()) {
+            return "";
+        }
+        
+        AppLogger.info("开始处理Word模板...");
+        
+        // 复制一份内容用于处理
         String result = content;
         
-        // 替换普通字段占位符
-        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            String value = entry.getValue() != null ? entry.getValue() : "";
-            result = result.replace(placeholder, value);
-        }
-        
-        // 替换列表字段占位符
-        for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
-            String listName = entry.getKey();
-            List<Map<String, String>> listItems = entry.getValue();
-            
-            // 查找列表区域
-            Pattern listPattern = Pattern.compile("\\{\\{#" + listName + "\\}\\}(.*?)\\{\\{/" + listName + "\\}\\}", Pattern.DOTALL);
-            Matcher listMatcher = listPattern.matcher(result);
-            
-            if (listMatcher.find()) {
-                String listTemplate = listMatcher.group(1);
-                StringBuilder replacement = new StringBuilder();
-                
-                // 为列表中的每个项生成内容
-                for (Map<String, String> item : listItems) {
-                    String itemContent = listTemplate;
-                    
-                    // 替换该项的所有字段
-                    for (Map.Entry<String, String> field : item.entrySet()) {
-                        String fieldPlaceholder = "{{" + listName + "." + field.getKey() + "}}";
-                        String fieldValue = field.getValue() != null ? field.getValue() : "";
-                        itemContent = itemContent.replace(fieldPlaceholder, fieldValue);
-                    }
-                    
-                    replacement.append(itemContent);
-                }
-                
-                // 替换整个列表区域
-                result = result.replace(listMatcher.group(0), replacement.toString());
+        try {
+            // 处理普通字段
+            for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+                String placeholder = "{{" + entry.getKey() + "}}";
+                String value = entry.getValue() != null ? entry.getValue() : "";
+                result = result.replace(placeholder, value);
             }
+            
+            // 处理列表字段
+            for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
+                String listName = entry.getKey();
+                List<Map<String, String>> listItems = entry.getValue();
+                
+                // 查找列表区域 {{#listName}}...{{/listName}}
+                String listBegin = "{{#" + listName + "}}";
+                String listEnd = "{{/" + listName + "}}";
+                
+                if (result.contains(listBegin) && result.contains(listEnd)) {
+                    // 提取列表模板部分
+                    int beginIndex = result.indexOf(listBegin);
+                    int endIndex = result.indexOf(listEnd) + listEnd.length();
+                    
+                    if (beginIndex != -1 && endIndex != -1 && beginIndex < endIndex) {
+                        String listTemplate = result.substring(beginIndex + listBegin.length(), result.indexOf(listEnd));
+                        
+                        // 生成列表内容
+                        StringBuilder listContent = new StringBuilder();
+                        
+                        // 为每个项目生成内容
+                        for (Map<String, String> item : listItems) {
+                            String itemContent = listTemplate;
+                            
+                            // 替换项目中的字段
+                            for (Map.Entry<String, String> field : item.entrySet()) {
+                                String fieldPlaceholder = "{{" + listName + "." + field.getKey() + "}}";
+                                String fieldValue = field.getValue() != null ? field.getValue() : "";
+                                itemContent = itemContent.replace(fieldPlaceholder, fieldValue);
+                            }
+                            
+                            listContent.append(itemContent);
+                        }
+                        
+                        // 替换整个列表区域
+                        result = result.substring(0, beginIndex) + listContent.toString() + result.substring(endIndex);
+                    }
+                }
+            }
+            
+            AppLogger.info("Word模板处理完成");
+            return result;
+        } catch (Exception e) {
+            AppLogger.error("处理Word模板时发生错误", e);
+            throw e;
         }
-        
-        return result;
     }
     
     /**

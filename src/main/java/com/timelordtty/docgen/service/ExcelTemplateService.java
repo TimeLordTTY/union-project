@@ -190,30 +190,277 @@ public class ExcelTemplateService {
             // 遍历所有列
             for (int j = 0; j < row.getLastCellNum(); j++) {
                 Cell cell = row.getCell(j);
-                if (cell == null || cell.getCellType() != CellType.STRING) {
+                if (cell == null) {
+                    continue;
+                }
+                
+                // 只处理字符串类型的单元格
+                if (cell.getCellType() != CellType.STRING) {
                     continue;
                 }
                 
                 String cellValue = cell.getStringCellValue();
+                if (cellValue == null || cellValue.isEmpty()) {
+                    continue;
+                }
                 
                 // 替换普通字段占位符
                 boolean modified = false;
+                String newValue = cellValue;
+                
+                // 处理普通字段
                 for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
                     String placeholder = "{{" + entry.getKey() + "}}";
-                    if (cellValue.contains(placeholder)) {
-                        cellValue = cellValue.replace(placeholder, entry.getValue());
+                    if (newValue.contains(placeholder)) {
+                        String value = entry.getValue() != null ? entry.getValue() : "";
+                        newValue = newValue.replace(placeholder, value);
                         modified = true;
                     }
                 }
                 
-                // 如果有修改，更新单元格内容
-                if (modified) {
-                    cell.setCellValue(cellValue);
+                // 处理列表字段 (单元格中的列表字段，不是整行的列表)
+                for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
+                    String listName = entry.getKey();
+                    for (Map<String, String> item : entry.getValue()) {
+                        for (Map.Entry<String, String> field : item.entrySet()) {
+                            String placeholder = "{{" + listName + "." + field.getKey() + "}}";
+                            if (newValue.contains(placeholder)) {
+                                String value = field.getValue() != null ? field.getValue() : "";
+                                newValue = newValue.replace(placeholder, value);
+                                modified = true;
+                            }
+                        }
+                    }
                 }
                 
-                // 注意：列表字段的处理比较复杂，需要创建新行或复制模板行
-                // 实际实现中需要更复杂的逻辑来处理列表数据
+                // 更新单元格值
+                if (modified) {
+                    cell.setCellValue(newValue);
+                }
             }
+        }
+        
+        // 查找并处理列表行区域
+        processListSections(sheet, listFieldDataMap);
+    }
+
+    /**
+     * 处理列表行区域
+     * 
+     * @param sheet 工作表
+     * @param listFieldDataMap 列表数据
+     */
+    private void processListSections(Sheet sheet, Map<String, List<Map<String, String>>> listFieldDataMap) {
+        // 遍历查找列表开始和结束标记
+        List<ListSectionInfo> listSections = findListSections(sheet);
+        
+        // 从后往前处理列表部分，避免插入行时影响后面的行索引
+        for (int i = listSections.size() - 1; i >= 0; i--) {
+            ListSectionInfo section = listSections.get(i);
+            String listName = section.getListName();
+            
+            // 检查列表数据是否存在
+            if (!listFieldDataMap.containsKey(listName)) {
+                continue;
+            }
+            
+            List<Map<String, String>> listItems = listFieldDataMap.get(listName);
+            
+            // 这里需要从后往前删除，否则会影响行索引
+            // 先删除模板行（包括开始和结束标记行）
+            for (int rowIndex = section.getEndRow(); rowIndex >= section.getStartRow(); rowIndex--) {
+                sheet.removeRow(sheet.getRow(rowIndex));
+                if (rowIndex < sheet.getLastRowNum()) {
+                    sheet.shiftRows(rowIndex + 1, sheet.getLastRowNum(), -1);
+                }
+            }
+            
+            // 记录模板行的样式
+            int templateRowIndex = section.getTemplateRow();
+            
+            // 获取模板行
+            Row templateRow = sheet.getRow(templateRowIndex);
+            if (templateRow == null) {
+                continue;
+            }
+            
+            // 对每个列表项插入新行
+            int currentRowIndex = section.getStartRow();
+            
+            // 插入列表数据行
+            for (Map<String, String> item : listItems) {
+                // 创建新行
+                Row newRow = sheet.createRow(currentRowIndex);
+                
+                // 复制模板行的单元格
+                for (int cellIndex = 0; cellIndex < templateRow.getLastCellNum(); cellIndex++) {
+                    Cell templateCell = templateRow.getCell(cellIndex);
+                    if (templateCell == null) {
+                        continue;
+                    }
+                    
+                    // 创建新单元格
+                    Cell newCell = newRow.createCell(cellIndex);
+                    
+                    // 复制样式
+                    CellStyle newStyle = sheet.getWorkbook().createCellStyle();
+                    newStyle.cloneStyleFrom(templateCell.getCellStyle());
+                    newCell.setCellStyle(newStyle);
+                    
+                    // 获取模板单元格的值并替换占位符
+                    if (templateCell.getCellType() == CellType.STRING) {
+                        String value = templateCell.getStringCellValue();
+                        
+                        // 替换列表字段占位符
+                        for (Map.Entry<String, String> entry : item.entrySet()) {
+                            String placeholder = "{{" + listName + "." + entry.getKey() + "}}";
+                            if (value.contains(placeholder)) {
+                                String fieldValue = entry.getValue() != null ? entry.getValue() : "";
+                                value = value.replace(placeholder, fieldValue);
+                            }
+                        }
+                        
+                        newCell.setCellValue(value);
+                    } else {
+                        // 复制其他类型的单元格值
+                        switch (templateCell.getCellType()) {
+                            case NUMERIC:
+                                newCell.setCellValue(templateCell.getNumericCellValue());
+                                break;
+                            case BOOLEAN:
+                                newCell.setCellValue(templateCell.getBooleanCellValue());
+                                break;
+                            case FORMULA:
+                                newCell.setCellFormula(templateCell.getCellFormula());
+                                break;
+                            default:
+                                newCell.setCellValue("");
+                        }
+                    }
+                }
+                
+                currentRowIndex++;
+            }
+        }
+    }
+
+    /**
+     * 查找工作表中的列表区域
+     * 
+     * @param sheet 工作表
+     * @return 列表区域信息
+     */
+    private List<ListSectionInfo> findListSections(Sheet sheet) {
+        List<ListSectionInfo> result = new ArrayList<>();
+        
+        // 遍历工作表的所有行
+        for (int i = 0; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            
+            // 查找列表开始标记 {{#listName}}
+            String listName = findListStartMarker(row);
+            if (listName != null) {
+                int startRow = i;
+                int templateRow = i + 1; // 模板行通常在开始标记的下一行
+                
+                // 查找列表结束标记 {{/listName}}
+                int endRow = findListEndMarker(sheet, i + 1, listName);
+                
+                if (endRow > startRow) {
+                    // 找到了完整的列表区域
+                    result.add(new ListSectionInfo(listName, startRow, templateRow, endRow));
+                    
+                    // 跳过当前列表区域
+                    i = endRow;
+                }
+            }
+        }
+        
+        return result;
+    }
+
+    /**
+     * 在行中查找列表开始标记
+     * 
+     * @param row 行
+     * @return 列表名称，如果没有找到则返回null
+     */
+    private String findListStartMarker(Row row) {
+        for (int i = 0; i < row.getLastCellNum(); i++) {
+            Cell cell = row.getCell(i);
+            if (cell != null && cell.getCellType() == CellType.STRING) {
+                String value = cell.getStringCellValue();
+                // 匹配模式 {{#listName}}
+                if (value.matches(".*\\{\\{#([^}]+)\\}\\}.*")) {
+                    return value.replaceAll(".*\\{\\{#([^}]+)\\}\\}.*", "$1");
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从指定行开始查找列表结束标记
+     * 
+     * @param sheet 工作表
+     * @param startRow 开始行索引
+     * @param listName 列表名称
+     * @return 结束行索引，如果没有找到则返回-1
+     */
+    private int findListEndMarker(Sheet sheet, int startRow, String listName) {
+        for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) {
+                continue;
+            }
+            
+            for (int j = 0; j < row.getLastCellNum(); j++) {
+                Cell cell = row.getCell(j);
+                if (cell != null && cell.getCellType() == CellType.STRING) {
+                    String value = cell.getStringCellValue();
+                    // 匹配模式 {{/listName}}
+                    if (value.contains("{{/" + listName + "}}")) {
+                        return i;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * 列表区域信息类
+     */
+    private static class ListSectionInfo {
+        private final String listName;
+        private final int startRow;
+        private final int templateRow;
+        private final int endRow;
+        
+        public ListSectionInfo(String listName, int startRow, int templateRow, int endRow) {
+            this.listName = listName;
+            this.startRow = startRow;
+            this.templateRow = templateRow;
+            this.endRow = endRow;
+        }
+        
+        public String getListName() {
+            return listName;
+        }
+        
+        public int getStartRow() {
+            return startRow;
+        }
+        
+        public int getTemplateRow() {
+            return templateRow;
+        }
+        
+        public int getEndRow() {
+            return endRow;
         }
     }
 

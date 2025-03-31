@@ -1,5 +1,6 @@
 package com.timelordtty.docgen.service;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,117 +22,130 @@ import com.timelordtty.AppLogger;
 public class WordTemplateService {
     
     /**
-     * 读取Word文档内容为纯文本
+     * 读取Word文档内容
      * 
-     * @param filePath Word文档路径
-     * @return 文档内容文本
+     * @param filePath 文件路径
+     * @return 内容文本
      * @throws IOException IO异常
      */
     public String readDocxContent(String filePath) throws IOException {
-        StringBuilder content = new StringBuilder();
-        
         try (FileInputStream fis = new FileInputStream(filePath);
              XWPFDocument document = new XWPFDocument(fis)) {
             
-            // 读取段落
+            StringBuilder builder = new StringBuilder();
+            
+            // 遍历段落
             for (XWPFParagraph paragraph : document.getParagraphs()) {
-                content.append(paragraph.getText());
-                // 保持段落换行以保留文档结构
-                content.append("\n");
+                builder.append(paragraph.getText()).append("\n");
             }
             
-            // 读取表格
+            // 遍历表格
             for (XWPFTable table : document.getTables()) {
-                // 添加表格标记，帮助保留文档结构
-                content.append("[TABLE_START]\n");
+                builder.append("[TABLE_START]\n");
+                
                 for (XWPFTableRow row : table.getRows()) {
-                    // 行开始
-                    content.append("[ROW_START]");
+                    builder.append("[ROW_START]");
+                    
                     for (XWPFTableCell cell : row.getTableCells()) {
-                        // 单元格内容
-                        content.append("[CELL_START]");
-                        for (XWPFParagraph paragraph : cell.getParagraphs()) {
-                            content.append(paragraph.getText());
-                            content.append(" ");
-                        }
-                        content.append("[CELL_END]");
+                        builder.append("[CELL_START]");
+                        builder.append(cell.getText().trim());
+                        builder.append("[CELL_END]");
                     }
-                    // 行结束
-                    content.append("[ROW_END]\n");
+                    
+                    builder.append("[ROW_END]\n");
                 }
-                content.append("[TABLE_END]\n\n");
+                
+                builder.append("[TABLE_END]\n\n");
             }
+            
+            return builder.toString();
+        } catch (Exception e) {
+            AppLogger.error("读取Word文档失败: " + e.getMessage(), e);
+            throw new IOException("读取Word文档失败: " + e.getMessage(), e);
         }
-        
-        return content.toString();
     }
     
     /**
      * 保存Word模板
      * 
      * @param filePath 文件路径
-     * @param content 文档内容
+     * @param content 内容
      * @throws IOException IO异常
      */
     public void saveDocxTemplate(String filePath, String content) throws IOException {
-        // 创建新文档
-        try (XWPFDocument document = new XWPFDocument()) {
-            // 解析内容，处理表格标记和普通段落
+        try {
+            // 确保目录存在
+            File file = new File(filePath);
+            File parent = file.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            
+            // 创建文档
+            XWPFDocument document = new XWPFDocument();
+            
+            // 解析内容，处理表格和文本
             String[] lines = content.split("\n");
+            
             boolean inTable = false;
-            XWPFTable currentTable = null;
-            XWPFTableRow currentRow = null;
+            XWPFTable table = null;
+            XWPFTableRow row = null;
             
             for (String line : lines) {
-                if (line.contains("[TABLE_START]")) {
+                line = line.trim();
+                
+                if (line.equals("[TABLE_START]")) {
                     inTable = true;
-                    currentTable = document.createTable();
+                    table = document.createTable();
                     continue;
-                } else if (line.contains("[TABLE_END]")) {
+                }
+                
+                if (line.equals("[TABLE_END]")) {
                     inTable = false;
-                    currentTable = null;
                     continue;
                 }
                 
                 if (inTable) {
-                    if (line.contains("[ROW_START]")) {
-                        if (currentTable != null) {
-                            currentRow = currentTable.createRow();
-                        }
+                    if (line.startsWith("[ROW_START]")) {
+                        // 处理行开始标记
+                        row = table.createRow();
                         
                         // 提取单元格内容
-                        String[] cellContents = line.split("\\[CELL_START\\]");
-                        for (int i = 1; i < cellContents.length; i++) {
-                            String cellContent = cellContents[i].split("\\[CELL_END\\]")[0].trim();
-                            if (currentRow != null && i-1 < currentRow.getTableCells().size()) {
-                                XWPFTableCell cell = currentRow.getCell(i-1);
-                                if (cell == null && currentRow.getTableCells().size() < i) {
-                                    cell = currentRow.createCell();
-                                }
-                                if (cell != null) {
-                                    XWPFParagraph para = cell.getParagraphs().isEmpty() ? 
-                                        cell.addParagraph() : cell.getParagraphs().get(0);
-                                    XWPFRun run = para.createRun();
-                                    run.setText(cellContent);
-                                }
+                        String rowContent = line.substring("[ROW_START]".length(), line.indexOf("[ROW_END]"));
+                        String[] cells = rowContent.split("\\[CELL_START\\]");
+                        
+                        int cellIndex = 0;
+                        for (String cell : cells) {
+                            if (cell.isEmpty()) continue;
+                            
+                            String cellContent = cell.substring(0, cell.indexOf("[CELL_END]")).trim();
+                            XWPFTableCell tableCell = row.getCell(cellIndex++);
+                            // 确保单元格存在，必要时创建
+                            if (tableCell == null) {
+                                tableCell = row.createCell();
                             }
+                            tableCell.setText(cellContent);
                         }
+                        continue;
                     }
-                } else if (!line.trim().isEmpty() && !line.contains("[ROW_END]")) {
-                    // 普通段落
-                    XWPFParagraph para = document.createParagraph();
-                    XWPFRun run = para.createRun();
+                } else if (!line.isEmpty()) {
+                    // 处理普通段落文本
+                    XWPFParagraph paragraph = document.createParagraph();
+                    XWPFRun run = paragraph.createRun();
                     run.setText(line);
                 }
             }
             
             // 保存文档
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                document.write(out);
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                document.write(fos);
             }
+            
+            AppLogger.info("保存Word模板: " + filePath);
+        } catch (Exception e) {
+            AppLogger.error("保存Word模板失败: " + e.getMessage(), e);
+            throw new IOException("保存Word模板失败: " + e.getMessage(), e);
         }
-        
-        AppLogger.info("保存Word模板: " + filePath);
     }
     
     /**
