@@ -1119,3 +1119,241 @@
 .field-definition-text {
     -fx-text-fill: #333333 !important;
 }
+
+/* 滚动条样式调整 */
+.field-scroll-pane {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-border-width: 1px;
+    -fx-border-color: #ffb6c1;
+    -fx-border-radius: 4;
+}
+
+.field-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* 横向滚动条样式 */
+.field-scroll-pane .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 12px;
+    -fx-opacity: 1;
+}
+
+.field-scroll-pane .scroll-bar:horizontal .thumb {
+    -fx-background-color: #ffb6c1;
+    -fx-background-radius: 6px;
+}
+
+.field-scroll-pane .scroll-bar:horizontal .track {
+    -fx-background-color: #fff5f8;
+    -fx-background-radius: 6px;
+}
+
+/* 纵向滚动条样式 */
+.field-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12px;
+    -fx-opacity: 1;
+}
+
+.field-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #ffb6c1;
+    -fx-background-radius: 6px;
+}
+
+.field-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: #fff5f8;
+    -fx-background-radius: 6px;
+}
+
+/* 删除按钮和添加按钮样式 */
+.delete-button {
+    -fx-background-color: #ffb6c1;
+    -fx-text-fill: white;
+    -fx-background-radius: 2;
+    -fx-min-width: 18px;
+    -fx-min-height: 18px;
+    -fx-max-width: 18px;
+    -fx-max-height: 18px;
+    -fx-padding: 0;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.add-button {
+    -fx-background-color: #ffb6c1;
+    -fx-text-fill: white;
+    -fx-background-radius: 2;
+    -fx-min-width: 18px;
+    -fx-min-height: 18px;
+    -fx-max-width: 18px;
+    -fx-max-height: 18px;
+    -fx-padding: 0;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+/* 数据表头样式 */
+.data-list-header {
+    -fx-background-color: #ffe4ec;
+    -fx-padding: 4px;
+    -fx-border-color: #ffb6c1;
+    -fx-border-radius: 4 4 0 0;
+    -fx-background-radius: 4 4 0 0;
+}
+
+.data-list-header-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #d81b60;
+}
+
+/* 文档生成器按钮样式 */
+.doc-generator-container .button {
+    -fx-background-color: #ffe4ec;
+    -fx-text-fill: #d81b60;
+    -fx-border-color: #ffb6c1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-font-size: 11px; /* 减小字体大小 */
+    -fx-padding: 2 6 2 6; /* 调整内边距 */
+}
+
+/* 文档生成器图标按钮样式 */
+.doc-generator-container .delete-button,
+.doc-generator-container .add-button {
+    -fx-background-color: #ffb6c1;
+    -fx-text-fill: white;
+    -fx-background-radius: 2;
+    -fx-min-width: 16px;
+    -fx-min-height: 16px;
+    -fx-max-width: 16px;
+    -fx-max-height: 16px;
+    -fx-padding: 0;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+/* 文档生成器表头样式 */
+.doc-generator-container .data-list-header {
+    -fx-background-color: #ffe4ec;
+    -fx-padding: 2px;
+    -fx-border-color: #ffb6c1;
+    -fx-border-radius: 4 4 0 0;
+    -fx-background-radius: 4 4 0 0;
+}
+
+.doc-generator-container .data-list-header-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #d81b60;
+    -fx-font-size: 11px;
+}
+
+/* 确保数据表头始终可见 */
+.doc-generator-container .list-data-table .column-header-background {
+    -fx-max-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-min-height: 24px;
+    -fx-opacity: 1;
+    -fx-background-color: #ffe4ec;
+    -fx-border-color: #ffb6c1;
+    visibility: visible;
+}
+
+.doc-generator-container .list-data-table .column-header {
+    -fx-background-color: #ffe4ec;
+    -fx-text-fill: #d81b60;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 2px;
+}
+
+.doc-generator-container .list-data-table .column-header .label {
+    -fx-text-fill: #d81b60;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+/* 统一表格行高 */
+.doc-generator-container .table-row-cell,
+.doc-generator-container .table-cell {
+    -fx-pref-height: 24px;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+}
+
+/* 文本替换规则管理样式 */
+.rule-list-view {
+    -fx-pref-height: 300px;
+    -fx-min-height: 200px;
+    -fx-border-color: #ffb6c1;
+    -fx-border-radius: 4;
+}
+
+.rule-list-cell {
+    -fx-padding: 2px 5px;
+    -fx-background-color: transparent;
+}
+
+.rule-list-cell:selected {
+    -fx-background-color: #ffe4ec;
+}
+
+.rule-item {
+    -fx-spacing: 5;
+    -fx-padding: 2;
+}
+
+.rule-original-text {
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.rule-replacement-text {
+    -fx-font-style: italic;
+    -fx-text-fill: #d81b60;
+}
+
+/* 统一滚动条样式 */
+.doc-generator-container .scroll-bar:horizontal,
+.rule-list-view .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 12px;
+    -fx-opacity: 1;
+}
+
+.doc-generator-container .scroll-bar:horizontal .thumb,
+.rule-list-view .scroll-bar:horizontal .thumb {
+    -fx-background-color: #ffb6c1;
+    -fx-background-radius: 6px;
+}
+
+.doc-generator-container .scroll-bar:horizontal .track,
+.rule-list-view .scroll-bar:horizontal .track {
+    -fx-background-color: #fff5f8;
+    -fx-background-radius: 6px;
+}
+
+/* 如果需要纵向滚动条 */
+.doc-generator-container .scroll-bar:vertical,
+.rule-list-view .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 12px;
+    -fx-opacity: 1;
+}
+
+.doc-generator-container .scroll-bar:vertical .thumb,
+.rule-list-view .scroll-bar:vertical .thumb {
+    -fx-background-color: #ffb6c1;
+    -fx-background-radius: 6px;
+}
+
+.doc-generator-container .scroll-bar:vertical .track,
+.rule-list-view .scroll-bar:vertical .track {
+    -fx-background-color: #fff5f8;
+    -fx-background-radius: 6px;
+}

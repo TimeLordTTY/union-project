@@ -11,12 +11,13 @@
       fx:controller="com.timelordtty.docgen.controller.DocumentGeneratorController"
       prefHeight="900.0" prefWidth="1400.0"
       style="-fx-background-color: #fff5f8;"
+      styleClass="doc-generator-container"
       stylesheets="@../css/styles.css">
       
     <!-- 使用网格布局将界面分为四列 -->
-    <GridPane hgap="8" vgap="8" VBox.vgrow="ALWAYS">
+    <GridPane hgap="0" vgap="0" VBox.vgrow="ALWAYS" gridLinesVisible="false">
         <padding>
-            <Insets top="8" right="8" bottom="8" left="8"/>
+            <Insets top="0" right="0" bottom="0" left="0"/>
         </padding>
         
         <columnConstraints>
@@ -31,15 +32,15 @@
         </rowConstraints>
         
         <!-- 第一列：字段定义区域 -->
-        <VBox spacing="8" GridPane.columnIndex="0" GridPane.vgrow="ALWAYS"
-              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 10; -fx-background-radius: 10;">
+        <VBox spacing="4" GridPane.columnIndex="0" GridPane.vgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 0; -fx-background-radius: 0;">
             <padding>
                 <Insets top="8" right="8" bottom="8" left="8"/>
             </padding>
             
             <!-- 上方按钮区域 -->
-            <HBox spacing="8">
-                <ComboBox fx:id="templateTypeComboBox" promptText="选择模板类型" HBox.hgrow="ALWAYS">
+            <HBox spacing="4">
+                <ComboBox fx:id="templateTypeComboBox" promptText="选择模板类型" HBox.hgrow="ALWAYS" minHeight="24" maxHeight="24">
                     <items>
                         <FXCollections fx:factory="observableArrayList">
                             <String fx:value="Word" />
@@ -50,52 +51,47 @@
                         <String fx:value="Word" />
                     </value>
                 </ComboBox>
-                <Button text="导入模板" onAction="#handleImportTemplate" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+                <Button text="导入模板" onAction="#handleImportTemplate" minHeight="24" maxHeight="24" />
             </HBox>
             
             <!-- 字段定义标题 -->
             <Label text="字段定义" style="-fx-font-size: 16; -fx-font-weight: bold;" />
             
             <!-- 字段定义内容区域 -->
-            <VBox spacing="5" VBox.vgrow="ALWAYS">
-                <HBox spacing="8">
-                    <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS" />
-                    <Button text="添加字段" onAction="#handleAddObjectField" 
-                            style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+            <VBox spacing="4" VBox.vgrow="ALWAYS">
+                <HBox spacing="4">
+                    <TextField fx:id="objectFieldInput" promptText="输入字段名称" HBox.hgrow="ALWAYS" minHeight="24" maxHeight="24" />
+                    <Button text="添加字段" onAction="#handleAddObjectField" minHeight="24" maxHeight="24" />
                 </HBox>
                 
-                <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" maxHeight="200">
-                    <VBox fx:id="objectFieldItemsContainer" spacing="4" onMouseClicked="#handleFieldItemClick" />
+                <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
+                    <VBox fx:id="objectFieldItemsContainer" spacing="2" onMouseClicked="#handleFieldItemClick" />
                 </ScrollPane>
                 
-                <HBox spacing="8">
-                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" />
-                    <Button text="添加列表" onAction="#handleAddListField" 
-                            style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+                <HBox spacing="4">
+                    <TextField fx:id="listFieldInput" promptText="输入列表名称" HBox.hgrow="ALWAYS" minHeight="24" maxHeight="24" />
+                    <Button text="添加列表" onAction="#handleAddListField" minHeight="24" maxHeight="24" />
                 </HBox>
                 
-                <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
-                    <VBox fx:id="listFieldItemsContainer" spacing="4" onMouseClicked="#handleListItemClick" />
+                <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
+                    <VBox fx:id="listFieldItemsContainer" spacing="2" onMouseClicked="#handleListItemClick" />
                 </ScrollPane>
             </VBox>
         </VBox>
         
         <!-- 第二列：模板编辑区域 -->
-        <VBox spacing="8" GridPane.columnIndex="1" GridPane.vgrow="ALWAYS"
-              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 10; -fx-background-radius: 10;">
+        <VBox spacing="4" GridPane.columnIndex="1" GridPane.vgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 0; -fx-background-radius: 0;">
             <padding>
                 <Insets top="8" right="8" bottom="8" left="8"/>
             </padding>
             
             <!-- 上方按钮区域 -->
-            <HBox spacing="8">
-                <Button text="保存模板" onAction="#handleSaveTemplate" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
-                <Button text="生成模板" onAction="#handleGenerateTemplate" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
-                <Button text="导出字段" onAction="#handleExportFields" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+            <HBox spacing="4">
+                <Button text="保存模板" onAction="#handleSaveTemplate" minHeight="24" maxHeight="24" />
+                <Button text="生成模板" onAction="#handleGenerateTemplate" minHeight="24" maxHeight="24" />
+                <Button text="导出字段" onAction="#handleExportFields" minHeight="24" maxHeight="24" />
+                <Button text="替换规则" onAction="#handleShowReplaceRules" minHeight="24" maxHeight="24" />
             </HBox>
             
             <!-- 模板编辑标题 -->
@@ -118,44 +114,47 @@
         </VBox>
         
         <!-- 第三列：数据填充区域 -->
-        <VBox spacing="8" GridPane.columnIndex="2" GridPane.vgrow="ALWAYS"
-              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 10; -fx-background-radius: 10;">
+        <VBox spacing="4" GridPane.columnIndex="2" GridPane.vgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 0; -fx-background-radius: 0;">
             <padding>
                 <Insets top="8" right="8" bottom="8" left="8"/>
             </padding>
             
             <!-- 上方按钮区域 -->
-            <HBox spacing="8">
-                <Button text="导入数据" onAction="#handleImportData" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+            <HBox spacing="4">
+                <Button text="导入数据" onAction="#handleImportData" minHeight="24" maxHeight="24" />
             </HBox>
             
             <!-- 数据填充标题 -->
             <Label text="数据填充" style="-fx-font-size: 16; -fx-font-weight: bold;" />
             
             <!-- 数据填充内容区域 -->
-            <VBox spacing="5" VBox.vgrow="ALWAYS">
-                <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" minHeight="100" maxHeight="300">
-                    <VBox fx:id="objectDataItemsContainer" spacing="4" />
+            <VBox spacing="4" VBox.vgrow="ALWAYS">
+                <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" minHeight="100" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
+                    <VBox fx:id="objectDataItemsContainer" spacing="2" />
                 </ScrollPane>
                 
-                <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane">
-                    <VBox fx:id="listDataItemsContainer" spacing="4" />
+                <!-- 表头部分 -->
+                <HBox styleClass="data-list-header">
+                    <Label text="列表数据" styleClass="data-list-header-label" />
+                </HBox>
+                
+                <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
+                    <VBox fx:id="listDataItemsContainer" spacing="2" />
                 </ScrollPane>
             </VBox>
         </VBox>
         
         <!-- 第四列：实时预览区域 -->
-        <VBox spacing="8" GridPane.columnIndex="3" GridPane.vgrow="ALWAYS"
-              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 10; -fx-background-radius: 10;">
+        <VBox spacing="4" GridPane.columnIndex="3" GridPane.vgrow="ALWAYS"
+              style="-fx-background-color: white; -fx-border-color: #ffc0cb; -fx-border-radius: 0; -fx-background-radius: 0;">
             <padding>
                 <Insets top="8" right="8" bottom="8" left="8"/>
             </padding>
             
             <!-- 上方按钮区域 -->
-            <HBox spacing="8">
-                <Button text="生成文档" onAction="#handleGenerateDocument" 
-                        style="-fx-background-color: #ffe4ec; -fx-text-fill: #d81b60; -fx-border-color: #ffb6c1; -fx-border-radius: 6; -fx-background-radius: 6;" />
+            <HBox spacing="4">
+                <Button text="生成文档" onAction="#handleGenerateDocument" minHeight="24" maxHeight="24" />
             </HBox>
             
             <!-- 实时预览标题 -->
@@ -163,7 +162,7 @@
             
             <!-- 实时预览内容区域 -->
             <ScrollPane fx:id="previewScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="preview-scroll-pane">
-                <StackPane VBox.vgrow="ALWAYS" minHeight="750">
+                <StackPane VBox.vgrow="ALWAYS">
                     <!-- Word模式下的预览 -->
                     <TextArea fx:id="wordPreviewArea" editable="false" wrapText="true" 
                               styleClass="preview-area" visible="true" />

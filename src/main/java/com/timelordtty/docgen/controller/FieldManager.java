@@ -517,22 +517,10 @@ public class FieldManager {
                         // 创建数据表格
                         TableView<Map<String, String>> dataTable = new TableView<>();
                         dataTable.setEditable(true);
+                        dataTable.getStyleClass().add("list-data-table"); // 添加样式类以便CSS选择器能识别
                         
-                        // 隐藏表头
+                        // 显示表头
                         dataTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-                        dataTable.getStyleClass().add("no-header");
-                        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
-                                        + "-fx-control-inner-background: white; "
-                                        + "-fx-table-header-border-color: transparent; "
-                                        + "-fx-table-cell-border-color: transparent; "
-                                        + "-fx-scroll-bar-visible: false;");
-                        
-                        // 使用CSS样式隐藏表头
-                        dataTable.widthProperty().addListener((obs, oldVal, newVal) -> {
-                            if (dataTable.lookup(".column-header-background") != null) {
-                                dataTable.lookup(".column-header-background").setStyle("-fx-max-height: 0; -fx-pref-height: 0; -fx-min-height: 0;");
-                            }
-                        });
                         
                         // 为每个字段创建一个列
                         for (String field : fields) {
@@ -609,10 +597,12 @@ public class FieldManager {
                         
                         actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
                             private final Button addButton = new Button("+");
-                            private final HBox actionBox = new HBox(5, addButton);
+                            private final Button deleteButton = new Button("×");
+                            private final HBox actionBox = new HBox(5, addButton, deleteButton);
                             
                             {
-                                addButton.getStyleClass().add("icon-button");
+                                addButton.getStyleClass().addAll("icon-button", "add-button");
+                                deleteButton.getStyleClass().addAll("icon-button", "delete-button");
                                 
                                 // 添加按钮动作
                                 addButton.setOnAction(event -> {
@@ -634,6 +624,23 @@ public class FieldManager {
                                         updatePreviewCallback.run();
                                     }
                                 });
+                                
+                                // 删除按钮动作
+                                deleteButton.setOnAction(event -> {
+                                    int rowIndex = getIndex();
+                                    
+                                    // 检查是否是最后一行
+                                    if (dataTable.getItems().size() > 1) {
+                                        listFieldDataMap.get(listName).remove(rowIndex);
+                                        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                                        
+                                        if (updatePreviewCallback != null) {
+                                            updatePreviewCallback.run();
+                                        }
+                                    } else {
+                                        UIHelper.showWarning("警告", "至少需要保留一条数据");
+                                    }
+                                });
                             }
                             
                             @Override
@@ -648,28 +655,14 @@ public class FieldManager {
                         });
                         dataTable.getColumns().add(actionColumn);
                         
-                        // 设置表格样式
-                        dataTable.setPrefHeight(120); // 减少表格高度
-                        dataTable.setFixedCellSize(24); // 设置单元格固定高度
-                        
-                        // 允许表格直接滚动，不显示滚动条
-                        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
-                                        + "-fx-control-inner-background: white; "
-                                        + "-fx-hide-scrollbar: true;");
-                        
-                        tableContainer.getChildren().add(dataTable);
-                        
-                        // 确保每个字段都在数据中存在
-                        for (Map<String, String> item : listFieldDataMap.get(listName)) {
-                            for (String field : fields) {
-                                if (!item.containsKey(field)) {
-                                    item.put(field, "");
-                                }
-                            }
-                        }
+                        // 设置表格样式和高度
+                        dataTable.setPrefHeight(120);
+                        dataTable.setFixedCellSize(24);
                         
                         // 设置表格数据
                         dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                        tableContainer.getChildren().add(dataTable);
+                        
                         break;
                     }
                 }
@@ -733,22 +726,10 @@ public class FieldManager {
         // 创建数据表格
         TableView<Map<String, String>> dataTable = new TableView<>();
         dataTable.setEditable(true);
+        dataTable.getStyleClass().add("list-data-table"); // 添加样式类以便CSS选择器能识别
         
-        // 隐藏表头
+        // 显示表头
         dataTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        dataTable.getStyleClass().add("no-header");
-        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
-                          + "-fx-control-inner-background: white; "
-                          + "-fx-table-header-border-color: transparent; "
-                          + "-fx-table-cell-border-color: transparent; "
-                          + "-fx-scroll-bar-visible: false;");
-        
-        // 使用CSS样式隐藏表头
-        dataTable.widthProperty().addListener((obs, oldVal, newVal) -> {
-            if (dataTable.lookup(".column-header-background") != null) {
-                dataTable.lookup(".column-header-background").setStyle("-fx-max-height: 0; -fx-pref-height: 0; -fx-min-height: 0;");
-            }
-        });
         
         // 为每个字段创建一个列
         for (String field : listFields) {
@@ -819,16 +800,18 @@ public class FieldManager {
             dataTable.getColumns().add(column);
         }
         
-        // 添加操作列，仅包含添加按钮
+        // 添加操作列
         TableColumn<Map<String, String>, Void> actionColumn = new TableColumn<>("操作");
         actionColumn.setPrefWidth(60);
         
         actionColumn.setCellFactory(param -> new javafx.scene.control.TableCell<Map<String, String>, Void>() {
             private final Button addButton = new Button("+");
-            private final HBox actionBox = new HBox(5, addButton);
+            private final Button deleteButton = new Button("×");
+            private final HBox actionBox = new HBox(5, addButton, deleteButton);
             
             {
-                addButton.getStyleClass().add("icon-button");
+                addButton.getStyleClass().addAll("icon-button", "add-button");
+                deleteButton.getStyleClass().addAll("icon-button", "delete-button");
                 
                 // 添加按钮动作
                 addButton.setOnAction(event -> {
@@ -850,6 +833,23 @@ public class FieldManager {
                         updatePreviewCallback.run();
                     }
                 });
+                
+                // 删除按钮动作
+                deleteButton.setOnAction(event -> {
+                    int rowIndex = getIndex();
+                    
+                    // 检查是否是最后一行
+                    if (dataTable.getItems().size() > 1) {
+                        listFieldDataMap.get(listName).remove(rowIndex);
+                        dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+                        
+                        if (updatePreviewCallback != null) {
+                            updatePreviewCallback.run();
+                        }
+                    } else {
+                        UIHelper.showWarning("警告", "至少需要保留一条数据");
+                    }
+                });
             }
             
             @Override
@@ -864,36 +864,38 @@ public class FieldManager {
         });
         dataTable.getColumns().add(actionColumn);
         
-        // 设置表格样式
-        dataTable.setPrefHeight(120); // 减少表格高度
-        dataTable.setFixedCellSize(24); // 设置单元格固定高度
+        // 设置表格样式和高度
+        dataTable.setPrefHeight(120);
+        dataTable.setFixedCellSize(24);
         
-        // 允许表格直接滚动，不显示滚动条
-        dataTable.setStyle("-fx-border-color: #ddd; -fx-background-color: white; "
-                         + "-fx-control-inner-background: white; "
-                         + "-fx-hide-scrollbar: true;");
-        
-        tableContainer.getChildren().add(dataTable);
-        listDataItemsContainer.getChildren().add(tableContainer);
-        
-        // 添加一行默认数据
+        // 如果数据列表为空，初始化一行空数据
         if (!listFieldDataMap.containsKey(listName) || listFieldDataMap.get(listName).isEmpty()) {
-            Map<String, String> defaultData = new HashMap<>();
+            List<Map<String, String>> emptyList = new ArrayList<>();
+            Map<String, String> emptyRow = new HashMap<>();
+            
+            // 初始化所有字段为空
             for (String field : listFields) {
-                defaultData.put(field, "");
+                emptyRow.put(field, "");
             }
-            List<Map<String, String>> dataList = new ArrayList<>();
-            dataList.add(defaultData);
-            listFieldDataMap.put(listName, dataList);
+            
+            emptyList.add(emptyRow);
+            listFieldDataMap.put(listName, emptyList);
         } else {
-            // 确保只保留一行数据作为默认显示
-            while (listFieldDataMap.get(listName).size() > 1) {
-                listFieldDataMap.get(listName).remove(1);
+            // 确保每个字段都在数据中存在
+            for (Map<String, String> item : listFieldDataMap.get(listName)) {
+                for (String field : listFields) {
+                    if (!item.containsKey(field)) {
+                        item.put(field, "");
+                    }
+                }
             }
         }
         
         // 设置表格数据
         dataTable.setItems(FXCollections.observableArrayList(listFieldDataMap.get(listName)));
+        
+        tableContainer.getChildren().add(dataTable);
+        listDataItemsContainer.getChildren().add(tableContainer);
     }
     
     /**

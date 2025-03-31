@@ -49,4 +49,19 @@ public class UIHelper {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    
+    /**
+     * 显示自定义类型的对话框
+     * 
+     * @param title 标题
+     * @param message 消息
+     * @param alertType 警告类型
+     */
+    public static void showMessage(String title, String message, AlertType alertType) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 } 

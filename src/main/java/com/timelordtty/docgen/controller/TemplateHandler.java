@@ -25,10 +25,62 @@ import com.timelordtty.docgen.service.WordTemplateService;
 public class TemplateHandler {
     private WordTemplateService wordTemplateService;
     private ExcelTemplateService excelTemplateService;
+    private Map<String, String> replaceRules; // 文本替换规则
     
     public TemplateHandler() {
         wordTemplateService = new WordTemplateService();
         excelTemplateService = new ExcelTemplateService();
+        replaceRules = new HashMap<>();
+    }
+    
+    /**
+     * 获取所有文本替换规则
+     * 
+     * @return 文本替换规则Map
+     */
+    public Map<String, String> getReplaceRules() {
+        return replaceRules;
+    }
+    
+    /**
+     * 添加文本替换规则
+     * 
+     * @param original 原始文本
+     * @param replacement 替换文本
+     */
+    public void addReplaceRule(String original, String replacement) {
+        replaceRules.put(original, replacement);
+        AppLogger.info("添加替换规则: " + original + " -> " + replacement);
+    }
+    
+    /**
+     * 移除文本替换规则
+     * 
+     * @param original 原始文本
+     */
+    public void removeReplaceRule(String original) {
+        replaceRules.remove(original);
+        AppLogger.info("移除替换规则: " + original);
+    }
+    
+    /**
+     * 应用所有替换规则
+     * 
+     * @param text 原始文本
+     * @return 替换后的文本
+     */
+    public String applyReplaceRules(String text) {
+        String result = text;
+        for (Map.Entry<String, String> rule : replaceRules.entrySet()) {
+            try {
+                // 尝试将原文本作为正则表达式处理
+                result = result.replaceAll(rule.getKey(), rule.getValue());
+            } catch (Exception e) {
+                // 如果正则表达式无效，则作为普通文本替换
+                result = result.replace(rule.getKey(), rule.getValue());
+            }
+        }
+        return result;
     }
     
     /**
