@@ -820,6 +820,15 @@ public class TextCorrectorController implements Initializable {
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(inputTextArea.getScene().getWindow());
             
+            // 明确设置对话框尺寸
+            dialogStage.setMinWidth(800);
+            dialogStage.setMinHeight(650);
+            dialogStage.setWidth(900);  // 设置初始宽度比最小值大一些
+            dialogStage.setHeight(700); // 设置初始高度比最小值大一些
+            
+            // 允许用户调整对话框大小
+            dialogStage.setResizable(true);
+            
             // 设置场景
             Scene scene = new Scene(dialogRoot);
             dialogStage.setScene(scene);

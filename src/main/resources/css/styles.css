@@ -1171,32 +1171,37 @@
     -fx-background-radius: 6px;
 }
 
-/* 删除按钮和添加按钮样式 */
-.delete-button {
-    -fx-background-color: #ffb6c1;
+/* 操作按钮样式 - 新增按钮 */
+.operation-add-button {
+    -fx-background-color: #4CAF50;
     -fx-text-fill: white;
-    -fx-background-radius: 2;
-    -fx-min-width: 18px;
-    -fx-min-height: 18px;
-    -fx-max-width: 18px;
-    -fx-max-height: 18px;
-    -fx-padding: 0;
-    -fx-font-size: 10px;
     -fx-font-weight: bold;
+    -fx-min-width: 24px;
+    -fx-min-height: 24px;
+    -fx-max-width: 24px;
+    -fx-max-height: 24px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+    -fx-font-size: 14px;
+    -fx-content-display: center;
+    -fx-cursor: hand;
     -fx-alignment: center;
 }
 
-.add-button {
-    -fx-background-color: #ffb6c1;
+/* 操作按钮样式 - 删除按钮 */
+.operation-delete-button {
+    -fx-background-color: #F44336;
     -fx-text-fill: white;
-    -fx-background-radius: 2;
-    -fx-min-width: 18px;
-    -fx-min-height: 18px;
-    -fx-max-width: 18px;
-    -fx-max-height: 18px;
-    -fx-padding: 0;
-    -fx-font-size: 10px;
     -fx-font-weight: bold;
+    -fx-min-width: 24px;
+    -fx-min-height: 24px;
+    -fx-max-width: 24px;
+    -fx-max-height: 24px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+    -fx-font-size: 14px;
+    -fx-content-display: center;
+    -fx-cursor: hand;
     -fx-alignment: center;
 }
 

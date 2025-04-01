@@ -1,6 +1,7 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -24,14 +25,14 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TablePosition;
@@ -40,11 +41,11 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.TextFieldTableCell;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 /**
  * 文档生成器控制器
@@ -216,36 +217,41 @@ public class DocumentGeneratorController {
      * 设置Excel编辑器
      */
     private void setupExcelEditor() {
-        // 清除现有列
-        excelEditor.getColumns().clear();
+        // 清空表格
         excelEditor.getItems().clear();
+        excelEditor.getColumns().clear();
         
-        // 创建默认Excel表格结构（5列，10行）
-        int defaultColumns = 5;
-        int defaultRows = 10;
+        // 创建初始空表格
+        int initialRows = 10;
+        int initialColumns = 5;
         
-        // 创建列
-        for (int i = 0; i < defaultColumns; i++) {
+        // 设置表格列
+        for (int i = 0; i < initialColumns; i++) {
             final int colIndex = i;
-            String columnLabel = getColumnName(i);
             
-            TableColumn<ObservableList<String>, String> column = new TableColumn<>(columnLabel);
-            column.setCellValueFactory(data -> {
-                ObservableList<String> row = data.getValue();
-                return row.size() > colIndex ? new SimpleStringProperty(row.get(colIndex)) : new SimpleStringProperty("");
+            TableColumn<ObservableList<String>, String> column = new TableColumn<>(getColumnName(i));
+            column.setCellValueFactory(param -> {
+                ObservableList<String> row = param.getValue();
+                if (colIndex >= row.size()) {
+                    return new SimpleStringProperty("");
+                }
+                return new SimpleStringProperty(row.get(colIndex));
             });
             
-            // 设置单元格编辑工厂
+            // 使Excel表格可编辑
             column.setCellFactory(col -> new TableCell<ObservableList<String>, String>() {
                 private final TextField textField = new TextField();
                 
                 {
-                    textField.setOnAction(e -> commitEdit(textField.getText()));
+                    // 失焦时保存
                     textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
                         if (!newVal) {
                             commitEdit(textField.getText());
                         }
                     });
+                    
+                    // 回车键保存
+                    textField.setOnAction(e -> commitEdit(textField.getText()));
                 }
                 
                 @Override
@@ -283,48 +289,34 @@ public class DocumentGeneratorController {
                 @Override
                 public void commitEdit(String newValue) {
                     super.commitEdit(newValue);
-                    ObservableList<String> rowData = getTableView().getItems().get(getIndex());
-                    rowData.set(colIndex, newValue);
+                    int rowIndex = getIndex();
+                    ObservableList<String> row = excelEditor.getItems().get(rowIndex);
+                    
+                    // 确保行有足够的列
+                    while (row.size() <= colIndex) {
+                        row.add("");
+                    }
+                    
+                    // 更新值
+                    row.set(colIndex, newValue);
                     
                     // 更新预览
                     updatePreview();
                 }
             });
             
-            // 设置编辑提交事件
-            column.setOnEditCommit(event -> {
-                int row = event.getTablePosition().getRow();
-                ObservableList<String> rowData = excelEditor.getItems().get(row);
-                rowData.set(colIndex, event.getNewValue());
-                updatePreview(); // 更新预览
-            });
-            
             column.setPrefWidth(100);
-            column.setEditable(true); // 确保列可编辑
             excelEditor.getColumns().add(column);
         }
         
-        // 创建行
-        ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
-        for (int i = 0; i < defaultRows; i++) {
+        // 创建初始空行
+        for (int i = 0; i < initialRows; i++) {
             ObservableList<String> row = FXCollections.observableArrayList();
-            for (int j = 0; j < defaultColumns; j++) {
+            for (int j = 0; j < initialColumns; j++) {
                 row.add("");
             }
-            data.add(row);
+            excelEditor.getItems().add(row);
         }
-        excelEditor.setItems(data);
-        
-        // 设置表格可编辑
-        excelEditor.setEditable(true);
-        
-        // 添加多种事件监听以确保实时预览
-        excelEditor.setOnKeyReleased(e -> updatePreview());
-        excelEditor.setOnMouseClicked(e -> updatePreview());
-        excelEditor.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> updatePreview());
-        
-        // 同样设置预览表格
-        setupExcelPreview();
     }
     
     /**
@@ -1142,6 +1134,13 @@ public class DocumentGeneratorController {
                     return;
                 }
                 
+                // 处理占位符标签 - 直接使用占位符文本，不要重复添加括号
+                if (fieldName.startsWith("{{") && fieldName.endsWith("}}")) {
+                    // 直接使用占位符文本
+                    insertTextAtCaret(fieldName);
+                    return;
+                }
+                
                 // 在当前模板中插入字段
                 if (isWordMode) {
                     // 在Word编辑器中插入字段
@@ -1174,6 +1173,37 @@ public class DocumentGeneratorController {
     }
     
     /**
+     * 在光标位置插入文本
+     * 
+     * @param text 要插入的文本
+     */
+    private void insertTextAtCaret(String text) {
+        if (isWordMode) {
+            int caretPosition = wordEditor.getCaretPosition();
+            wordEditor.insertText(caretPosition, text);
+        } else {
+            try {
+                if (!excelEditor.getSelectionModel().getSelectedCells().isEmpty()) {
+                    TablePosition pos = excelEditor.getSelectionModel().getSelectedCells().get(0);
+                    int row = pos.getRow();
+                    int col = pos.getColumn();
+                    
+                    ObservableList<String> rowData = excelEditor.getItems().get(row);
+                    rowData.set(col, text);
+                    
+                    // 刷新表格
+                    excelEditor.refresh();
+                }
+            } catch (Exception e) {
+                AppLogger.error("添加文本到Excel编辑器失败", e);
+            }
+        }
+        
+        // 更新预览
+        updatePreview();
+    }
+    
+    /**
      * 处理列表项的点击事件 (双击添加列表字段到模板)
      * 
      * @param event 鼠标事件
@@ -1200,10 +1230,9 @@ public class DocumentGeneratorController {
                 
                 // 如果是占位符格式，直接使用该文本
                 if (fieldName.startsWith("{{") && fieldName.endsWith("}}")) {
-                    // 直接使用占位符文本
-                    if (fieldName.contains("#")) {
-                        isList = true;
-                    }
+                    // 直接使用占位符文本，不添加额外的括号
+                    insertTextAtCaret(fieldName);
+                    return;
                 } else {
                     // 排除不是字段的标签（如标题等）
                     if (fieldName.equals("列表字段") || fieldName.contains("添加") || 
@@ -1225,13 +1254,17 @@ public class DocumentGeneratorController {
                     // 判断是否为占位符格式（被列格式化后的文本）
                     if (cellText.startsWith("{{") && cellText.endsWith("}}")) {
                         fieldName = cellText;
-                        isList = false; // 列表属性占位符不是列表标记
+                        // 直接使用占位符文本，不添加额外的括号
+                        insertTextAtCaret(fieldName);
+                        return;
                     } else {
                         // 处理普通文本单元格
                         if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("占位符")) {
                             // 从占位符列获取完整占位符
                             fieldName = cellText;
-                            isList = false; // 列表属性占位符不是列表标记
+                            // 直接使用占位符文本，不添加额外的括号
+                            insertTextAtCaret(fieldName);
+                            return;
                         } else if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("字段名")) {
                             // 从字段名列获取属性名，需要构建完整的列表字段占位符
                             String attrName = cellText;
@@ -1245,6 +1278,9 @@ public class DocumentGeneratorController {
                                 if (parent != null) {
                                     String listName = parent.getId();
                                     fieldName = "{{" + listName + "." + attrName + "}}";
+                                    // 插入构建的占位符文本
+                                    insertTextAtCaret(fieldName);
+                                    return;
                                 }
                             }
                         } else {
@@ -1568,284 +1604,36 @@ public class DocumentGeneratorController {
      */
     @FXML
     private void handleShowReplaceRules() {
-        // 创建对话框
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("文本替换规则管理");
-        dialog.setHeaderText("管理文档生成时的文本替换规则");
-        
-        // 设置对话框内容
-        VBox content = new VBox(10);
-        content.setPadding(new javafx.geometry.Insets(20));
-        content.setMinWidth(600);
-        content.setMinHeight(400);
-        
-        // 添加输入字段
-        HBox inputBox = new HBox(10);
-        TextField originalTextField = new TextField();
-        originalTextField.setPromptText("输入要替换的文本或正则表达式");
-        originalTextField.setPrefWidth(240);
-        
-        TextField replacementTextField = new TextField();
-        replacementTextField.setPromptText("输入替换后的文本");
-        replacementTextField.setPrefWidth(240);
-        
-        Button addRuleButton = new Button("添加规则");
-        
-        inputBox.getChildren().addAll(originalTextField, replacementTextField, addRuleButton);
-        
-        // 添加操作按钮
-        HBox actionBox = new HBox(10);
-        actionBox.setPadding(new javafx.geometry.Insets(10, 0, 10, 0));
-        
-        Button importRulesButton = new Button("导入规则");
-        Button exportRulesButton = new Button("导出规则");
-        Button updateRuleButton = new Button("更新选中");
-        Button deleteRuleButton = new Button("删除选中");
-        deleteRuleButton.setDisable(true);
-        updateRuleButton.setDisable(true);
-        
-        actionBox.getChildren().addAll(importRulesButton, exportRulesButton, updateRuleButton, deleteRuleButton);
-        
-        // 创建规则列表视图
-        ListView<Map<String, String>> rulesListView = new ListView<>();
-        rulesListView.getStyleClass().add("rule-list-view");
-        
-        // 为ListView设置单元格工厂
-        rulesListView.setCellFactory(lv -> new ListCell<Map<String, String>>() {
-            @Override
-            protected void updateItem(Map<String, String> rule, boolean empty) {
-                super.updateItem(rule, empty);
-                
-                if (empty || rule == null) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    HBox ruleBox = new HBox(10);
-                    ruleBox.getStyleClass().add("rule-item");
-                    ruleBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                    
-                    Label originalLabel = new Label(rule.get("original"));
-                    originalLabel.getStyleClass().add("rule-original-text");
-                    originalLabel.setMinWidth(200);
-                    originalLabel.setMaxWidth(250);
-                    
-                    Label arrowLabel = new Label(" → ");
-                    
-                    Label replacementLabel = new Label(rule.get("replacement"));
-                    replacementLabel.getStyleClass().add("rule-replacement-text");
-                    replacementLabel.setMinWidth(200);
-                    replacementLabel.setMaxWidth(250);
-                    
-                    ruleBox.getChildren().addAll(originalLabel, arrowLabel, replacementLabel);
-                    setGraphic(ruleBox);
-                    getStyleClass().add("rule-list-cell");
-                }
-            }
-        });
-        
-        // 处理选择事件
-        rulesListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                originalTextField.setText(newSelection.get("original"));
-                replacementTextField.setText(newSelection.get("replacement"));
-                updateRuleButton.setDisable(false);
-                deleteRuleButton.setDisable(false);
-            } else {
-                updateRuleButton.setDisable(true);
-                deleteRuleButton.setDisable(true);
-            }
-        });
-        
-        // 向ListView中添加现有规则
-        ObservableList<Map<String, String>> ruleItems = FXCollections.observableArrayList();
-        for (Map.Entry<String, String> entry : templateHandler.getReplaceRules().entrySet()) {
-            Map<String, String> rule = new HashMap<>();
-            rule.put("original", entry.getKey());
-            rule.put("replacement", entry.getValue());
-            ruleItems.add(rule);
+        try {
+            // 加载FXML文件
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReplaceRuleDialog.fxml"));
+            Parent root = loader.load();
+            
+            // 创建对话框
+            Stage stage = new Stage();
+            stage.setTitle("文本替换规则管理");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            
+            // 设置对话框尺寸
+            stage.setMinWidth(900);
+            stage.setMinHeight(700);
+            stage.setWidth(950);  // 设置初始宽度比最小值大一些
+            stage.setHeight(750); // 设置初始高度比最小值大一些
+            
+            // 设置窗口可调整大小
+            stage.setResizable(true);
+            
+            // 显示对话框
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+            stage.showAndWait();
+            
+            // 更新预览
+            updatePreview();
+            
+        } catch (IOException e) {
+            AppLogger.error("打开替换规则对话框失败", e);
+            UIHelper.showError("错误", "无法打开替换规则对话框: " + e.getMessage());
         }
-        rulesListView.setItems(ruleItems);
-        
-        // 添加规则按钮事件
-        addRuleButton.setOnAction(e -> {
-            String original = originalTextField.getText().trim();
-            String replacement = replacementTextField.getText();
-            
-            if (original.isEmpty()) {
-                UIHelper.showMessage("输入错误", "请输入要替换的原始文本", javafx.scene.control.Alert.AlertType.WARNING);
-                return;
-            }
-            
-            // 添加到列表
-            Map<String, String> newRule = new HashMap<>();
-            newRule.put("original", original);
-            newRule.put("replacement", replacement);
-            ruleItems.add(newRule);
-            
-            // 更新规则集合
-            templateHandler.addReplaceRule(original, replacement);
-            
-            // 清空输入字段
-            originalTextField.clear();
-            replacementTextField.clear();
-        });
-        
-        // 更新规则按钮事件
-        updateRuleButton.setOnAction(e -> {
-            int selectedIndex = rulesListView.getSelectionModel().getSelectedIndex();
-            if (selectedIndex != -1) {
-                String original = originalTextField.getText().trim();
-                String replacement = replacementTextField.getText();
-                
-                if (original.isEmpty()) {
-                    UIHelper.showMessage("输入错误", "请输入要替换的原始文本", javafx.scene.control.Alert.AlertType.WARNING);
-                    return;
-                }
-                
-                // 获取当前选中的规则
-                Map<String, String> selectedRule = rulesListView.getItems().get(selectedIndex);
-                
-                // 如果原始文本发生变化，需要从规则集合中移除旧的规则
-                if (!original.equals(selectedRule.get("original"))) {
-                    templateHandler.removeReplaceRule(selectedRule.get("original"));
-                }
-                
-                // 更新规则集合
-                templateHandler.addReplaceRule(original, replacement);
-                
-                // 更新列表中的规则
-                selectedRule.put("original", original);
-                selectedRule.put("replacement", replacement);
-                
-                // 刷新列表
-                rulesListView.refresh();
-            }
-        });
-        
-        // 删除规则按钮事件
-        deleteRuleButton.setOnAction(e -> {
-            int selectedIndex = rulesListView.getSelectionModel().getSelectedIndex();
-            if (selectedIndex != -1) {
-                // 获取当前选中的规则
-                Map<String, String> selectedRule = rulesListView.getItems().get(selectedIndex);
-                
-                // 从规则集合中移除
-                templateHandler.removeReplaceRule(selectedRule.get("original"));
-                
-                // 从列表中移除
-                ruleItems.remove(selectedIndex);
-                
-                // 清空输入字段
-                originalTextField.clear();
-                replacementTextField.clear();
-            }
-        });
-        
-        // 导入规则按钮事件
-        importRulesButton.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("导入替换规则");
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("文本文件", "*.txt"));
-            
-            if (lastDirectory != null) {
-                fileChooser.setInitialDirectory(lastDirectory);
-            }
-            
-            File file = fileChooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
-            if (file != null) {
-                lastDirectory = file.getParentFile();
-                
-                try {
-                    // 读取文件内容
-                    List<String> lines = java.nio.file.Files.readAllLines(file.toPath(), java.nio.charset.StandardCharsets.UTF_8);
-                    
-                    // 解析规则
-                    int addedCount = 0;
-                    for (String line : lines) {
-                        if (line.trim().isEmpty() || !line.contains("\t")) continue;
-                        
-                        String[] parts = line.split("\t", 2);
-                        if (parts.length == 2) {
-                            String original = parts[0].trim();
-                            String replacement = parts[1].trim();
-                            
-                            if (!original.isEmpty()) {
-                                // 添加到规则集合
-                                templateHandler.addReplaceRule(original, replacement);
-                                
-                                // 添加到列表
-                                Map<String, String> newRule = new HashMap<>();
-                                newRule.put("original", original);
-                                newRule.put("replacement", replacement);
-                                ruleItems.add(newRule);
-                                
-                                addedCount++;
-                            }
-                        }
-                    }
-                    
-                    UIHelper.showMessage("导入成功", "成功导入 " + addedCount + " 条替换规则", javafx.scene.control.Alert.AlertType.INFORMATION);
-                } catch (Exception ex) {
-                    UIHelper.showMessage("导入失败", "无法读取文件: " + ex.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
-                }
-            }
-        });
-        
-        // 导出规则按钮事件
-        exportRulesButton.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("导出替换规则");
-            fileChooser.getExtensionFilters().add(new ExtensionFilter("文本文件", "*.txt"));
-            
-            if (lastDirectory != null) {
-                fileChooser.setInitialDirectory(lastDirectory);
-            }
-            
-            File file = fileChooser.showSaveDialog(dialog.getDialogPane().getScene().getWindow());
-            if (file != null) {
-                lastDirectory = file.getParentFile();
-                
-                try {
-                    // 准备要写入的内容
-                    List<String> lines = new ArrayList<>();
-                    for (Map<String, String> rule : ruleItems) {
-                        lines.add(rule.get("original") + "\t" + rule.get("replacement"));
-                    }
-                    
-                    // 写入文件
-                    java.nio.file.Files.write(file.toPath(), lines, java.nio.charset.StandardCharsets.UTF_8);
-                    
-                    UIHelper.showMessage("导出成功", "成功导出 " + lines.size() + " 条替换规则", javafx.scene.control.Alert.AlertType.INFORMATION);
-                } catch (Exception ex) {
-                    UIHelper.showMessage("导出失败", "无法写入文件: " + ex.getMessage(), javafx.scene.control.Alert.AlertType.ERROR);
-                }
-            }
-        });
-        
-        // 布局内容
-        content.getChildren().addAll(
-            new Label("添加或编辑替换规则:"),
-            inputBox,
-            actionBox,
-            new Label("替换规则列表:"),
-            rulesListView
-        );
-        VBox.setVgrow(rulesListView, Priority.ALWAYS);
-        
-        // 设置对话框内容
-        dialog.getDialogPane().setContent(content);
-        
-        // 添加按钮
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        
-        // 应用样式
-        dialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-        dialog.getDialogPane().getStyleClass().add("doc-generator-container");
-        
-        // 显示对话框
-        dialog.showAndWait();
-        
-        // 应用时更新预览
-        updatePreview();
     }
 }
