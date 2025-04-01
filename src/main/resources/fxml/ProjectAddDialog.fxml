@@ -55,14 +55,14 @@
             <Label text="开标时间:" GridPane.columnIndex="0" GridPane.rowIndex="7" />
             <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="7">
                 <DatePicker fx:id="expectedReviewDatePicker" prefWidth="200" />
-                <ComboBox fx:id="expectedReviewTimeComboBox" prefWidth="90" />
+                <ComboBox fx:id="expectedReviewTimeComboBox" prefWidth="90" editable="true" promptText="HH:MM" />
             </HBox>
             
             <!-- 专家评审时间 -->
             <Label text="专家评审时间:" GridPane.columnIndex="0" GridPane.rowIndex="8" />
             <HBox spacing="5" GridPane.columnIndex="1" GridPane.rowIndex="8">
                 <DatePicker fx:id="expertReviewDatePicker" prefWidth="200" />
-                <ComboBox fx:id="expertReviewTimeComboBox" prefWidth="90" />
+                <ComboBox fx:id="expertReviewTimeComboBox" prefWidth="90" editable="true" promptText="HH:MM" />
             </HBox>
             
             <!-- 项目备注 -->

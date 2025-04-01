@@ -74,12 +74,15 @@ public class ProjectAddDialogController {
     // 生成时间选项的方法
     private List<String> generateTimeOptions() {
         List<String> options = new ArrayList<>();
-        for (int hour = 8; hour <= 18; hour++) {
+        
+        // 生成常用时间选项（整点和半点）
+        for (int hour = 0; hour < 24; hour++) {
+            // 添加整点
             options.add(String.format("%02d:00", hour));
-            if (hour < 18) {
-                options.add(String.format("%02d:30", hour));
-            }
+            // 添加半点
+            options.add(String.format("%02d:30", hour));
         }
+        
         return options;
     }
     
@@ -102,6 +105,14 @@ public class ProjectAddDialogController {
             List<String> timeOptions = generateTimeOptions();
             expectedReviewTimeComboBox.setItems(FXCollections.observableArrayList(timeOptions));
             expertReviewTimeComboBox.setItems(FXCollections.observableArrayList(timeOptions));
+            
+            // 设置ComboBox为可编辑，允许直接输入时间
+            expectedReviewTimeComboBox.setEditable(true);
+            expertReviewTimeComboBox.setEditable(true);
+            
+            // 设置时间选择器的格式验证
+            setupTimeComboBoxValidation(expectedReviewTimeComboBox);
+            setupTimeComboBoxValidation(expertReviewTimeComboBox);
             
             // 默认选择9:00
             expectedReviewTimeComboBox.setValue("09:00");
@@ -837,6 +848,13 @@ public class ProjectAddDialogController {
             earliestReviewDateLabel.setDisable(true);
             expectedReviewDatePicker.setEditable(false);
             expectedReviewDatePicker.setDisable(true);
+            // 禁用时间选择框
+            expectedReviewTimeComboBox.setEditable(false);
+            expectedReviewTimeComboBox.setDisable(true);
+            expertReviewDatePicker.setEditable(false);
+            expertReviewDatePicker.setDisable(true);
+            expertReviewTimeComboBox.setEditable(false);
+            expertReviewTimeComboBox.setDisable(true);
             remarkArea.setEditable(false);
         }
     }
@@ -880,12 +898,18 @@ public class ProjectAddDialogController {
                 return;
             }
             
-            // 获取时分
-            String[] timeParts = bidTimeStr.split(":");
-            String timeStr = bidTimeStr;
+            // 检查专家评审时间是否在同一天
+            LocalDate expertDate = expertReviewDatePicker.getValue();
+            String expertTimeStr = expertReviewTimeComboBox.getValue();
             
-            // 构建提示语
-            String promptText = projectName + "（" + timeStr + " 开）侯昱晓\n";
+            String promptText;
+            if (expertDate != null && expertTimeStr != null && !expertTimeStr.isEmpty() && bidDate.equals(expertDate)) {
+                // 如果在同一天，使用组合格式
+                promptText = projectName + " （" + bidTimeStr + " 开 " + expertTimeStr + " 评）侯昱晓\n";
+            } else {
+                // 否则使用原有格式
+                promptText = projectName + "（" + bidTimeStr + " 开）侯昱晓\n";
+            }
             
             // 复制到剪贴板
             copyToClipboard(promptText);
@@ -915,12 +939,18 @@ public class ProjectAddDialogController {
                 return;
             }
             
-            // 获取时分
-            String[] timeParts = expertTimeStr.split(":");
-            String timeStr = expertTimeStr;
+            // 检查开标时间是否在同一天
+            LocalDate bidDate = expectedReviewDatePicker.getValue();
+            String bidTimeStr = expectedReviewTimeComboBox.getValue();
             
-            // 构建提示语
-            String promptText = projectName + "（" + timeStr + " 评）侯昱晓\n";
+            String promptText;
+            if (bidDate != null && bidTimeStr != null && !bidTimeStr.isEmpty() && expertDate.equals(bidDate)) {
+                // 如果在同一天，使用组合格式
+                promptText = projectName + " （" + bidTimeStr + " 开 " + expertTimeStr + " 评）侯昱晓\n";
+            } else {
+                // 否则使用原有格式
+                promptText = projectName + "（" + expertTimeStr + " 评）侯昱晓\n";
+            }
             
             // 复制到剪贴板
             copyToClipboard(promptText);
@@ -976,5 +1006,51 @@ public class ProjectAddDialogController {
         
         // 显示成功提示
         showValidationPopup(copyBidTimeBtn, "提示语已复制到剪贴板");
+    }
+    
+    /**
+     * 设置时间ComboBox的验证
+     * @param comboBox 时间选择框
+     */
+    private void setupTimeComboBoxValidation(ComboBox<String> comboBox) {
+        // 添加文本变更监听
+        comboBox.getEditor().textProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue != null) {
+                // 时间格式验证（HH:MM）
+                String timePattern = "([0-1][0-9]|2[0-3]):[0-5][0-9]";
+                if (newValue.matches(timePattern)) {
+                    // 格式正确，清除错误样式
+                    comboBox.getEditor().setStyle("");
+                } else if (!newValue.isEmpty() && !newValue.matches(timePattern)) {
+                    // 格式不正确时显示错误样式
+                    comboBox.getEditor().setStyle("-fx-border-color: #FF6B6B; -fx-border-width: 2px;");
+                } else {
+                    // 输入为空时恢复样式
+                    comboBox.getEditor().setStyle("");
+                }
+            }
+        });
+        
+        // 失去焦点时验证并格式化
+        comboBox.getEditor().focusedProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue) { // 失去焦点时
+                String text = comboBox.getEditor().getText();
+                if (text != null && !text.isEmpty()) {
+                    String timePattern = "([0-1][0-9]|2[0-3]):[0-5][0-9]";
+                    if (text.matches(timePattern)) {
+                        // 无需额外处理，保持当前值
+                    } else {
+                        // 格式不正确时恢复上一个有效值或默认值
+                        if (comboBox.getValue() != null) {
+                            comboBox.getEditor().setText(comboBox.getValue());
+                        } else {
+                            comboBox.setValue("09:00");
+                        }
+                        showValidationPopup(comboBox, "请输入有效的时间格式（HH:MM）");
+                    }
+                    comboBox.getEditor().setStyle("");
+                }
+            }
+        });
     }
 } 
