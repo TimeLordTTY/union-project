@@ -19,12 +19,13 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
- * 字段管理器，负责管理文档生成器的字段和数据
+ * 字段管理器 - 管理模板字段的添加、删除和数据填充
  */
 public class FieldManager {
     // 数据存储
@@ -39,6 +40,9 @@ public class FieldManager {
     
     // 更新预览回调
     private Runnable updatePreviewCallback;
+    
+    // 控制器引用
+    private DocumentGeneratorController controller;
     
     /**
      * 构造函数
@@ -57,6 +61,15 @@ public class FieldManager {
         this.objectDataItemsContainer = objectDataItemsContainer;
         this.listDataItemsContainer = listDataItemsContainer;
         this.updatePreviewCallback = updatePreviewCallback;
+    }
+    
+    /**
+     * 设置控制器引用
+     * 
+     * @param controller 文档生成器控制器
+     */
+    public void setController(DocumentGeneratorController controller) {
+        this.controller = controller;
     }
     
     /**
@@ -82,42 +95,48 @@ public class FieldManager {
      * @param fieldName 字段名称
      */
     public void addObjectField(String fieldName) {
-        if (fieldName == null || fieldName.trim().isEmpty()) {
-            UIHelper.showError("添加字段失败", "字段名不能为空");
-            return;
+        // 检查字段是否已存在
+        for (Node node : objectFieldItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                for (Node child : ((HBox) node).getChildren()) {
+                    if (child instanceof Label && ((Label) child).getText().equals(fieldName)) {
+                        // 字段已存在，不再添加
+                        return;
+                    }
+                }
+            }
         }
         
-        // 创建字段UI组件
         HBox fieldItem = new HBox();
-        fieldItem.setAlignment(Pos.CENTER_LEFT);
-        fieldItem.setSpacing(2);
-        fieldItem.setPadding(new Insets(0, 2, 0, 2)); // 极小的内边距
-        fieldItem.getStyleClass().addAll("field-item", "compact-hbox");
-        fieldItem.setMinHeight(20);
-        fieldItem.setMaxHeight(20);
-        fieldItem.setPrefHeight(20);
+        fieldItem.setSpacing(5);
+        fieldItem.setStyle("-fx-background-color: #fff0f5; -fx-border-color: #ffd0e0; -fx-border-radius: 3; -fx-padding: 3;");
+        fieldItem.setPrefHeight(28);
         
         Label nameLabel = new Label(fieldName);
-        nameLabel.getStyleClass().add("field-label");
-        HBox.setHgrow(nameLabel, Priority.ALWAYS);
+        nameLabel.setStyle("-fx-text-fill: #333;");
         
-        // 为nameLabel添加悬浮提示
-        Tooltip nameTooltip = new Tooltip("字段名: " + fieldName + "\n占位符: {{" + fieldName + "}}");
-        Tooltip.install(nameLabel, nameTooltip);
+        // 添加双击事件处理
+        nameLabel.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && controller != null) {
+                controller.handleFieldItemClick(event);
+            }
+        });
         
         Label placeholderLabel = new Label("{{" + fieldName + "}}");
-        placeholderLabel.getStyleClass().add("field-label");
-        placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
+        placeholderLabel.setStyle("-fx-text-fill: #888; -fx-font-style: italic; -fx-font-size: 11;");
         
-        // 为占位符标签添加悬浮提示
-        Tooltip placeholderTooltip = new Tooltip("{{" + fieldName + "}}");
-        Tooltip.install(placeholderLabel, placeholderTooltip);
+        // 占位符标签也添加双击事件
+        placeholderLabel.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && controller != null) {
+                controller.handleFieldItemClick(event);
+            }
+        });
         
         Button deleteButton = new Button("×");
-        deleteButton.getStyleClass().add("operation-delete-button");
         deleteButton.setMinSize(18, 18);
         deleteButton.setMaxSize(18, 18);
-        deleteButton.setPrefSize(18, 18);
+        deleteButton.setStyle("-fx-background-color: #ffb6c1; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 0; -fx-background-radius: 9;");
+        
         deleteButton.setOnAction(e -> {
             objectFieldItemsContainer.getChildren().remove(fieldItem);
             fieldDataMap.remove(fieldName);
@@ -264,58 +283,70 @@ public class FieldManager {
      * @param listName 列表名称
      */
     public void addListField(String listName) {
-        if (listName == null || listName.trim().isEmpty()) {
-            UIHelper.showError("添加列表失败", "列表名不能为空");
-            return;
-        }
-        
-        // 检查该列表是否已存在
+        // 检查列表是否已存在
         for (Node node : listFieldItemsContainer.getChildren()) {
             if (node instanceof VBox && listName.equals(node.getId())) {
-                return; // 已存在，不重复添加
+                return; // 列表已存在，不再添加
             }
         }
         
-        //
-        /* 第1部分: 创建列表字段容器 */
-        
-        // 初始化列表数据结构
-        if (!listFieldDataMap.containsKey(listName)) {
-            listFieldDataMap.put(listName, new ArrayList<>());
-        }
-        
-        // 创建列表字段UI组件
         VBox listContainer = new VBox();
         listContainer.setId(listName);
-        listContainer.setSpacing(3); // 减少间距，使显示更紧凑
-        listContainer.setPadding(new Insets(3)); // 减少内边距
-        listContainer.getStyleClass().add("list-field-container");
+        listContainer.setSpacing(2);
+        listContainer.setPadding(new Insets(4));
+        listContainer.setStyle("-fx-background-color: #fff0f5; -fx-border-color: #ffd0e0; -fx-border-radius: 3;");
         
-        // 标题行
-        HBox headerRow = new HBox();
-        headerRow.setAlignment(Pos.CENTER_LEFT);
-        headerRow.setSpacing(10);
+        // 创建标题
+        HBox titleBox = new HBox();
+        titleBox.setAlignment(Pos.CENTER_LEFT);
+        titleBox.setSpacing(5);
         
         Label titleLabel = new Label(listName);
-        titleLabel.getStyleClass().add("list-field-title");
+        titleLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #333;");
         
-        // 为列表标题添加悬浮提示
-        Tooltip listTooltip = new Tooltip("列表名: " + listName + "\n占位符: {{#" + listName + "}} {{/" + listName + "}}");
-        Tooltip.install(titleLabel, listTooltip);
+        // 添加双击事件处理，双击列表名称添加循环标记
+        titleLabel.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && controller != null) {
+                // 创建一个新的事件，使用Label作为目标
+                MouseEvent newEvent = new MouseEvent(
+                    event.getSource(), event.getTarget(), event.getEventType(),
+                    event.getX(), event.getY(), event.getScreenX(), event.getScreenY(),
+                    event.getButton(), event.getClickCount(), event.isShiftDown(),
+                    event.isControlDown(), event.isAltDown(), event.isMetaDown(),
+                    event.isPrimaryButtonDown(), event.isMiddleButtonDown(),
+                    event.isSecondaryButtonDown(), event.isSynthesized(),
+                    event.isPopupTrigger(), event.isStillSincePress(), event.getPickResult()
+                );
+                controller.handleListItemClick(newEvent);
+            }
+        });
         
-        // 添加列表占位符
-        Label placeholderLabel = new Label("{{#" + listName + "}} {{/" + listName + "}}");
-        placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
-        HBox.setHgrow(placeholderLabel, Priority.ALWAYS);
+        Label placeholderLabel = new Label("{{#" + listName + "}} ... {{/" + listName + "}}");
+        placeholderLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #888; -fx-font-size: 11;");
         
-        // 为占位符标签添加悬浮提示
-        Tooltip placeholderTooltip = new Tooltip("{{#" + listName + "}} {{/" + listName + "}}");
-        Tooltip.install(placeholderLabel, placeholderTooltip);
+        // 占位符标签也添加双击事件
+        placeholderLabel.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && controller != null) {
+                // 创建一个新的事件，使用Label作为目标
+                MouseEvent newEvent = new MouseEvent(
+                    event.getSource(), titleLabel, event.getEventType(),
+                    event.getX(), event.getY(), event.getScreenX(), event.getScreenY(),
+                    event.getButton(), event.getClickCount(), event.isShiftDown(),
+                    event.isControlDown(), event.isAltDown(), event.isMetaDown(),
+                    event.isPrimaryButtonDown(), event.isMiddleButtonDown(),
+                    event.isSecondaryButtonDown(), event.isSynthesized(),
+                    event.isPopupTrigger(), event.isStillSincePress(), event.getPickResult()
+                );
+                controller.handleListItemClick(newEvent);
+            }
+        });
         
-        Button removeListButton = new Button("×");
-        removeListButton.getStyleClass().add("operation-delete-button");
-        removeListButton.setOnAction(e -> {
-            // 移除该列表的所有相关组件
+        Button deleteButton = new Button("×");
+        deleteButton.setMinSize(18, 18);
+        deleteButton.setMaxSize(18, 18);
+        deleteButton.setStyle("-fx-background-color: #ffb6c1; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 0; -fx-background-radius: 9;");
+        
+        deleteButton.setOnAction(e -> {
             listFieldItemsContainer.getChildren().remove(listContainer);
             
             // 从数据容器中移除对应的表格
@@ -335,8 +366,8 @@ public class FieldManager {
             }
         });
         
-        headerRow.getChildren().addAll(titleLabel, placeholderLabel, removeListButton);
-        listContainer.getChildren().add(headerRow);
+        titleBox.getChildren().addAll(titleLabel, placeholderLabel, deleteButton);
+        listContainer.getChildren().add(titleBox);
         
         // 添加字段输入功能
         TableView<String> fieldsTable = new TableView<>();
@@ -382,25 +413,54 @@ public class FieldManager {
         
         TableColumn<String, String> placeholderColumn = new TableColumn<>("占位符");
         placeholderColumn.setCellValueFactory(data -> new SimpleStringProperty("{{" + listName + "." + data.getValue() + "}}"));
-        placeholderColumn.setCellFactory(param -> new javafx.scene.control.TableCell<String, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setGraphic(null);
-                } else {
-                    // 使用与其他占位符相同的灰色斜体样式
-                    setText(item);
-                    setStyle("-fx-font-style: italic; -fx-text-fill: #999;");
-                    
-                    // 为占位符单元格添加工具提示
-                    Tooltip tooltip = new Tooltip(item);
-                    Tooltip.install(this, tooltip);
-                }
-            }
-        });
+        placeholderColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+        placeholderColumn.setEditable(false);
         placeholderColumn.setPrefWidth(150);
+        
+        // 设置列样式为灰色斜体
+        placeholderColumn.setCellFactory(col -> {
+            javafx.scene.control.TableCell<String, String> cell = new javafx.scene.control.TableCell<String, String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(item);
+                        setStyle("-fx-font-style: italic; -fx-text-fill: #888;");
+                    }
+                }
+            };
+            
+            // 添加双击事件处理
+            cell.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !cell.isEmpty() && controller != null) {
+                    // 获取完整字段名 (listName.fieldName)
+                    int index = cell.getTableRow().getIndex();
+                    if (index >= 0 && index < fieldsTable.getItems().size()) {
+                        String fieldValue = fieldsTable.getItems().get(index);
+                        String fieldName = listName + "." + fieldValue;
+                        
+                        // 创建一个新的Label作为事件源
+                        Label sourceLabel = new Label(fieldName);
+                        
+                        // 触发字段点击事件
+                        MouseEvent newEvent = new MouseEvent(
+                            sourceLabel, sourceLabel, event.getEventType(),
+                            event.getX(), event.getY(), event.getScreenX(), event.getScreenY(),
+                            event.getButton(), event.getClickCount(), event.isShiftDown(),
+                            event.isControlDown(), event.isAltDown(), event.isMetaDown(),
+                            event.isPrimaryButtonDown(), event.isMiddleButtonDown(),
+                            event.isSecondaryButtonDown(), event.isSynthesized(),
+                            event.isPopupTrigger(), event.isStillSincePress(), event.getPickResult()
+                        );
+                        controller.handleFieldItemClick(newEvent);
+                    }
+                }
+            });
+            
+            return cell;
+        });
         
         TableColumn<String, Void> actionColumn = new TableColumn<>("操作");
         actionColumn.setPrefWidth(80);

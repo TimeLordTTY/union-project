@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -31,7 +34,6 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -117,6 +119,9 @@ public class DocumentGeneratorController {
             listDataItemsContainer,
             this::updatePreview
         );
+        // 设置控制器引用，启用双击事件
+        fieldManager.setController(this);
+        
         dataHandler = new DataHandler(baseDir);
         
         // 初始化模板类型下拉框
@@ -403,8 +408,17 @@ public class DocumentGeneratorController {
      */
     @FXML
     private void handleAddField() {
-        // 直接调用handleAddObjectField方法
-        handleAddObjectField();
+        String fieldName = objectFieldInput.getText().trim();
+        
+        if (fieldName.isEmpty()) {
+            return;
+        }
+        
+        // 清除输入
+        objectFieldInput.clear();
+        
+        // 插入字段
+        insertFieldAtCursor(fieldName, false);
     }
     
     /**
@@ -866,35 +880,75 @@ public class DocumentGeneratorController {
             return;
         }
         
-        // 分析表头行（第一行）
-        List<String> headers = content.get(0);
-        for (String header : headers) {
-            if (header != null && !header.trim().isEmpty()) {
-                if (header.contains(".")) {
-                    // 这是一个列表字段
-                    String[] parts = header.split("\\.", 2);
-                    String listName = parts[0];
-                    String fieldName = parts[1];
+        // 定义正则表达式模式，用于匹配{{字段名}}、{{#列表名}}和{{列表名.字段名}}格式的占位符
+        Pattern objectPattern = Pattern.compile("\\{\\{([^{}#/\\.]+)\\}\\}");
+        Pattern listStartPattern = Pattern.compile("\\{\\{#([^{}]+)\\}\\}");
+        Pattern listFieldPattern = Pattern.compile("\\{\\{([^{}#/]+)\\.([^{}]+)\\}\\}");
+        
+        Set<String> objectFields = new HashSet<>();
+        Map<String, Set<String>> listFields = new HashMap<>();
+        
+        // 遍历所有单元格内容查找占位符
+        for (List<String> row : content) {
+            for (String cellContent : row) {
+                if (cellContent == null || cellContent.isEmpty()) {
+                    continue;
+                }
+                
+                // 查找普通字段占位符
+                Matcher objectMatcher = objectPattern.matcher(cellContent);
+                while (objectMatcher.find()) {
+                    String fieldName = objectMatcher.group(1).trim();
+                    if (!fieldName.isEmpty()) {
+                        objectFields.add(fieldName);
+                    }
+                }
+                
+                // 查找列表开始标记
+                Matcher listStartMatcher = listStartPattern.matcher(cellContent);
+                while (listStartMatcher.find()) {
+                    String listName = listStartMatcher.group(1).trim();
+                    if (!listName.isEmpty() && !listFields.containsKey(listName)) {
+                        listFields.put(listName, new HashSet<>());
+                    }
+                }
+                
+                // 查找列表字段占位符
+                Matcher listFieldMatcher = listFieldPattern.matcher(cellContent);
+                while (listFieldMatcher.find()) {
+                    String listName = listFieldMatcher.group(1).trim();
+                    String fieldName = listFieldMatcher.group(2).trim();
                     
-                    // 检查列表是否已存在
-                    boolean listExists = false;
-                    for (String existingList : fieldManager.getListFieldNames()) {
-                        if (existingList.equals(listName)) {
-                            listExists = true;
-                            break;
+                    if (!listName.isEmpty() && !fieldName.isEmpty()) {
+                        if (!listFields.containsKey(listName)) {
+                            listFields.put(listName, new HashSet<>());
                         }
+                        listFields.get(listName).add(fieldName);
                     }
-                    
-                    // 如果列表不存在，先创建列表
-                    if (!listExists) {
-                        fieldManager.addListField(listName);
-                    }
-                } else {
-                    // 添加为普通字段
-                    fieldManager.addObjectField(header);
                 }
             }
         }
+        
+        // 添加所有发现的普通字段
+        for (String fieldName : objectFields) {
+            fieldManager.addObjectField(fieldName);
+        }
+        
+        // 添加所有发现的列表和列表字段
+        for (Map.Entry<String, Set<String>> entry : listFields.entrySet()) {
+            String listName = entry.getKey();
+            Set<String> fields = entry.getValue();
+            
+            if (!fields.isEmpty()) {
+                fieldManager.addListField(listName);
+                fieldManager.addListField(listName, new ArrayList<>(fields));
+            } else {
+                // 即使没有字段也创建列表，以支持循环结构
+                fieldManager.addListField(listName);
+            }
+        }
+        
+        AppLogger.info("Excel分析完成，发现 " + objectFields.size() + " 个普通字段和 " + listFields.size() + " 个列表");
     }
     
     /**
@@ -938,10 +992,50 @@ public class DocumentGeneratorController {
                     excelPreviewArea.getColumns().add(column);
                 }
                 
-                // 添加数据行
+                // 获取字段数据用于替换占位符
+                Map<String, String> fieldDataMap = fieldManager.getFieldDataMap();
+                Map<String, List<Map<String, String>>> listFieldDataMap = fieldManager.getListFieldDataMap();
+                
+                // 添加数据行，同时处理占位符
                 ObservableList<ObservableList<String>> previewData = FXCollections.observableArrayList();
                 for (List<String> row : content) {
-                    ObservableList<String> observableRow = FXCollections.observableArrayList(row);
+                    ObservableList<String> observableRow = FXCollections.observableArrayList();
+                    
+                    // 处理每个单元格的内容，替换占位符
+                    for (String cellContent : row) {
+                        String processedContent = cellContent;
+                        
+                        // 处理普通字段占位符
+                        for (Map.Entry<String, String> entry : fieldDataMap.entrySet()) {
+                            String placeholder = "{{" + entry.getKey() + "}}";
+                            if (processedContent.contains(placeholder)) {
+                                String value = entry.getValue() != null ? entry.getValue() : "";
+                                processedContent = processedContent.replace(placeholder, value);
+                            }
+                        }
+                        
+                        // 处理列表字段占位符
+                        for (Map.Entry<String, List<Map<String, String>>> entry : listFieldDataMap.entrySet()) {
+                            String listName = entry.getKey();
+                            List<Map<String, String>> listItems = entry.getValue();
+                            
+                            if (!listItems.isEmpty()) {
+                                Map<String, String> firstItem = listItems.get(0); // 取第一个列表项用于预览
+                                for (Map.Entry<String, String> fieldEntry : firstItem.entrySet()) {
+                                    String fieldKey = fieldEntry.getKey();
+                                    String placeholder = "{{" + listName + "." + fieldKey + "}}";
+                                    
+                                    if (processedContent.contains(placeholder)) {
+                                        String value = fieldEntry.getValue() != null ? fieldEntry.getValue() : "";
+                                        processedContent = processedContent.replace(placeholder, value);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        observableRow.add(processedContent);
+                    }
+                    
                     // 确保每行都有相同数量的列
                     while (observableRow.size() < maxColumns) {
                         observableRow.add("");
@@ -1106,91 +1200,16 @@ public class DocumentGeneratorController {
      * @param event 鼠标事件
      */
     @FXML
-    private void handleFieldItemClick(javafx.scene.input.MouseEvent event) {
-        if (event.getClickCount() == 2) {
-            // 获取点击的节点
-            Node clickedNode = event.getPickResult().getIntersectedNode();
-            // 遍历找到包含字段名的Label
-            while (clickedNode != null && !(clickedNode instanceof Label)) {
-                clickedNode = clickedNode.getParent();
-            }
-            
-            if (clickedNode instanceof Label) {
-                Label fieldLabel = (Label) clickedNode;
-                String fieldName = fieldLabel.getText();
-                
-                // 排除不是字段的标签（如标题等）
-                if (fieldName.equals("字段定义") || fieldName.contains("添加")) {
-                    return;
-                }
-                
-                // 处理占位符标签 - 直接使用占位符文本，不要重复添加括号
-                if (fieldName.startsWith("{{") && fieldName.endsWith("}}")) {
-                    // 直接使用占位符文本
-                    insertTextAtCaret(fieldName);
-                    return;
-                }
-                
-                // 在当前模板中插入字段
-                if (isWordMode) {
-                    // 在Word编辑器中插入字段
-                    int caretPosition = wordEditor.getCaretPosition();
-                    String placeholder = "{{" + fieldName + "}}";
-                    wordEditor.insertText(caretPosition, placeholder);
-                    
-                    // 更新预览
-                    updatePreview();
-                } else {
-                    // 在Excel编辑器中当前选中的单元格插入字段
-                    try {
-                        if (!excelEditor.getSelectionModel().getSelectedCells().isEmpty()) {
-                            TablePosition pos = excelEditor.getSelectionModel().getSelectedCells().get(0);
-                            int row = pos.getRow();
-                            int col = pos.getColumn();
-                            
-                            ObservableList<String> rowData = excelEditor.getItems().get(row);
-                            rowData.set(col, "{{" + fieldName + "}}");
-                            
-                            // 更新预览
-                            updatePreview();
-                        }
-                    } catch (Exception e) {
-                        AppLogger.error("添加字段到Excel编辑器失败", e);
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * 在光标位置插入文本
-     * 
-     * @param text 要插入的文本
-     */
-    private void insertTextAtCaret(String text) {
-        if (isWordMode) {
-            int caretPosition = wordEditor.getCaretPosition();
-            wordEditor.insertText(caretPosition, text);
-        } else {
-            try {
-                if (!excelEditor.getSelectionModel().getSelectedCells().isEmpty()) {
-                    TablePosition pos = excelEditor.getSelectionModel().getSelectedCells().get(0);
-                    int row = pos.getRow();
-                    int col = pos.getColumn();
-                    
-                    ObservableList<String> rowData = excelEditor.getItems().get(row);
-                    rowData.set(col, text);
-                    
-                    // 刷新表格
-                    excelEditor.refresh();
-                }
-            } catch (Exception e) {
-                AppLogger.error("添加文本到Excel编辑器失败", e);
-            }
-        }
+    public void handleFieldItemClick(javafx.scene.input.MouseEvent event) {
+        if (event.getClickCount() < 2) return; // 确保是双击事件
         
-        // 更新预览
-        updatePreview();
+        if (event.getTarget() instanceof Label) {
+            Label clickedLabel = (Label) event.getTarget();
+            String fieldName = clickedLabel.getText();
+            
+            // 插入占位符到当前编辑器位置
+            insertFieldAtCursor(fieldName, false);
+        }
     }
     
     /**
@@ -1199,148 +1218,99 @@ public class DocumentGeneratorController {
      * @param event 鼠标事件
      */
     @FXML
-    private void handleListItemClick(javafx.scene.input.MouseEvent event) {
-        if (event.getClickCount() == 2) {
-            // 获取点击的节点
-            Node clickedNode = event.getPickResult().getIntersectedNode();
+    public void handleListItemClick(javafx.scene.input.MouseEvent event) {
+        if (event.getClickCount() < 2) return; // 确保是双击事件
+        
+        if (event.getTarget() instanceof Label) {
+            Label clickedLabel = (Label) event.getTarget();
+            String fieldName = clickedLabel.getText();
             
-            // 遍历找到包含字段名的Label或文本节点
-            while (clickedNode != null && !(clickedNode instanceof Label) && 
-                   !(clickedNode instanceof TableCell)) {
-                clickedNode = clickedNode.getParent();
-            }
-            
-            String fieldName = null;
-            boolean isList = false;
-            
-            // 处理Label节点（列表名称）
-            if (clickedNode instanceof Label) {
-                Label fieldLabel = (Label) clickedNode;
-                fieldName = fieldLabel.getText();
-                
-                // 如果是占位符格式，直接使用该文本
-                if (fieldName.startsWith("{{") && fieldName.endsWith("}}")) {
-                    // 直接使用占位符文本，不添加额外的括号
-                    insertTextAtCaret(fieldName);
-                    return;
-                } else {
-                    // 排除不是字段的标签（如标题等）
-                    if (fieldName.equals("列表字段") || fieldName.contains("添加") || 
-                        fieldName.equals("字段名") || fieldName.equals("占位符") || 
-                        fieldName.equals("操作")) {
-                        return;
-                    }
-                    
-                    // 如果不包含点，认为是列表名
-                    isList = !fieldName.contains(".");
-                }
-            } 
-            // 处理TableCell节点（列表属性）
-            else if (clickedNode instanceof TableCell) {
-                TableCell<?, ?> cell = (TableCell<?, ?>) clickedNode;
-                if (cell.getItem() != null) {
-                    String cellText = cell.getItem().toString();
-                    
-                    // 判断是否为占位符格式（被列格式化后的文本）
-                    if (cellText.startsWith("{{") && cellText.endsWith("}}")) {
-                        fieldName = cellText;
-                        // 直接使用占位符文本，不添加额外的括号
-                        insertTextAtCaret(fieldName);
-                        return;
-                    } else {
-                        // 处理普通文本单元格
-                        if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("占位符")) {
-                            // 从占位符列获取完整占位符
-                            fieldName = cellText;
-                            // 直接使用占位符文本，不添加额外的括号
-                            insertTextAtCaret(fieldName);
-                            return;
-                        } else if (cell.getTableColumn() != null && cell.getTableColumn().getText().equals("字段名")) {
-                            // 从字段名列获取属性名，需要构建完整的列表字段占位符
-                            String attrName = cellText;
-                            if (attrName != null && !attrName.isEmpty()) {
-                                // 寻找所属的列表名
-                                Node parent = cell.getParent();
-                                while (parent != null && !(parent instanceof VBox && parent.getId() != null)) {
-                                    parent = parent.getParent();
-                                }
-                                
-                                if (parent != null) {
-                                    String listName = parent.getId();
-                                    fieldName = "{{" + listName + "." + attrName + "}}";
-                                    // 插入构建的占位符文本
-                                    insertTextAtCaret(fieldName);
-                                    return;
-                                }
-                            }
-                        } else {
-                            // 其他列不处理
-                            return;
-                        }
-                    }
-                } else {
-                    // 单元格内容为空
-                    return;
-                }
-            }
-            
-            if (fieldName == null || fieldName.isEmpty()) {
-                return;
-            }
-            
-            // 在当前模板中插入字段
-            if (isWordMode) {
-                // 在Word编辑器中插入字段
-                int caretPosition = wordEditor.getCaretPosition();
-                
-                if (isList) {
-                    // 插入列表开始和结束标记
-                    String listTemplate;
-                    if (fieldName.startsWith("{{#") && fieldName.endsWith("}}")) {
-                        // 已经是完整的标记，直接插入
-                        String listName = fieldName.substring(3, fieldName.length() - 2);
-                        listTemplate = fieldName + "\n    列表项内容 - 在这里添加列表字段\n{{/" + listName + "}}";
-                    } else {
-                        // 生成标记
-                        listTemplate = "{{#" + fieldName + "}}\n" +
-                                       "    列表项内容 - 在这里添加列表字段\n" +
-                                       "{{/" + fieldName + "}}";
-                    }
-                    wordEditor.insertText(caretPosition, listTemplate);
-                } else {
-                    // 插入列表字段的占位符，如果已经是占位符格式就直接插入
-                    String placeholder = fieldName.startsWith("{{") ? fieldName : "{{" + fieldName + "}}";
-                    wordEditor.insertText(caretPosition, placeholder);
-                }
+            // 插入列表占位符到当前编辑器位置
+            insertFieldAtCursor(fieldName, fieldName.contains(".") ? false : true);
+        }
+    }
+    
+    /**
+     * 在当前光标位置插入字段
+     * 
+     * @param fieldName 字段名称
+     * @param isList 是否是列表字段
+     */
+    public void insertFieldAtCursor(String fieldName, boolean isList) {
+        if (isWordMode) {
+            // 在Word编辑器中插入字段
+            if (isList) {
+                // 插入列表循环标记
+                String listTemplate = "{{#" + fieldName + "}}\n" +
+                                    "    列表项内容 - 在这里添加列表字段\n" +
+                                    "{{/" + fieldName + "}}";
+                insertHtmlContent(listTemplate);
             } else {
-                // 在Excel编辑器中当前选中的单元格插入字段
-                try {
-                    if (!excelEditor.getSelectionModel().getSelectedCells().isEmpty()) {
-                        javafx.scene.control.TablePosition pos = excelEditor.getSelectionModel().getSelectedCells().get(0);
-                        int row = pos.getRow();
-                        int col = pos.getColumn();
-                        
-                        ObservableList<String> rowData = excelEditor.getItems().get(row);
-                        
-                        if (isList) {
-                            // Excel中不支持列表循环，只能插入属性占位符
-                            rowData.set(col, fieldName);
-                        } else {
-                            // 插入属性占位符，如果已经是占位符格式就直接插入
-                            String placeholder = fieldName.startsWith("{{") ? fieldName : "{{" + fieldName + "}}";
-                            rowData.set(col, placeholder);
-                        }
-                        
-                        // 刷新表格
-                        excelEditor.refresh();
-                    }
-                } catch (Exception e) {
-                    AppLogger.error("添加字段到Excel编辑器失败", e);
+                // 在Word编辑器中插入字段
+                // 如果是列表属性，保持原样；如果是普通字段，添加双括号
+                String placeholder;
+                if (fieldName.contains(".")) {
+                    String[] parts = fieldName.split("\\.", 2);
+                    String listName = parts[0];
+                    String propName = parts[1];
+                    placeholder = "{{" + listName + "." + propName + "}}";
+                } else {
+                    placeholder = "{{" + fieldName + "}}";
                 }
+                insertHtmlContent(placeholder);
             }
+        } else {
+            // 在Excel编辑器中当前选中的单元格插入字段
+            try {
+                if (!excelEditor.getSelectionModel().getSelectedCells().isEmpty()) {
+                    javafx.scene.control.TablePosition pos = excelEditor.getSelectionModel().getSelectedCells().get(0);
+                    int row = pos.getRow();
+                    int col = pos.getColumn();
+                    
+                    ObservableList<String> rowData = excelEditor.getItems().get(row);
+                    
+                    if (isList) {
+                        // Excel中不支持列表循环，只能插入属性占位符
+                        rowData.set(col, fieldName);
+                    } else {
+                        // 插入属性占位符，如果已经是占位符格式就直接插入
+                        String placeholder;
+                        if (fieldName.contains(".")) {
+                            placeholder = "{{" + fieldName + "}}";
+                        } else {
+                            placeholder = "{{" + fieldName + "}}";
+                        }
+                        rowData.set(col, placeholder);
+                    }
+                    
+                    // 刷新表格
+                    excelEditor.refresh();
+                }
+            } catch (Exception e) {
+                AppLogger.error("在Excel单元格中插入字段失败", e);
+            }
+        }
+        
+        // 更新预览
+        updatePreview();
+    }
+
+    /**
+     * 在HTMLEditor中插入文本
+     * 
+     * @param text 要插入的文本
+     */
+    private void insertHtmlContent(String text) {
+        if (wordEditor instanceof TextArea) {
+            TextArea textArea = (TextArea) wordEditor;
+            int caretPosition = textArea.getCaretPosition();
+            String content = textArea.getText();
+            String newContent = content.substring(0, caretPosition) + text + content.substring(caretPosition);
+            textArea.setText(newContent);
+            textArea.positionCaret(caretPosition + text.length());
             
-            // 更新预览
-            updatePreview();
+            // 让文本区域获得焦点
+            textArea.requestFocus();
         }
     }
 
@@ -1471,9 +1441,20 @@ public class DocumentGeneratorController {
             new ExtensionFilter("Excel文件", "*.xlsx")
         );
         
-        // 从最近的目录开始
-        if (lastDirectory != null) {
-            fileChooser.setInitialDirectory(lastDirectory);
+        // 设置默认目录为项目的templates目录
+        File defaultDir = new File(baseDir);
+        File templatesDir = new File(defaultDir, "templates");
+        
+        // 检查templates目录并选择子目录
+        if (templatesDir.exists() && templatesDir.isDirectory()) {
+            File excelDir = new File(templatesDir, "excel");
+            if (excelDir.exists() && excelDir.isDirectory()) {
+                fileChooser.setInitialDirectory(excelDir);
+            } else {
+                fileChooser.setInitialDirectory(templatesDir);
+            }
+        } else if (defaultDir.exists()) {
+            fileChooser.setInitialDirectory(defaultDir);
         }
         
         File selectedFile = fileChooser.showOpenDialog(wordEditor.getScene().getWindow());
@@ -1487,6 +1468,9 @@ public class DocumentGeneratorController {
             // 为模板名称标签添加悬浮提示，显示完整路径
             Tooltip pathTooltip = new Tooltip("模板路径: " + selectedFile.getAbsolutePath());
             Tooltip.install(templateNameLabel, pathTooltip);
+            
+            // 设置当前模板文件
+            currentTemplateFile = selectedFile;
             
             // 加载Excel模板
             try {

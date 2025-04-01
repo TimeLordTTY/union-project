@@ -65,7 +65,7 @@
                 </HBox>
                 
                 <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
-                    <VBox fx:id="objectFieldItemsContainer" spacing="1" onMouseClicked="#handleFieldItemClick" VBox.vgrow="ALWAYS" />
+                    <VBox fx:id="objectFieldItemsContainer" spacing="1" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
                 
                 <HBox spacing="2">
@@ -74,7 +74,7 @@
                 </HBox>
                 
                 <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="ALWAYS">
-                    <VBox fx:id="listFieldItemsContainer" spacing="2" onMouseClicked="#handleListItemClick" VBox.vgrow="ALWAYS" />
+                    <VBox fx:id="listFieldItemsContainer" spacing="2" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
             </VBox>
         </VBox>
@@ -164,10 +164,10 @@
                 <StackPane VBox.vgrow="ALWAYS">
                     <!-- Word模式下的预览 -->
                     <TextArea fx:id="wordPreviewArea" editable="false" wrapText="true" 
-                              styleClass="preview-area" visible="true" />
+                              styleClass="preview-area" visible="true" VBox.vgrow="ALWAYS" />
                     
                     <!-- Excel模式下的预览 -->
-                    <TableView fx:id="excelPreviewArea" styleClass="preview-area" visible="false">
+                    <TableView fx:id="excelPreviewArea" styleClass="preview-area" visible="false" VBox.vgrow="ALWAYS">
                         <!-- 表格列会动态添加 -->
                     </TableView>
                 </StackPane>
