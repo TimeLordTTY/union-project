@@ -158,41 +158,7 @@ public class FieldManager {
      * @param fieldName 字段名称
      */
     private void addObjectDataField(String fieldName) {
-        // 创建数据输入UI组件
-        HBox dataItem = new HBox();
-        dataItem.setAlignment(Pos.CENTER_LEFT);
-        dataItem.setSpacing(2);
-        dataItem.setPadding(new Insets(0, 2, 0, 2)); // 极小的内边距
-        dataItem.getStyleClass().addAll("data-field-container", "compact-hbox");
-        dataItem.setMinHeight(20);
-        dataItem.setMaxHeight(20);
-        dataItem.setPrefHeight(20);
-        
-        Label nameLabel = new Label(fieldName + ":");
-        nameLabel.getStyleClass().add("field-label");
-        nameLabel.setPrefWidth(100);
-        
-        // 添加悬浮提示
-        Tooltip fieldTooltip = new Tooltip("字段名: " + fieldName);
-        Tooltip.install(nameLabel, fieldTooltip);
-        
-        TextField valueField = new TextField();
-        valueField.getStyleClass().add("reduced-height-field");
-        HBox.setHgrow(valueField, Priority.ALWAYS);
-        
-        // 添加失焦保存功能
-        valueField.textProperty().addListener((obs, oldVal, newVal) -> {
-            fieldDataMap.put(fieldName, newVal);
-            if (updatePreviewCallback != null) {
-                updatePreviewCallback.run();
-            }
-        });
-        
-        // 初始默认值
-        fieldDataMap.put(fieldName, "");
-        
-        dataItem.getChildren().addAll(nameLabel, valueField);
-        objectDataItemsContainer.getChildren().add(dataItem);
+        addObjectDataField(fieldName, "");
     }
     
     /**
@@ -202,6 +168,58 @@ public class FieldManager {
      * @param fieldValue 字段初始值
      */
     public void addObjectDataField(String fieldName, String fieldValue) {
+        // 检查字段对应的数据字段是否已存在
+        for (Node node : objectDataItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                for (Node child : box.getChildren()) {
+                    if (child instanceof Label && ((Label) child).getText().equals(fieldName + ":")) {
+                        // 数据字段已存在，只更新值
+                        for (Node valueNode : box.getChildren()) {
+                            if (valueNode instanceof TextField) {
+                                ((TextField) valueNode).setText(fieldValue);
+                                fieldDataMap.put(fieldName, fieldValue);
+                                
+                                // 更新预览
+                                if (updatePreviewCallback != null) {
+                                    updatePreviewCallback.run();
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 检查字段定义是否存在
+        boolean fieldExists = false;
+        for (Node node : objectFieldItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                for (Node child : box.getChildren()) {
+                    if (child instanceof Label && ((Label) child).getText().equals(fieldName)) {
+                        fieldExists = true;
+                        break;
+                    }
+                }
+                if (fieldExists) break;
+            }
+        }
+        
+        // 如果字段定义不存在且正在导入数据，则不创建字段定义，只记录数据
+        if (!fieldExists) {
+            // 只保存数据，不创建UI元素
+            fieldDataMap.put(fieldName, fieldValue);
+            
+            // 更新预览
+            if (updatePreviewCallback != null) {
+                updatePreviewCallback.run();
+            }
+            return;
+        }
+        
+        // 字段定义存在但数据字段不存在，创建新的数据字段
         // 创建数据输入UI组件
         HBox dataItem = new HBox();
         dataItem.setAlignment(Pos.CENTER_LEFT);
@@ -219,6 +237,8 @@ public class FieldManager {
         TextField valueField = new TextField(fieldValue);
         valueField.getStyleClass().add("reduced-height-field");
         HBox.setHgrow(valueField, Priority.ALWAYS);
+        
+        // 添加失焦保存功能
         valueField.textProperty().addListener((obs, oldVal, newVal) -> {
             fieldDataMap.put(fieldName, newVal);
             if (updatePreviewCallback != null) {
@@ -226,11 +246,16 @@ public class FieldManager {
             }
         });
         
-        // 设置初始值
+        // 保存字段值
         fieldDataMap.put(fieldName, fieldValue);
         
         dataItem.getChildren().addAll(nameLabel, valueField);
         objectDataItemsContainer.getChildren().add(dataItem);
+        
+        // 更新预览
+        if (updatePreviewCallback != null) {
+            updatePreviewCallback.run();
+        }
     }
     
     /**
@@ -1042,5 +1067,151 @@ public class FieldManager {
         
         // 更新数据表格
         updateListDataTableFields(listName);
+    }
+
+    /**
+     * 更新字段数据但不影响字段定义区域
+     * 
+     * @param fieldName 字段名称
+     * @param fieldValue 字段值
+     */
+    public void updateFieldData(String fieldName, String fieldValue) {
+        // 检查数据字段是否已存在
+        for (Node node : objectDataItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                for (Node child : box.getChildren()) {
+                    if (child instanceof Label && ((Label) child).getText().equals(fieldName + ":")) {
+                        // 数据字段已存在，只更新值
+                        for (Node valueNode : box.getChildren()) {
+                            if (valueNode instanceof TextField) {
+                                ((TextField) valueNode).setText(fieldValue);
+                                fieldDataMap.put(fieldName, fieldValue);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 仅添加到数据映射中，不创建UI元素
+        fieldDataMap.put(fieldName, fieldValue);
+    }
+    
+    /**
+     * 仅清除数据而不清除字段定义
+     */
+    public void clearData() {
+        // 清空数据容器
+        objectDataItemsContainer.getChildren().clear();
+        listDataItemsContainer.getChildren().clear();
+        
+        // 重置数据映射
+        fieldDataMap.clear();
+        listFieldDataMap.clear();
+        
+        // 重建数据填充UI，但保持字段定义
+        for (Node node : objectFieldItemsContainer.getChildren()) {
+            if (node instanceof HBox) {
+                HBox box = (HBox) node;
+                for (Node child : box.getChildren()) {
+                    if (child instanceof Label) {
+                        String fieldName = ((Label) child).getText();
+                        if (!fieldName.isEmpty() && !fieldName.startsWith("{{") && !fieldName.endsWith("}}")) {
+                            addObjectDataField(fieldName, "");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 重建列表数据表格，但保持列表字段定义
+        for (Node node : listFieldItemsContainer.getChildren()) {
+            if (node instanceof VBox && node.getId() != null) {
+                String listName = node.getId();
+                createListDataTable(listName);
+            }
+        }
+    }
+    
+    /**
+     * 获取列表字段名称列表
+     * 
+     * @param listName 列表名称
+     * @return 字段名称列表
+     */
+    public List<String> getListFields(String listName) {
+        List<String> fields = new ArrayList<>();
+        
+        // 在字段定义区域查找列表的字段
+        for (Node node : listFieldItemsContainer.getChildren()) {
+            if (node instanceof VBox && listName.equals(node.getId())) {
+                VBox listContainer = (VBox) node;
+                
+                // 查找字段表格
+                for (Node child : listContainer.getChildren()) {
+                    if (child instanceof TableView) {
+                        @SuppressWarnings("unchecked")
+                        TableView<String> fieldsTable = (TableView<String>) child;
+                        
+                        // 收集所有字段名
+                        for (String field : fieldsTable.getItems()) {
+                            fields.add(field);
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        
+        return fields;
+    }
+    
+    /**
+     * 更新列表数据，但不影响字段定义区域
+     * 
+     * @param listName 列表名称
+     * @param data 数据列表
+     */
+    public void updateListData(String listName, List<Map<String, String>> data) {
+        // 检查列表是否已存在
+        boolean listExists = false;
+        for (String existingList : getListFieldNames()) {
+            if (existingList.equals(listName)) {
+                listExists = true;
+                break;
+            }
+        }
+        
+        // 如果列表不存在，不做任何操作
+        if (!listExists) {
+            return;
+        }
+        
+        // 更新数据映射
+        listFieldDataMap.put(listName, new ArrayList<>(data));
+        
+        // 更新数据表格UI
+        for (Node node : listDataItemsContainer.getChildren()) {
+            if (node instanceof VBox && (listName + "_data").equals(node.getId())) {
+                VBox tableContainer = (VBox) node;
+                
+                // 查找表格
+                for (Node child : tableContainer.getChildren()) {
+                    if (child instanceof TableView) {
+                        @SuppressWarnings("unchecked")
+                        TableView<Map<String, String>> dataTable = (TableView<Map<String, String>>) child;
+                        
+                        // 更新表格数据
+                        dataTable.setItems(FXCollections.observableArrayList(data));
+                        break;
+                    }
+                }
+                break;
+            }
+        }
     }
 } 

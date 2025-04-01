@@ -1,7 +1,6 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -25,10 +24,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
@@ -44,8 +40,6 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 
 /**
  * 文档生成器控制器
@@ -1599,41 +1593,4 @@ public class DocumentGeneratorController {
         }
     }
 
-    /**
-     * 显示文本替换规则管理对话框
-     */
-    @FXML
-    private void handleShowReplaceRules() {
-        try {
-            // 加载FXML文件
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReplaceRuleDialog.fxml"));
-            Parent root = loader.load();
-            
-            // 创建对话框
-            Stage stage = new Stage();
-            stage.setTitle("文本替换规则管理");
-            stage.initModality(Modality.APPLICATION_MODAL);
-            
-            // 设置对话框尺寸
-            stage.setMinWidth(900);
-            stage.setMinHeight(700);
-            stage.setWidth(950);  // 设置初始宽度比最小值大一些
-            stage.setHeight(750); // 设置初始高度比最小值大一些
-            
-            // 设置窗口可调整大小
-            stage.setResizable(true);
-            
-            // 显示对话框
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
-            stage.showAndWait();
-            
-            // 更新预览
-            updatePreview();
-            
-        } catch (IOException e) {
-            AppLogger.error("打开替换规则对话框失败", e);
-            UIHelper.showError("错误", "无法打开替换规则对话框: " + e.getMessage());
-        }
-    }
 }

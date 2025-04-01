@@ -1,6 +1,7 @@
 package com.timelordtty.docgen.controller;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -12,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -131,67 +135,108 @@ public class DataHandler {
      * @return 是否成功导入数据
      */
     private boolean importDataFromExcel(FieldManager fieldManager, File excelFile) {
-        try (XSSFWorkbook workbook = new XSSFWorkbook(excelFile)) {
-            // 清空当前数据
-            fieldManager.clearAll();
-            
-            // 处理普通字段（第一个sheet）
-            XSSFSheet objectSheet = workbook.getSheet("普通字段");
-            if (objectSheet != null) {
-                for (int i = 1; i <= objectSheet.getLastRowNum(); i++) {
-                    XSSFRow row = objectSheet.getRow(i);
-                    if (row != null) {
-                        String fieldName = row.getCell(0) != null ? row.getCell(0).toString() : "";
-                        String fieldValue = row.getCell(1) != null ? row.getCell(1).toString() : "";
-                        
-                        if (!fieldName.trim().isEmpty()) {
-                            fieldManager.addObjectDataField(fieldName, fieldValue);
-                        }
-                    }
-                }
-            }
-            
-            // 处理列表字段（其他sheet）
-            for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
-                XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
-                String sheetName = sheet.getSheetName();
+        try {
+            // 读取Excel文件
+            try (FileInputStream fis = new FileInputStream(excelFile);
+                XSSFWorkbook workbook = new XSSFWorkbook(fis)) {
                 
-                if (!"普通字段".equals(sheetName)) {
-                    // 获取表头
-                    XSSFRow headerRow = sheet.getRow(0);
-                    if (headerRow != null) {
-                        List<String> fields = new ArrayList<>();
-                        for (int i = 0; i < headerRow.getLastCellNum(); i++) {
-                            String fieldName = headerRow.getCell(i) != null ? headerRow.getCell(i).toString() : "";
-                            if (!fieldName.trim().isEmpty()) {
-                                fields.add(fieldName);
-                            }
+                // 清空当前数据
+                Map<String, String> originalFieldDataMap = new HashMap<>(fieldManager.getFieldDataMap());
+                Map<String, List<Map<String, String>>> originalListFieldDataMap = new HashMap<>();
+                
+                // 深度复制列表数据
+                for (Map.Entry<String, List<Map<String, String>>> entry : fieldManager.getListFieldDataMap().entrySet()) {
+                    List<Map<String, String>> copyList = new ArrayList<>();
+                    for (Map<String, String> item : entry.getValue()) {
+                        copyList.add(new HashMap<>(item));
+                    }
+                    originalListFieldDataMap.put(entry.getKey(), copyList);
+                }
+                
+                // 清空数据，但保留字段定义
+                fieldManager.clearData();
+                
+                // 加载普通字段数据（在第一个工作表）
+                XSSFSheet sheet = workbook.getSheetAt(0);
+                for (Row row : sheet) {
+                    Cell keyCell = row.getCell(0);
+                    Cell valueCell = row.getCell(1);
+                    if (keyCell != null && valueCell != null) {
+                        String fieldName = getStringCellValue(keyCell);
+                        String fieldValue = getStringCellValue(valueCell);
+                        
+                        if (!fieldName.isEmpty()) {
+                            // 更新数据填充区域，但不影响字段定义
+                            fieldManager.updateFieldData(fieldName, fieldValue);
                         }
-                        
-                        // 创建列表字段
-                        fieldManager.addListField(sheetName, fields);
-                        
-                        // 读取数据行
-                        List<Map<String, String>> itemsList = new ArrayList<>();
-                        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-                            XSSFRow row = sheet.getRow(i);
-                            if (row != null) {
-                                Map<String, String> rowData = new HashMap<>();
-                                for (int j = 0; j < fields.size(); j++) {
-                                    String value = row.getCell(j) != null ? row.getCell(j).toString() : "";
-                                    rowData.put(fields.get(j), value);
-                                }
-                                itemsList.add(rowData);
-                            }
-                        }
-                        
-                        // 添加列表数据
-                        fieldManager.addListDataField(sheetName, itemsList);
                     }
                 }
+                
+                // 加载列表字段数据（其他工作表）
+                for (int i = 1; i < workbook.getNumberOfSheets(); i++) {
+                    XSSFSheet listSheet = workbook.getSheetAt(i);
+                    String sheetName = workbook.getSheetName(i);
+                    
+                    // 第一行是表头，包含字段名
+                    Row headerRow = listSheet.getRow(0);
+                    if (headerRow == null) {
+                        continue;
+                    }
+                    
+                    // 获取所有字段
+                    List<String> fields = new ArrayList<>();
+                    for (int j = 0; j < headerRow.getLastCellNum(); j++) {
+                        Cell cell = headerRow.getCell(j);
+                        if (cell != null) {
+                            fields.add(getStringCellValue(cell));
+                        }
+                    }
+                    
+                    if (fields.isEmpty()) {
+                        continue;
+                    }
+                    
+                    // 如果列表字段不存在，则记录一下但不会影响字段定义区域
+                    boolean listExists = false;
+                    for (String existingList : fieldManager.getListFieldNames()) {
+                        if (existingList.equals(sheetName)) {
+                            listExists = true;
+                            break;
+                        }
+                    }
+                    
+                    // 如果列表不存在，只记录数据但不影响字段定义
+                    if (!listExists) {
+                        continue;
+                    }
+                    
+                    // 获取数据行
+                    List<Map<String, String>> itemsList = new ArrayList<>();
+                    for (int rowNum = 1; rowNum <= listSheet.getLastRowNum(); rowNum++) {
+                        Row dataRow = listSheet.getRow(rowNum);
+                        if (dataRow == null) {
+                            continue;
+                        }
+                        
+                        Map<String, String> rowMap = new HashMap<>();
+                        for (int j = 0; j < fields.size(); j++) {
+                            Cell cell = dataRow.getCell(j);
+                            String value = cell == null ? "" : getStringCellValue(cell);
+                            rowMap.put(fields.get(j), value);
+                        }
+                        
+                        if (!rowMap.isEmpty()) {
+                            itemsList.add(rowMap);
+                        }
+                    }
+                    
+                    // 更新列表数据
+                    fieldManager.updateListData(sheetName, itemsList);
+                }
+                
+                UIHelper.showInfo("成功", "数据已导入: " + excelFile.getAbsolutePath());
+                return true;
             }
-            
-            return true;
         } catch (Exception e) {
             AppLogger.error("从Excel导入数据失败", e);
             UIHelper.showError("导入失败", "从Excel导入数据时出错: " + e.getMessage());
@@ -250,8 +295,21 @@ public class DataHandler {
             // 读取JSON文件
             JsonNode rootNode = jsonMapper.readTree(jsonFile);
             
-            // 清空当前数据
-            fieldManager.clearAll();
+            // 保存原始数据映射，以备需要回滚
+            Map<String, String> originalFieldDataMap = new HashMap<>(fieldManager.getFieldDataMap());
+            Map<String, List<Map<String, String>>> originalListFieldDataMap = new HashMap<>();
+            
+            // 深度复制列表数据
+            for (Map.Entry<String, List<Map<String, String>>> entry : fieldManager.getListFieldDataMap().entrySet()) {
+                List<Map<String, String>> copyList = new ArrayList<>();
+                for (Map<String, String> item : entry.getValue()) {
+                    copyList.add(new HashMap<>(item));
+                }
+                originalListFieldDataMap.put(entry.getKey(), copyList);
+            }
+            
+            // 清空数据，但保留字段定义
+            fieldManager.clearData();
             
             // 加载普通字段数据
             if (rootNode.has("objectFields")) {
@@ -261,7 +319,9 @@ public class DataHandler {
                     Map.Entry<String, JsonNode> field = fields.next();
                     String fieldName = field.getKey();
                     String fieldValue = field.getValue().asText();
-                    fieldManager.addObjectDataField(fieldName, fieldValue);
+                    
+                    // 更新数据填充区域，但不影响字段定义
+                    fieldManager.updateFieldData(fieldName, fieldValue);
                 }
             }
             
@@ -274,38 +334,55 @@ public class DataHandler {
                     String listName = list.getKey();
                     JsonNode listItems = list.getValue();
                     
-                    if (listItems.isArray()) {
-                        // 首先创建列表字段定义
-                        List<String> fieldList = new ArrayList<>();
-                        for (JsonNode item : listItems) {
-                            if (item.isObject()) {
-                                Iterator<String> fieldNames = item.fieldNames();
-                                while (fieldNames.hasNext()) {
-                                    String fieldName = fieldNames.next();
-                                    if (!fieldList.contains(fieldName)) {
-                                        fieldList.add(fieldName);
-                                    }
-                                }
-                            }
+                    // 检查列表是否已存在于字段定义中
+                    boolean listExists = false;
+                    for (String existingList : fieldManager.getListFieldNames()) {
+                        if (existingList.equals(listName)) {
+                            listExists = true;
+                            break;
                         }
-                        
-                        // 创建列表字段
-                        fieldManager.addListField(listName, fieldList);
+                    }
+                    
+                    // 如果列表不存在，跳过，不影响字段定义
+                    if (!listExists) {
+                        continue;
+                    }
+                    
+                    if (listItems.isArray()) {
+                        // 获取当前列表的字段
+                        List<String> fieldList = fieldManager.getListFields(listName);
                         
                         // 添加列表数据
                         List<Map<String, String>> itemsList = new ArrayList<>();
                         for (JsonNode item : listItems) {
                             Map<String, String> itemMap = new HashMap<>();
-                            Iterator<Map.Entry<String, JsonNode>> itemFields = item.fields();
-                            while (itemFields.hasNext()) {
-                                Map.Entry<String, JsonNode> itemField = itemFields.next();
-                                String fieldName = itemField.getKey();
-                                String fieldValue = itemField.getValue().asText();
-                                itemMap.put(fieldName, fieldValue);
+                            
+                            if (item.isObject()) {
+                                // 为每个字段设置值（如果存在）
+                                for (String fieldName : fieldList) {
+                                    if (item.has(fieldName)) {
+                                        itemMap.put(fieldName, item.get(fieldName).asText());
+                                    } else {
+                                        itemMap.put(fieldName, ""); // 如果字段不存在，设置为空值
+                                    }
+                                }
+                                
+                                // 添加额外的字段（存在于数据但不在定义中的字段）
+                                Iterator<Map.Entry<String, JsonNode>> itemFields = item.fields();
+                                while (itemFields.hasNext()) {
+                                    Map.Entry<String, JsonNode> itemField = itemFields.next();
+                                    String fieldName = itemField.getKey();
+                                    if (!fieldList.contains(fieldName)) {
+                                        itemMap.put(fieldName, itemField.getValue().asText());
+                                    }
+                                }
+                                
+                                itemsList.add(itemMap);
                             }
-                            itemsList.add(itemMap);
                         }
-                        fieldManager.addListDataField(listName, itemsList);
+                        
+                        // 更新列表数据
+                        fieldManager.updateListData(listName, itemsList);
                     }
                 }
             }
@@ -431,6 +508,51 @@ public class DataHandler {
             try (FileOutputStream outputStream = new FileOutputStream(outputPath)) {
                 workbook.write(outputStream);
             }
+        }
+    }
+
+    /**
+     * 获取单元格的字符串值
+     * 
+     * @param cell 单元格
+     * @return 字符串值
+     */
+    private String getStringCellValue(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+        
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                } else {
+                    // 转换数字为字符串，避免科学计数法
+                    double value = cell.getNumericCellValue();
+                    if (value == (long) value) {
+                        return String.format("%d", (long) value);
+                    } else {
+                        return String.format("%s", value);
+                    }
+                }
+            case BOOLEAN:
+                return Boolean.toString(cell.getBooleanCellValue());
+            case FORMULA:
+                try {
+                    return cell.getStringCellValue();
+                } catch (Exception e) {
+                    try {
+                        return String.valueOf(cell.getNumericCellValue());
+                    } catch (Exception e2) {
+                        return "";
+                    }
+                }
+            case BLANK:
+                return "";
+            default:
+                return "";
         }
     }
 } 

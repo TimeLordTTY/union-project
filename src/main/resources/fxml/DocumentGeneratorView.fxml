@@ -91,7 +91,6 @@
                 <Button text="保存模板" onAction="#handleSaveTemplate" minHeight="24" maxHeight="24" />
                 <Button text="生成模板" onAction="#handleGenerateTemplate" minHeight="24" maxHeight="24" />
                 <Button text="导出字段" onAction="#handleExportFields" minHeight="24" maxHeight="24" />
-                <Button text="替换规则" onAction="#handleShowReplaceRules" minHeight="24" maxHeight="24" />
             </HBox>
             
             <!-- 模板编辑标题 -->

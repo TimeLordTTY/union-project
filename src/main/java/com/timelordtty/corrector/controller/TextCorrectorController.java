@@ -1004,84 +1004,109 @@ public class TextCorrectorController implements Initializable {
             return;
         }
         
-        // 创建对话框
-        Dialog<ButtonType> dialog = new Dialog<>();
-        
-        // 根据当前操作类型设置标题
-        if (currentOperation == OperationType.REPLACEMENT) {
-            dialog.setTitle("文本替换详情");
-        } else {
-            dialog.setTitle("错误纠正详情");
+        try {
+            // 加载替换规则对话框FXML（使用自定义布局而不是加载FXML）
+            
+            // 创建表格视图
+            TableView<TextCorrection> detailsTable = new TableView<>();
+            detailsTable.setEditable(false);
+            
+            // 创建表格列
+            TableColumn<TextCorrection, String> indexCol = new TableColumn<>("序号");
+            indexCol.setCellValueFactory(p -> {
+                int index = correctionTableView.getItems().indexOf(p.getValue()) + 1;
+                return new javafx.beans.property.SimpleStringProperty(String.valueOf(index));
+            });
+            indexCol.setPrefWidth(50);
+            
+            TableColumn<TextCorrection, String> originalCol = new TableColumn<>("原文本");
+            originalCol.setCellValueFactory(p -> 
+                new javafx.beans.property.SimpleStringProperty(p.getValue().getOriginal()));
+            originalCol.setPrefWidth(250);
+            
+            TableColumn<TextCorrection, String> correctedCol = new TableColumn<>("修改后");
+            correctedCol.setCellValueFactory(p -> 
+                new javafx.beans.property.SimpleStringProperty(p.getValue().getCorrected()));
+            correctedCol.setPrefWidth(250);
+            
+            TableColumn<TextCorrection, String> positionCol = new TableColumn<>("位置");
+            positionCol.setCellValueFactory(p -> 
+                new javafx.beans.property.SimpleStringProperty(p.getValue().getPosition()));
+            positionCol.setPrefWidth(100);
+            
+            // 添加列到表格
+            detailsTable.getColumns().addAll(indexCol, originalCol, correctedCol, positionCol);
+            
+            // 添加数据
+            detailsTable.getItems().addAll(correctionTableView.getItems());
+            
+            // 为表格添加样式
+            detailsTable.setStyle("-fx-font-size: 12px;");
+            
+            // 添加描述文本
+            String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
+            Label descriptionLabel = new Label("发现 " + correctionTableView.getItems().size() + " 处" + operation + "，详情如下：");
+            descriptionLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+            
+            // 创建导出按钮
+            Button exportButton = new Button("导出" + operation + "报告");
+            exportButton.setOnAction(e -> exportCorrectionReport(detailsTable.getItems()));
+            
+            // 创建布局
+            VBox content = new VBox(10);
+            content.setPadding(new javafx.geometry.Insets(10));
+            content.getChildren().addAll(descriptionLabel, detailsTable, exportButton);
+            
+            // 设置表格可以填充整个空间
+            VBox.setVgrow(detailsTable, javafx.scene.layout.Priority.ALWAYS);
+            
+            // 创建一个Stage而不是Dialog，以便更好地控制大小调整
+            Stage dialogStage = new Stage();
+            
+            // 根据当前操作类型设置标题
+            if (currentOperation == OperationType.REPLACEMENT) {
+                dialogStage.setTitle("文本替换详情");
+            } else {
+                dialogStage.setTitle("错误纠正详情");
+            }
+            
+            // 设置模态
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(inputTextArea.getScene().getWindow());
+            
+            // 设置对话框尺寸
+            dialogStage.setMinWidth(700);
+            dialogStage.setMinHeight(500);
+            dialogStage.setWidth(750);  // 设置初始宽度比最小值大一些
+            dialogStage.setHeight(550); // 设置初始高度比最小值大一些
+            
+            // 允许用户调整对话框大小
+            dialogStage.setResizable(true);
+            
+            // 创建场景
+            Scene scene = new Scene(content);
+            dialogStage.setScene(scene);
+            
+            // 添加关闭按钮的事件处理
+            Button closeButton = new Button("关闭");
+            closeButton.setOnAction(e -> dialogStage.close());
+            closeButton.setPrefWidth(80);
+            
+            // 创建按钮布局
+            HBox buttonBox = new HBox(10);
+            buttonBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            buttonBox.getChildren().add(closeButton);
+            
+            // 重新组织内容布局，将按钮放在底部
+            content.getChildren().add(buttonBox);
+            
+            // 显示对话框
+            dialogStage.showAndWait();
+            
+        } catch (Exception e) {
+            AppLogger.error("显示纠错详情时出错: " + e.getMessage(), e);
+            showAlert(Alert.AlertType.ERROR, "错误", "无法显示纠错详情: " + e.getMessage());
         }
-        
-        // 设置模态
-        dialog.initModality(Modality.APPLICATION_MODAL);
-        dialog.initOwner(inputTextArea.getScene().getWindow());
-        
-        // 创建表格视图
-        TableView<TextCorrection> detailsTable = new TableView<>();
-        detailsTable.setEditable(false);
-        
-        // 创建表格列
-        TableColumn<TextCorrection, String> indexCol = new TableColumn<>("序号");
-        indexCol.setCellValueFactory(p -> {
-            int index = correctionTableView.getItems().indexOf(p.getValue()) + 1;
-            return new javafx.beans.property.SimpleStringProperty(String.valueOf(index));
-        });
-        indexCol.setPrefWidth(50);
-        
-        TableColumn<TextCorrection, String> originalCol = new TableColumn<>("原文本");
-        originalCol.setCellValueFactory(p -> 
-            new javafx.beans.property.SimpleStringProperty(p.getValue().getOriginal()));
-        originalCol.setPrefWidth(150);
-        
-        TableColumn<TextCorrection, String> correctedCol = new TableColumn<>("修改后");
-        correctedCol.setCellValueFactory(p -> 
-            new javafx.beans.property.SimpleStringProperty(p.getValue().getCorrected()));
-        correctedCol.setPrefWidth(150);
-        
-        TableColumn<TextCorrection, String> positionCol = new TableColumn<>("位置");
-        positionCol.setCellValueFactory(p -> 
-            new javafx.beans.property.SimpleStringProperty(p.getValue().getPosition()));
-        positionCol.setPrefWidth(100);
-        
-        // 添加列到表格
-        detailsTable.getColumns().addAll(indexCol, originalCol, correctedCol, positionCol);
-        
-        // 添加数据
-        detailsTable.getItems().addAll(correctionTableView.getItems());
-        
-        // 为表格添加样式
-        detailsTable.setStyle("-fx-font-size: 12px;");
-        
-        // 添加描述文本
-        String operation = currentOperation == OperationType.REPLACEMENT ? "替换" : "错误";
-        Label descriptionLabel = new Label("发现 " + correctionTableView.getItems().size() + " 处" + operation + "，详情如下：");
-        descriptionLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-        
-        // 创建导出按钮
-        Button exportButton = new Button("导出" + operation + "报告");
-        exportButton.setOnAction(e -> exportCorrectionReport(detailsTable.getItems()));
-        
-        // 创建布局
-        VBox content = new VBox(10);
-        content.setPadding(new javafx.geometry.Insets(10));
-        content.getChildren().addAll(descriptionLabel, detailsTable, exportButton);
-        
-        // 创建对话框面板
-        DialogPane dialogPane = new DialogPane();
-        dialogPane.setContent(content);
-        dialogPane.setPrefWidth(600);
-        dialogPane.setPrefHeight(400);
-        
-        // 设置按钮类型
-        dialogPane.getButtonTypes().add(ButtonType.CLOSE);
-        
-        // 设置对话框面板
-        dialog.setDialogPane(dialogPane);
-        
-        // 显示对话框
-        dialog.showAndWait();
     }
     
     /**
