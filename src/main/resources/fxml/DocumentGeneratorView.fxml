@@ -64,8 +64,8 @@
                     <Button text="+" onAction="#handleAddObjectField" minHeight="20" maxHeight="20" styleClass="operation-add-button" />
                 </HBox>
                 
-                <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
-                    <VBox fx:id="objectFieldItemsContainer" spacing="1" onMouseClicked="#handleFieldItemClick" />
+                <ScrollPane fx:id="fieldItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
+                    <VBox fx:id="objectFieldItemsContainer" spacing="1" onMouseClicked="#handleFieldItemClick" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
                 
                 <HBox spacing="2">
@@ -73,8 +73,8 @@
                     <Button text="+" onAction="#handleAddListField" minHeight="20" maxHeight="20" styleClass="operation-add-button" />
                 </HBox>
                 
-                <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
-                    <VBox fx:id="listFieldItemsContainer" spacing="2" onMouseClicked="#handleListItemClick" />
+                <ScrollPane fx:id="listFieldItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="ALWAYS">
+                    <VBox fx:id="listFieldItemsContainer" spacing="2" onMouseClicked="#handleListItemClick" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
             </VBox>
         </VBox>
@@ -129,8 +129,8 @@
             
             <!-- 数据填充内容区域 -->
             <VBox spacing="2" VBox.vgrow="ALWAYS">
-                <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="SOMETIMES" fitToWidth="true" styleClass="field-scroll-pane" minHeight="100" maxHeight="180" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
-                    <VBox fx:id="objectDataItemsContainer" spacing="1" />
+                <ScrollPane fx:id="dataItemsScrollPane" VBox.vgrow="ALWAYS" fitToWidth="true" styleClass="field-scroll-pane" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
+                    <VBox fx:id="objectDataItemsContainer" spacing="1" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
                 
                 <!-- 表头部分 -->
@@ -138,8 +138,8 @@
                     <Label text="列表数据" styleClass="data-list-header-label" />
                 </HBox>
                 
-                <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="NEVER">
-                    <VBox fx:id="listDataItemsContainer" spacing="1" />
+                <ScrollPane fx:id="listDataItemsScrollPane" VBox.vgrow="ALWAYS" styleClass="field-scroll-pane" hbarPolicy="ALWAYS" vbarPolicy="ALWAYS">
+                    <VBox fx:id="listDataItemsContainer" spacing="1" VBox.vgrow="ALWAYS" />
                 </ScrollPane>
             </VBox>
         </VBox>

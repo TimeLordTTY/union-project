@@ -1131,6 +1131,8 @@
     -fx-border-width: 1px;
     -fx-border-color: #ffb6c1;
     -fx-border-radius: 4;
+    -fx-min-height: 120px;
+    -fx-pref-height: 200px;
 }
 
 .field-scroll-pane > .viewport {
@@ -1368,34 +1370,34 @@
 
 /* 减小字段定义和数据填充文本框行高 */
 .reduced-height-field {
-    -fx-min-height: 20px !important;
-    -fx-max-height: 20px !important;
-    -fx-pref-height: 20px !important;
+    -fx-min-height: 24px !important;
+    -fx-max-height: 24px !important;
+    -fx-pref-height: 24px !important;
     -fx-alignment: center-left;
 }
 
 /* 减小字段容器行高 */
 .field-item {
-    -fx-min-height: 20px !important;
-    -fx-max-height: 20px !important;
-    -fx-pref-height: 20px !important;
+    -fx-min-height: 24px !important;
+    -fx-max-height: 24px !important;
+    -fx-pref-height: 24px !important;
     -fx-padding: 0 4px !important;
     -fx-background-radius: 3px !important;
 }
 
 /* 减小数据填充字段容器高度 */
 .data-field-container {
-    -fx-min-height: 20px !important;
-    -fx-max-height: 20px !important;
-    -fx-pref-height: 20px !important;
+    -fx-min-height: 24px !important;
+    -fx-max-height: 24px !important;
+    -fx-pref-height: 24px !important;
     -fx-padding: 0 4px !important;
 }
 
 /* 确保标签高度适合低行高 */
 .field-label {
-    -fx-min-height: 20px !important;
-    -fx-max-height: 20px !important;
-    -fx-pref-height: 20px !important;
+    -fx-min-height: 24px !important;
+    -fx-max-height: 24px !important;
+    -fx-pref-height: 24px !important;
     -fx-alignment: center-left;
 }
 

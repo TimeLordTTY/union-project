@@ -706,13 +706,9 @@ public class DocumentGeneratorController {
      */
     @FXML
     private void handleImportTemplate() {
-        // 如果是Excel模式，已经有表格可以编辑，不需要强制要求导入模板
+        // 如果是Excel模式，直接调用选择Excel模板方法
         if (!isWordMode) {
-            // 确保Excel编辑器已设置
-            if (excelEditor.getColumns().isEmpty()) {
-                setupExcelEditor();
-            }
-            updateExcelPreview();
+            handleSelectExcelTemplate();
             return;
         }
         // Word模式才需要导入模板
