@@ -3,136 +3,69 @@
 
 # Log files
 *.log
-logs/
-*.log.*
+node_modules
+*.jar
+*.war
+*.zip
+*.tar
+*.gz
+*.bz2
+*.rar
 
-# Package Files
+# Java & Maven
+target
 *.jar
 *.war
 *.ear
 *.zip
 *.tar.gz
 *.rar
-
-# Maven
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
-
-# Eclipse
-.settings/
-.project
-.classpath
-.metadata/
-
-# IntelliJ IDEA
-.idea/
-*.iml
-*.iws
-*.ipr
-*.ids
-*.orig
-out/
-
-# NetBeans
-nbproject/private/
-build/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-
-# VS Code
-.vscode/
-.code-workspace
-
-# Windows specific files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Mac OS specific files
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Launch4j
-*.exe
-*.xml.bak
-
-# Application specific
-PersonalApps/
-*.exe
-*.bak
-temp/
-
-# JavaFX
-javafx-modules/
-
-# 打包后的文件
-ProjectAssistant/
-lib/
-jre/
-
-# 编译输出目录
-target/
-bin/
-build/
-out/
-dist/
-
-# IDE相关文件
-.idea/
-.vscode/
-*.iml
-*.ipr
-*.iws
-.project
-.classpath
-.settings/
-nbproject/
-.nb-gradle/
-
-# 依赖目录
-.mvn/
-.gradle/
-
-# 临时文件
-tmp/
-temp/
-*.tmp
-*.bak
-*.swp
-*~
-
-# 系统文件
-.DS_Store
-Thumbs.db
-
-# 打包生成的文件
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# JVM崩溃日志
 hs_err_pid*
 replay_pid*
 
-# BlueJ文件
-*.ctxt
+# Eclipse
+.settings/
+.classpath
+.factorypath
+.project
+.apt_generated
+.springBeans
 
-# 其他特定项目文件
-项目管理小助手/lib/javafx-modules/
-项目管理小助手/MultiTools-*.jar 
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# Frontend
+node_modules/
+dist/
+dist_backup/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Application specific
+Project-Assistant/
+preset_jar/
+data_backup_temp/
+*.log
+application-*.yml
+application-*.properties
+
+# Exceptions
+!preset_jar/preset-valid.jar
+
+
+# 显式包含src/main目录
+!src/
+!src/main/
+!src/main/**

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.timelordtty.projectassistant.mapper.ProjectMapper">
+    <!-- 结果映射 -->
+    <resultMap id="projectResultMap" type="Project">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="reviewPeriod" column="review_period"/>
+        <result property="onlineDate" column="online_date"/>
+        <result property="registrationPeriod" column="registration_period"/>
+        <result property="registrationEndDate" column="registration_end_date"/>
+        <result property="earliestReviewDate" column="earliest_review_date"/>
+        <result property="expectedReviewTime" column="expected_review_time"/>
+        <result property="expertReviewTime" column="expert_review_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+    
+    <!-- 查询所有项目 -->
+    <select id="findAll" resultMap="projectResultMap">
+        SELECT * FROM project ORDER BY online_date DESC
+    </select>
+    
+    <!-- 根据ID查询项目 -->
+    <select id="findById" resultMap="projectResultMap">
+        SELECT * FROM project WHERE id = #{id}
+    </select>
+    
+    <!-- 根据名称模糊查询项目 -->
+    <select id="findByNameLike" resultMap="projectResultMap">
+        SELECT * FROM project WHERE name LIKE CONCAT('%', #{name}, '%') ORDER BY online_date DESC
+    </select>
+    
+    <!-- 查询指定日期范围内的项目 -->
+    <select id="findByDateRange" resultMap="projectResultMap">
+        SELECT * FROM project 
+        WHERE (online_date BETWEEN #{startDate} AND #{endDate})
+           OR (registration_end_date BETWEEN #{startDate} AND #{endDate})
+           OR (expected_review_time BETWEEN #{startDateTime} AND #{endDateTime})
+           OR (expert_review_time BETWEEN #{startDateTime} AND #{endDateTime})
+        ORDER BY online_date
+    </select>
+    
+    <!-- 插入项目 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project (
+            name, 
+            review_period, 
+            online_date, 
+            registration_period, 
+            registration_end_date, 
+            earliest_review_date, 
+            expected_review_time, 
+            expert_review_time, 
+            remark
+        ) VALUES (
+            #{name}, 
+            #{reviewPeriod}, 
+            #{onlineDate}, 
+            #{registrationPeriod}, 
+            #{registrationEndDate}, 
+            #{earliestReviewDate}, 
+            #{expectedReviewTime}, 
+            #{expertReviewTime}, 
+            #{remark}
+        )
+    </insert>
+    
+    <!-- 更新项目 -->
+    <update id="update">
+        UPDATE project
+        SET name = #{name},
+            review_period = #{reviewPeriod},
+            online_date = #{onlineDate},
+            registration_period = #{registrationPeriod},
+            registration_end_date = #{registrationEndDate},
+            earliest_review_date = #{earliestReviewDate},
+            expected_review_time = #{expectedReviewTime},
+            expert_review_time = #{expertReviewTime},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 删除项目 -->
+    <delete id="deleteById">
+        DELETE FROM project WHERE id = #{id}
+    </delete>
+</mapper> 
