@@ -6,11 +6,11 @@ echo ====================
 echo 0. 设置路径
 echo ====================
 REM 设置Java路径
-set JAVA_HOME=D:\Soft\Java\jdk-23
+set JAVA_HOME=D:\Soft\Java\jdk-17
 set PATH=%JAVA_HOME%\bin;%PATH%
 
 REM 设置Maven路径 - 确保使用3.9.9版本
-set MAVEN_HOME=E:\Apache\apache-maven-3.9.9
+set MAVEN_HOME=D:\Soft\Maven\apache-maven-3.9.9
 set PATH=%MAVEN_HOME%\bin;%PATH%
 set MVN_CMD=%MAVEN_HOME%\bin\mvn
 
