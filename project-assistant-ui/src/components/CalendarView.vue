@@ -1,254 +1,379 @@
 <template>
-  <div class="calendar-view">
-    <table class="calendar-table">
-      <thead>
-        <tr>
-          <th v-for="(day, index) in weekdays" :key="index">{{ day }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(week, wIndex) in calendar" :key="wIndex">
-          <td
-            v-for="(date, dIndex) in week"
-            :key="dIndex"
-            :class="[
-              'calendar-cell',
-              {
-                today: isToday(date),
-                empty: !date,
-                'has-event': date && hasReminder(date),
-              },
-            ]"
-            @click="date && onDateClick(date)"
+  <div class="calendar-container">
+    <div class="calendar-header">
+      <button @click="prevMonth" class="nav-btn">&lt;</button>
+      <div class="month-year">{{ currentYearMonth }}</div>
+      <button @click="nextMonth" class="nav-btn">&gt;</button>
+    </div>
+    
+    <div class="weekdays-header">
+      <div class="weekday" v-for="weekday in weekdays" :key="weekday">{{ weekday }}</div>
+    </div>
+    
+    <div class="calendar-grid">
+      <div 
+        v-for="day in calendarDays" 
+        :key="day.date" 
+        class="calendar-day"
+        :class="{ 
+          'current-month': day.currentMonth, 
+          'other-month': !day.currentMonth,
+          'today': day.isToday,
+          'holiday': day.isHoliday
+        }"
+      >
+        <div class="day-number">{{ day.dayNumber }}</div>
+        <div v-if="day.isHoliday" class="holiday-marker">{{ day.holidayName }}</div>
+        
+        <div class="day-events">
+          <div 
+            v-for="event in day.events" 
+            :key="event.id" 
+            class="day-event"
+            :class="event.type"
+            @click="showEventDetails(event)"
           >
-            <div v-if="date">
-              <div class="date-number">{{ date.getDate() }}</div>
-              <div v-if="getHolidayName(date)" class="holiday-label">
-                {{ getHolidayName(date) }}
-              </div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            {{ event.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="calendar-footer">
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color today"></div>
+          <span>今天</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color upload"></div>
+          <span>上网日期</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color registration"></div>
+          <span>报名截止</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color review"></div>
+          <span>最早评审</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color bidding"></div>
+          <span>开标时间</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color expert"></div>
+          <span>专家评审</span>
+        </div>
+      </div>
+    </div>
   </div>
-  <ReminderDialog
-    v-if="selectedDate"
-    :date="selectedDate"
-    :projectId="projectId"
-    :reminders="reminders"
-    @close="selectedDate = null"
-    @add="onAddReminder"
-  />
 </template>
 
-<script lang="ts">
-import {
-  defineComponent,
-  computed,
-  ref,
-  PropType,
-  onMounted,
-  watch,
-} from "vue";
-import ReminderDialog from "./ReminderDialog.vue";
-import { HolidayInfo, fetchHolidays } from "@/services/holidayService";
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import dayjs from 'dayjs'
 
-// 页面初始化时请求节假日
-const yearCache = new Map<number, Record<string, string>>();
-export default defineComponent({
-  name: "CalendarView",
-  components: {
-    ReminderDialog,
+// 当前日期
+const currentDate = ref(dayjs())
+
+// 星期名称
+const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+// 假期数据
+const holidays = {
+  '2025-04-05': '清明节',
+  '2025-04-06': '清明节',
+  '2025-05-01': '劳动节',
+  '2025-05-02': '劳动节',
+  '2025-05-03': '劳动节',
+  '2025-05-04': '劳动节',
+}
+
+// 模拟项目数据
+const projectEvents = [
+  { 
+    id: 1, 
+    name: '测试', 
+    type: 'test',
+    dates: {
+      '2025-04-02': { type: 'upload', name: '上网' },
+      '2025-04-03': { type: 'bidding', name: '开标' },
+      '2025-04-04': { type: 'expert', name: '专家评审' },
+      '2025-04-11': { type: 'registration', name: '报名截止' },
+      '2025-04-23': { type: 'review', name: '最早评审' },
+    }
   },
-  props: {
-    currentYear: { type: Number, required: true },
-    currentMonth: { type: Number, required: true },
-    projectId: { type: [String, Number], required: true },
-    reminders: {
-      type: Array as PropType<
-        Array<{ date: string; title: string; projectId: string | number }>
-      >,
-      default: () => [],
-    },
-  },
-  emits: ["add"],
+  { 
+    id: 2, 
+    name: '044云容灾', 
+    type: 'disaster-recovery',
+    dates: {
+      '2025-04-07': { type: 'registration', name: '报名截止' },
+      '2025-04-11': { type: 'registration', name: '报名截止' },
+      '2025-04-17': { type: 'upload', name: '上网' },
+      '2025-04-17': { type: 'bidding', name: '开标' },
+      '2025-04-17': { type: 'expert', name: '专家评审' },
+    }
+  }
+]
 
-  setup(props, { emit }) {
-    const selectedDate = ref<Date | null>(null);
-    const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+// 当前年月显示
+const currentYearMonth = computed(() => {
+  return currentDate.value.format('YYYY年MM月')
+})
 
-    const calendar = computed(() => {
-      const firstDay = new Date(props.currentYear, props.currentMonth, 1);
-      const lastDay = new Date(props.currentYear, props.currentMonth + 1, 0);
-
-      const calendar: (Date | null)[][] = [];
-      let week: (Date | null)[] = [];
-
-      // 补前空格
-      for (let i = 0; i < firstDay.getDay(); i++) {
-        week.push(null);
+// 计算日历数据
+const calendarDays = computed(() => {
+  const year = currentDate.value.year()
+  const month = currentDate.value.month()
+  
+  // 当月第一天
+  const firstDayOfMonth = dayjs(new Date(year, month, 1))
+  // 当月最后一天
+  const lastDayOfMonth = dayjs(new Date(year, month + 1, 0))
+  
+  // 日历起始日期（从当月第一天所在周的周一开始）
+  const startDate = firstDayOfMonth.day() === 0 
+    ? firstDayOfMonth.subtract(6, 'day') 
+    : firstDayOfMonth.subtract(firstDayOfMonth.day() - 1, 'day')
+  
+  const days = []
+  const today = dayjs()
+  
+  // 生成6周的日历数据
+  for (let i = 0; i < 42; i++) {
+    const date = startDate.add(i, 'day')
+    const dateStr = date.format('YYYY-MM-DD')
+    
+    // 收集当天的事件
+    const events = []
+    projectEvents.forEach(project => {
+      const event = project.dates[dateStr]
+      if (event) {
+        events.push({
+          id: `${project.id}-${event.type}`,
+          name: `${project.name} ${event.name}`,
+          type: event.type,
+          projectId: project.id
+        })
       }
+    })
+    
+    days.push({
+      date: dateStr,
+      dayNumber: date.date(),
+      currentMonth: date.month() === month,
+      isToday: date.format('YYYY-MM-DD') === today.format('YYYY-MM-DD'),
+      isHoliday: !!holidays[dateStr],
+      holidayName: holidays[dateStr],
+      events
+    })
+  }
+  
+  return days
+})
 
-      for (let d = 1; d <= lastDay.getDate(); d++) {
-        const day = new Date(props.currentYear, props.currentMonth, d);
-        week.push(day);
+// 上一个月
+const prevMonth = () => {
+  currentDate.value = currentDate.value.subtract(1, 'month')
+}
 
-        if (week.length === 7) {
-          calendar.push(week);
-          week = [];
-        }
-      }
+// 下一个月
+const nextMonth = () => {
+  currentDate.value = currentDate.value.add(1, 'month')
+}
 
-      // 补尾空格
-      if (week.length > 0) {
-        while (week.length < 7) {
-          week.push(null);
-        }
-        calendar.push(week);
-      }
+// 显示事件详情
+const showEventDetails = (event: any) => {
+  console.log('Event clicked:', event)
+}
 
-      return calendar;
-    });
-
-    const isToday = (date: Date | null) => {
-      if (!date) return false;
-      const today = new Date();
-      // ✅ 打印当前系统识别到的“今天”
-      console.log("当前系统时间是：", today.toISOString());
-      return (
-        date.getFullYear() === today.getFullYear() &&
-        date.getMonth() === today.getMonth() &&
-        date.getDate() === today.getDate()
-      );
-    };
-
-    const hasReminder = (date: Date | null) => {
-      if (!date) return false;
-      const dateStr = date.toISOString().split("T")[0];
-      return props.reminders.some(
-        (reminder) =>
-          reminder.date === dateStr && reminder.projectId === props.projectId
-      );
-    };
-
-    const onDateClick = (date: Date) => {
-      console.log("点击日期：", date);
-      selectedDate.value = date;
-    };
-
-    const onAddReminder = (reminder: {
-      title: string;
-      date: string;
-      projectId: string | number;
-    }) => {
-      emit("add", reminder);
-    };
-
-    // 节假日数据存储
-    const holidays = ref<Record<string, string>>({});
-
-    let hasLoaded = false;
-
-    watch(
-      () => props.currentYear,
-      async (year) => {
-        if (hasLoaded || yearCache.has(year)) {
-          holidays.value = yearCache.get(year)!;
-          return;
-        }
-
-        const data = await fetchHolidays(year);
-        const holidayMap: Record<string, string> = {};
-        for (const day in data.holiday) {
-          holidayMap[day] = data.holiday[day].name;
-        }
-        holidays.value = holidayMap;
-        yearCache.set(year, holidayMap);
-        hasLoaded = true;
-      },
-      { immediate: true }
-    );
-
-    // 判断某天是否是节假日
-    const getHolidayName = (date: Date | null): string | null => {
-      if (!date) return null;
-      const dateStr = date.toISOString().split("T")[0];
-      return holidays.value[dateStr] || null;
-    };
-    return {
-      weekdays,
-      calendar,
-      isToday,
-      hasReminder,
-      onDateClick,
-      selectedDate,
-      onAddReminder,
-      getHolidayName,
-    };
-  },
-});
+// 组件挂载时设置为当前日期
+onMounted(() => {
+  currentDate.value = dayjs('2025-04-01')
+})
 </script>
 
 <style scoped>
-.calendar-view {
+.calendar-container {
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
   padding: 10px;
-  background-color: #fff0f6;
 }
 
-.calendar-table {
-  width: 100%;
-  border-collapse: collapse;
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  background-color: #ffcdd2;
+  padding: 10px;
+  border-radius: 4px;
 }
 
-.calendar-table th,
-.calendar-table td {
-  width: 14.28%;
-  height: 60px;
-  text-align: center;
-  border: 1px solid #ffe0ec;
-  font-weight: normal;
-}
-.calendar-cell {
-  /* 基本样式 */
-  width: 14.28%;
-  height: 60px;
-  text-align: center;
-  border: 1px solid #ffe0ec;
-  font-weight: normal;
-}
-
-.today {
-  background-color: #ffdbe6;
+.month-year {
+  font-size: 18px;
   font-weight: bold;
-  border: 2px solid #ff5fa2;
+  color: #d32f2f;
 }
 
-.has-event {
-  background-color: #ffedf5;
+.nav-btn {
+  background-color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.weekdays-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  background-color: #ffcdd2;
+  font-weight: bold;
+  padding: 10px 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.weekday {
+  padding: 5px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-gap: 1px;
+  background-color: #ef9a9a;
+  border: 1px solid #ef9a9a;
+}
+
+.calendar-day {
+  min-height: 100px;
+  padding: 5px;
+  background-color: white;
   position: relative;
 }
 
-.has-event::after {
-  content: "";
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  background-color: #d63384;
-  border-radius: 50%;
-  transform: translateX(-50%);
-}
-.date-number {
-  font-size: 16px;
-  font-weight: bold;
+.calendar-day.other-month {
+  background-color: #f5f5f5;
+  color: #999;
 }
 
-.holiday-label {
-  font-size: 12px;
-  color: #d63384;
-  margin-top: 4px;
-  font-weight: 500;
+.calendar-day.today {
+  background-color: #e3f2fd;
 }
-</style>
+
+.calendar-day.holiday {
+  color: #d32f2f;
+}
+
+.day-number {
+  font-weight: bold;
+  text-align: right;
+  margin-bottom: 5px;
+}
+
+.holiday-marker {
+  color: #d32f2f;
+  font-size: 12px;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.day-event {
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.day-event.upload {
+  background-color: #bbdefb;
+  color: #0d47a1;
+}
+
+.day-event.bidding {
+  background-color: #c8e6c9;
+  color: #1b5e20;
+}
+
+.day-event.expert {
+  background-color: #e1bee7;
+  color: #4a148c;
+}
+
+.day-event.registration {
+  background-color: #ffccbc;
+  color: #bf360c;
+}
+
+.day-event.review {
+  background-color: #f0f4c3;
+  color: #827717;
+}
+
+.calendar-footer {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+}
+
+.legend-color.today {
+  background-color: #e3f2fd;
+  border: 1px solid #90caf9;
+}
+
+.legend-color.upload {
+  background-color: #bbdefb;
+}
+
+.legend-color.bidding {
+  background-color: #c8e6c9;
+}
+
+.legend-color.expert {
+  background-color: #e1bee7;
+}
+
+.legend-color.registration {
+  background-color: #ffccbc;
+}
+
+.legend-color.review {
+  background-color: #f0f4c3;
+}
+</style> 

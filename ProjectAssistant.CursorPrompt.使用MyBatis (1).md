@@ -15,18 +15,6 @@
 union-project/
 ├── project-assistant-ui/         # 前端：Vue3 + Electron 桌面应用
 ├── project-assistant-service/    # 后端：Java 17 + Spring Boot + H2 + MyBatis + lombok
-├── build-all.bat                 # 一键构建/打包前后端的脚本
-└── project-assistant/            # 最终可运行部署包（给女朋友的成品）
-    ├── 启动小助手.bat
-    ├── ~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt
-    ├── data/
-    │   └── projectCalendar.mv.db
-    └── service_data/
-        ├── backend.jar
-        ├── ProjectAssistant.exe
-        ├── logs/
-        ├── config/
-        └── static/
 ```
 
 ---
@@ -56,6 +44,8 @@ union-project/
 ## 🧰 后端（project-assistant-service）
 
 - 技术栈：Java 17 + Spring Boot 3.x + MyBatis（**注意：不是 MyBatis Plus**）
+- maven 路径为 E:\Apache\apache-maven-3.9.9
+- jdk 路径为：D:\Soft\Java\jdk-17
 - 使用嵌入式 H2 数据库，数据库文件路径为 `../project-assistant/data/projectCalendar.mv.db`
 - 打包后生成 `backend.jar`，运行路径固定为 `service_data/`
 - 注意要有详细的日志和注释，注释里作者名称是timelordtty
@@ -76,7 +66,7 @@ union-project/
 ---
 
 ## 🗃 数据持久化说明
-
+- 目前数据库文件已存在，名为projectCalendar.mv.db
 - 所有数据保存在 `project-assistant/data/` 下
 - 使用嵌入式 H2 数据库，兼容 `.mv.db` 文件格式
 - 使用标准 MyBatis 作为 ORM（非 MyBatis Plus）
