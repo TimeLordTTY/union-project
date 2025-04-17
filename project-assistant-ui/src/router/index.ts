@@ -1,37 +1,93 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
 
-// 路由配置
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
     component: () => import('../views/HomeView.vue'),
     meta: {
-      title: '项目管理小助手'
+      title: '首页'
     }
   },
   {
-    path: '/money',
-    name: 'MoneyConverter',
-    component: () => import('../views/MoneyConverterView.vue'),
+    path: '/projects',
+    name: 'ProjectList',
+    component: () => import('../views/project/ProjectListView.vue'),
     meta: {
-      title: '金额转换工具'
+      title: '项目列表'
+    }
+  },
+  {
+    path: '/calendar',
+    name: 'Calendar',
+    component: () => import('../views/project/CalendarView.vue'),
+    meta: {
+      title: '项目日历'
+    }
+  },
+  {
+    path: '/project/add',
+    name: 'ProjectAdd',
+    component: () => import('../views/project/ProjectEditView.vue'),
+    meta: {
+      title: '添加项目'
+    }
+  },
+  {
+    path: '/project/edit/:id',
+    name: 'ProjectEdit',
+    component: () => import('../views/project/ProjectEditView.vue'),
+    meta: {
+      title: '编辑项目'
+    }
+  },
+  {
+    path: '/tools/amount-convert',
+    name: 'AmountConvert',
+    component: () => import('../views/tools/AmountConvertView.vue'),
+    meta: {
+      title: '金额转换'
+    }
+  },
+  {
+    path: '/tools/doc-generator',
+    name: 'DocGenerator',
+    component: () => import('../views/tools/DocGeneratorView.vue'),
+    meta: {
+      title: '文档生成'
+    }
+  },
+  {
+    path: '/tools/text-corrector',
+    name: 'TextCorrector',
+    component: () => import('../views/tools/TextCorrectorView.vue'),
+    meta: {
+      title: '文本纠错'
+    }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundView.vue'),
+    meta: {
+      title: '页面不存在'
     }
   }
-  // ... 其他路由配置
-]
+];
 
-// 创建路由实例
 const router = createRouter({
   history: createWebHistory(),
   routes
-})
+});
 
-// 全局前置守卫，设置页面标题
-router.beforeEach((to, from, next) => {
-  // 动态设置标题
-  document.title = to.meta.title as string || '项目管理小助手'
-  next()
-})
+// 路由拦截器配置
+router.beforeEach((to, _from, next) => {
+  // 设置页面标题
+  if (to.meta.title) {
+    document.title = `${to.meta.title} - 项目管理小助手`;
+  }
+  next();
+});
 
-export default router 
+export default router; 

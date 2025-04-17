@@ -1,26 +1,28 @@
 {
   "name": "project-assistant-ui",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc -b && vite build",
+    "build:prod": "vue-tsc -b && vite build --mode production",
+    "package": "npm run build:prod && cd .. && package.bat",
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.6.2",
-    "dayjs": "^1.11.10",
-    "element-plus": "^2.4.3",
-    "pinia": "^2.1.7",
-    "vue": "^3.3.8",
-    "vue-router": "^4.2.5"
+    "axios": "^1.8.4",
+    "element-plus": "^2.9.7",
+    "pinia": "^2.3.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@vitejs/plugin-vue": "^4.5.0",
-    "sass": "^1.69.5",
-    "typescript": "^5.3.2",
-    "vite": "^5.0.0",
-    "vue-tsc": "^1.8.22"
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/tsconfig": "^0.7.0",
+    "terser": "^5.39.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0",
+    "vue-tsc": "^2.2.4"
   }
-} 
+}

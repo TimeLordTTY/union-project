@@ -1,248 +1,243 @@
 <template>
-  <div class="home-view">
-    <header class="header">
-      <h1 class="title">项目管理小助手</h1>
-      <p class="subtitle">专为项目经理设计的多功能辅助工具</p>
-    </header>
+  <div class="home-container">
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card shadow="hover" class="welcome-card">
+          <div class="welcome-content">
+            <h1>欢迎使用项目管理小助手</h1>
+            <p>一个用于项目管理和日期规划的应用，集成了项目管理、金额转换、文档生成和文本纠错等功能。</p>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
     
-    <div class="features">
-      <router-link to="/money" class="feature-card">
-        <div class="feature-icon">💰</div>
-        <div class="feature-content">
-          <h2>金额转换</h2>
-          <p>阿拉伯数字与中文大写金额互转，支持小数点和格式校验</p>
-        </div>
-        <div class="arrow">→</div>
-      </router-link>
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="12">
+        <el-card shadow="hover" class="stats-card">
+          <template #header>
+            <div class="card-header">
+              <h3>项目统计</h3>
+            </div>
+          </template>
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="4" animated />
+          </div>
+          <div v-else class="stats-content">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <div class="stat-item">
+                  <div class="stat-value">{{ projectStatistics.total }}</div>
+                  <div class="stat-label">总项目数</div>
+                </div>
+              </el-col>
+              <el-col :span="12">
+                <div class="stat-item status-active">
+                  <div class="stat-value">{{ projectStatistics.active }}</div>
+                  <div class="stat-label">进行中</div>
+                </div>
+              </el-col>
+            </el-row>
+            <el-row :gutter="20" class="mt-10">
+              <el-col :span="8">
+                <div class="stat-item status-completed">
+                  <div class="stat-value">{{ projectStatistics.completed }}</div>
+                  <div class="stat-label">已完成</div>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="stat-item status-cancelled">
+                  <div class="stat-value">{{ projectStatistics.cancelled }}</div>
+                  <div class="stat-label">已取消</div>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div class="stat-item status-expired">
+                  <div class="stat-value">{{ projectStatistics.expired }}</div>
+                  <div class="stat-label">已过期</div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </el-card>
+      </el-col>
       
-      <div class="feature-card coming-soon">
-        <div class="feature-icon">📅</div>
-        <div class="feature-content">
-          <h2>项目日历</h2>
-          <p>管理项目时间线、截止日期和重要里程碑</p>
-          <span class="badge">开发中</span>
-        </div>
-      </div>
-      
-      <div class="feature-card coming-soon">
-        <div class="feature-icon">✏️</div>
-        <div class="feature-content">
-          <h2>文本处理</h2>
-          <p>自定义文本替换规则，批量处理错别字和格式问题</p>
-          <span class="badge">开发中</span>
-        </div>
-      </div>
-      
-      <div class="feature-card coming-soon">
-        <div class="feature-icon">📄</div>
-        <div class="feature-content">
-          <h2>文档生成</h2>
-          <p>基于模板快速生成项目文档，支持多种格式</p>
-          <span class="badge">开发中</span>
-        </div>
-      </div>
-    </div>
+      <el-col :span="12">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <h3>近期项目</h3>
+              <el-button type="primary" size="small" @click="$router.push('/projects')">
+                查看全部
+              </el-button>
+            </div>
+          </template>
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="5" animated />
+          </div>
+          <div v-else>
+            <el-empty v-if="activeProjects.length === 0" description="暂无进行中的项目" />
+            <el-table v-else :data="activeProjects.slice(0, 5)" style="width: 100%">
+              <el-table-column prop="name" label="项目名称" />
+              <el-table-column prop="onlineDate" label="上网日期" width="120" />
+              <el-table-column fixed="right" label="操作" width="120">
+                <template #default="scope">
+                  <el-button link type="primary" @click="$router.push(`/project/edit/${scope.row.id}`)">
+                    查看
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
     
-    <div class="info-section">
-      <div class="quick-start">
-        <h2>快速开始</h2>
-        <ol>
-          <li>点击上方功能卡片进入对应工具</li>
-          <li>阅读工具页面的使用说明</li>
-          <li>开始使用工具提高您的工作效率</li>
-        </ol>
-      </div>
-      
-      <div class="updates">
-        <h2>最新动态</h2>
-        <div class="update-item">
-          <span class="update-date">2025/04/04</span>
-          <span class="update-content">金额转换工具上线，支持数字与中文金额互转</span>
-        </div>
-        <div class="update-item">
-          <span class="update-date">2025/04/01</span>
-          <span class="update-content">项目管理小助手正式启动开发</span>
-        </div>
-      </div>
-    </div>
-    
-    <footer class="footer">
-      <p>© 2025 项目管理小助手 | 版本 1.0.0</p>
-    </footer>
+    <el-row :gutter="20" class="mt-20">
+      <el-col :span="24">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <h3>快捷工具</h3>
+            </div>
+          </template>
+          <div class="tools-container">
+            <el-row :gutter="20">
+              <el-col :xs="24" :sm="12" :md="8">
+                <el-card shadow="hover" class="tool-card" @click="$router.push('/tools/amount-convert')">
+                  <el-icon class="tool-icon"><Money /></el-icon>
+                  <div class="tool-title">金额转换</div>
+                  <div class="tool-desc">实现数字金额与中文大写金额的互相转换</div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="12" :md="8">
+                <el-card shadow="hover" class="tool-card" @click="$router.push('/tools/doc-generator')">
+                  <el-icon class="tool-icon"><Document /></el-icon>
+                  <div class="tool-title">文档生成</div>
+                  <div class="tool-desc">根据Word或Excel模板和数据文件生成新的文档</div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :sm="12" :md="8">
+                <el-card shadow="hover" class="tool-card" @click="$router.push('/tools/text-corrector')">
+                  <el-icon class="tool-icon"><Edit /></el-icon>
+                  <div class="tool-title">文本纠错</div>
+                  <div class="tool-desc">使用百度API进行文本纠错，显示纠错前后的内容对比</div>
+                </el-card>
+              </el-col>
+            </el-row>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
-<script setup>
-// 组件逻辑可以在这里添加
+<script setup lang="ts">
+import { onMounted, ref, computed } from 'vue';
+import { Money, Document, Edit } from '@element-plus/icons-vue';
+import { useProjectStore } from '../store/project';
+import type { Project, ProjectStatistics } from '../types/project';
+
+const projectStore = useProjectStore();
+const loading = ref(true);
+
+// 项目统计信息
+const projectStatistics = computed<ProjectStatistics>(() => projectStore.projectStatistics);
+
+// 活跃项目列表
+const activeProjects = computed<Project[]>(() => projectStore.activeProjects);
+
+// 加载项目数据
+onMounted(async () => {
+  loading.value = true;
+  try {
+    await projectStore.fetchAllProjects();
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>
-.home-view {
-  max-width: 1200px;
-  margin: 0 auto;
+.home-container {
+  padding: 10px;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #42b983 0%, #2f9bdb 100%);
+  color: white;
+}
+
+.welcome-content {
   padding: 20px;
-}
-
-.header {
   text-align: center;
-  margin-bottom: 40px;
 }
 
-.title {
-  font-size: 2.5rem;
-  color: #1e40af;
+.welcome-content h1 {
+  font-size: 24px;
   margin-bottom: 10px;
 }
 
-.subtitle {
-  font-size: 1.2rem;
-  color: #6b7280;
-}
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.feature-card {
+.card-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  background-color: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
 }
 
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+.stats-content {
+  padding: 10px 0;
 }
 
-.feature-card.coming-soon {
-  opacity: 0.7;
-  cursor: default;
-}
-
-.feature-card.coming-soon:hover {
-  transform: none;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 2.5rem;
-  margin-right: 20px;
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.feature-content {
-  flex: 1;
-}
-
-.feature-content h2 {
-  margin: 0 0 8px 0;
-  color: #1f2937;
-  font-size: 1.5rem;
-}
-
-.feature-content p {
-  margin: 0;
-  color: #6b7280;
-}
-
-.arrow {
-  font-size: 1.5rem;
-  color: #3b82f6;
-}
-
-.badge {
-  display: inline-block;
-  background-color: #e5e7eb;
-  color: #4b5563;
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.quick-start, .updates {
-  background-color: #f9fafb;
-  border-radius: 10px;
-  padding: 20px;
-}
-
-.quick-start h2, .updates h2 {
-  color: #1f2937;
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 1.3rem;
-}
-
-.quick-start ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.quick-start li {
-  margin-bottom: 8px;
-  color: #4b5563;
-}
-
-.update-item {
-  display: flex;
-  margin-bottom: 12px;
-}
-
-.update-date {
-  min-width: 100px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.update-content {
-  color: #4b5563;
-}
-
-.footer {
+.stat-item {
   text-align: center;
-  color: #9ca3af;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #f5f7fa;
 }
 
-@media (min-width: 640px) {
-  .features {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .info-section {
-    flex-direction: row;
-  }
-  
-  .quick-start, .updates {
-    flex: 1;
-  }
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
 }
 
-@media (min-width: 1024px) {
-  .features {
-    grid-template-columns: repeat(4, 1fr);
-  }
+.stat-label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.loading-container {
+  padding: 20px 0;
+}
+
+.tools-container {
+  padding: 10px 0;
+}
+
+.tool-card {
+  text-align: center;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tool-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.tool-icon {
+  font-size: 40px;
+  color: #409eff;
+  margin-bottom: 15px;
+}
+
+.tool-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.tool-desc {
+  color: #606266;
+  font-size: 14px;
 }
 </style> 

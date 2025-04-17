@@ -1,15 +1,14 @@
 server:
-  port: 8082
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript
+  port: 8080
+  servlet:
+    context-path: /api
 
 spring:
   application:
-    name: project-assistant
+    name: project-assistant-service
   datasource:
+    url: jdbc:h2:file:./data/projectdb;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:file:./data/projectdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password: password
   h2:
@@ -17,30 +16,27 @@ spring:
       enabled: true
       path: /h2-console
       settings:
-        web-allow-others: true
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-  web:
-    resources:
-      static-locations: classpath:/static/,file:./service_data/static/
-  jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
+        web-allow-others: false
 
+# MyBatis配置
 mybatis:
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.timelordtty.projectassistant.entity
+  type-aliases-package: com.timelordtty.projectcalendar.model
   configuration:
     map-underscore-to-camel-case: true
-    
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 日志配置
 logging:
   level:
-    root: info
-    com.timelordtty.projectassistant: debug
-  file:
-    path: ./service_data/logs
-    org.springframework.web: info
-    org.mybatis: info 
+    root: INFO
+    com.timelordtty: DEBUG
+    org.mybatis: INFO
+
+# 百度API配置
+baidu:
+  text-correction:
+    api-key: your_api_key_here
+    secret-key: your_secret_key_here
+    url: https://aip.baidubce.com/rpc/2.0/nlp/v1/ecnet 

@@ -1,127 +1,169 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { Project, getAllProjects, getProjectById, createProject, updateProject, deleteProject } from '../api/project'
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import type { Project } from '../types/project';
+import { ProjectStatus } from '../types/project';
+import * as projectApi from '../api/project';
 
 export const useProjectStore = defineStore('project', () => {
   // 状态
-  const projects = ref<Project[]>([])
-  const currentProject = ref<Project | null>(null)
-  const loading = ref(false)
-  const error = ref('')
+  const projects = ref<Project[]>([]);
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+  const currentProject = ref<Project | null>(null);
 
   // 计算属性
-  const projectCount = computed(() => projects.value.length)
-  const sortedProjects = computed(() => {
-    return [...projects.value].sort((a, b) => {
-      // 根据创建时间降序排序
-      const dateA = a.createTime ? new Date(a.createTime).getTime() : 0
-      const dateB = b.createTime ? new Date(b.createTime).getTime() : 0
-      return dateB - dateA
-    })
-  })
+  const activeProjects = computed(() => 
+    projects.value.filter(p => p.status === ProjectStatus.ACTIVE)
+  );
+  
+  const completedProjects = computed(() => 
+    projects.value.filter(p => p.status === ProjectStatus.COMPLETED)
+  );
+  
+  const cancelledProjects = computed(() => 
+    projects.value.filter(p => p.status === ProjectStatus.CANCELLED)
+  );
+  
+  const expiredProjects = computed(() => 
+    projects.value.filter(p => p.status === ProjectStatus.EXPIRED)
+  );
+  
+  const projectStatistics = computed(() => ({
+    total: projects.value.length,
+    active: activeProjects.value.length,
+    completed: completedProjects.value.length,
+    cancelled: cancelledProjects.value.length,
+    expired: expiredProjects.value.length
+  }));
 
   // 方法
-  // 加载所有项目
-  const fetchProjects = async () => {
-    loading.value = true
-    error.value = ''
+  const fetchAllProjects = async () => {
+    loading.value = true;
+    error.value = null;
+    
     try {
-      projects.value = await getAllProjects()
-    } catch (err: any) {
-      error.value = err.message || '加载项目失败'
-      console.error('获取项目失败:', err)
+      const response = await projectApi.getAllProjects();
+      projects.value = response.data;
+    } catch (err) {
+      console.error('获取项目失败:', err);
+      error.value = '获取项目失败，请稍后再试';
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
-
-  // 获取单个项目
-  const fetchProject = async (id: number) => {
-    loading.value = true
-    error.value = ''
+  };
+  
+  const fetchProjectById = async (id: number) => {
+    loading.value = true;
+    error.value = null;
+    
     try {
-      currentProject.value = await getProjectById(id)
-    } catch (err: any) {
-      error.value = err.message || '加载项目详情失败'
-      console.error('获取项目详情失败:', err)
+      const response = await projectApi.getProjectById(id);
+      currentProject.value = response.data;
+      return response.data;
+    } catch (err) {
+      console.error(`获取项目ID=${id}失败:`, err);
+      error.value = '获取项目详情失败，请稍后再试';
+      return null;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
-
-  // 新增项目
-  const addProject = async (project: Project) => {
-    loading.value = true
-    error.value = ''
+  };
+  
+  const fetchProjectsByStatus = async (status: ProjectStatus) => {
+    loading.value = true;
+    error.value = null;
+    
     try {
-      const newProject = await createProject(project)
-      projects.value.push(newProject)
-      return newProject
-    } catch (err: any) {
-      error.value = err.message || '创建项目失败'
-      console.error('创建项目失败:', err)
-      return null
+      const response = await projectApi.getProjectsByStatus(status);
+      return response.data;
+    } catch (err) {
+      console.error(`获取${status}状态的项目失败:`, err);
+      error.value = '获取项目失败，请稍后再试';
+      return [];
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
-
-  // 更新项目
-  const editProject = async (id: number, project: Project) => {
-    loading.value = true
-    error.value = ''
+  };
+  
+  const searchProjects = async (keyword: string) => {
+    loading.value = true;
+    error.value = null;
+    
     try {
-      const updatedProject = await updateProject(id, project)
-      const index = projects.value.findIndex(p => p.id === id)
-      if (index !== -1) {
-        projects.value[index] = updatedProject
+      const response = await projectApi.searchProjects(keyword);
+      return response.data;
+    } catch (err) {
+      console.error('搜索项目失败:', err);
+      error.value = '搜索项目失败，请稍后再试';
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const saveProject = async (project: Partial<Project>) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      let response;
+      
+      if (project.id) {
+        // 更新项目
+        response = await projectApi.updateProject(project.id, project);
+      } else {
+        // 创建新项目
+        response = await projectApi.createProject(project as Omit<Project, 'id'>);
       }
-      return updatedProject
-    } catch (err: any) {
-      error.value = err.message || '更新项目失败'
-      console.error('更新项目失败:', err)
-      return null
+      
+      // 更新本地的项目列表
+      await fetchAllProjects();
+      
+      return response.data;
+    } catch (err) {
+      console.error('保存项目失败:', err);
+      error.value = '保存项目失败，请稍后再试';
+      return null;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
-
-  // 删除项目
+  };
+  
   const removeProject = async (id: number) => {
-    loading.value = true
-    error.value = ''
+    loading.value = true;
+    error.value = null;
+    
     try {
-      const result = await deleteProject(id)
-      if (result.deleted) {
-        projects.value = projects.value.filter(p => p.id !== id)
-        return true
-      }
-      return false
-    } catch (err: any) {
-      error.value = err.message || '删除项目失败'
-      console.error('删除项目失败:', err)
-      return false
+      await projectApi.deleteProject(id);
+      
+      // 从本地列表中移除
+      projects.value = projects.value.filter(p => p.id !== id);
+      
+      return true;
+    } catch (err) {
+      console.error(`删除项目ID=${id}失败:`, err);
+      error.value = '删除项目失败，请稍后再试';
+      return false;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  }
+  };
 
   return {
-    // 状态
     projects,
-    currentProject,
     loading,
     error,
-    
-    // 计算属性
-    projectCount,
-    sortedProjects,
-    
-    // 方法
-    fetchProjects,
-    fetchProject,
-    addProject,
-    editProject,
+    currentProject,
+    activeProjects,
+    completedProjects,
+    cancelledProjects,
+    expiredProjects,
+    projectStatistics,
+    fetchAllProjects,
+    fetchProjectById,
+    fetchProjectsByStatus,
+    searchProjects,
+    saveProject,
     removeProject
-  }
-}) 
+  };
+}); 

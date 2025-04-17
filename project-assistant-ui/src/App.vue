@@ -1,183 +1,182 @@
+<script setup lang="ts">
+import { 
+  HomeFilled, 
+  Calendar, 
+  Tools, 
+  ArrowDown 
+} from '@element-plus/icons-vue';
+</script>
+
 <template>
-  <div class="app">
-    <nav class="navbar">
-      <div class="navbar-container">
-        <router-link to="/" class="logo">
-          <span class="logo-icon">📊</span>
-          <span class="logo-text">项目管理小助手</span>
-        </router-link>
-        
-        <div class="nav-links">
-          <router-link to="/" class="nav-link" exact-active-class="active">首页</router-link>
-          <router-link to="/money" class="nav-link" active-class="active">金额转换</router-link>
+  <div class="app-container">
+    <el-container>
+      <el-aside width="220px">
+        <div class="logo-container">
+          <h2>项目管理小助手</h2>
         </div>
-      </div>
-    </nav>
-    
-    <main class="main-content">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
+        <el-menu 
+          router 
+          :default-active="$route.path"
+          class="el-menu-vertical"
+          background-color="#304156"
+          text-color="#bfcbd9"
+          active-text-color="#409EFF">
+          <el-menu-item index="/">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>首页</template>
+          </el-menu-item>
+          
+          <el-sub-menu index="1">
+            <template #title>
+              <el-icon><Calendar /></el-icon>
+              <span>项目管理</span>
+            </template>
+            <el-menu-item index="/projects">项目列表</el-menu-item>
+            <el-menu-item index="/project/add">添加项目</el-menu-item>
+            <el-menu-item index="/calendar">项目日历</el-menu-item>
+          </el-sub-menu>
+          
+          <el-sub-menu index="2">
+            <template #title>
+              <el-icon><Tools /></el-icon>
+              <span>工具箱</span>
+            </template>
+            <el-menu-item index="/tools/amount-convert">金额转换</el-menu-item>
+            <el-menu-item index="/tools/doc-generator">文档生成</el-menu-item>
+            <el-menu-item index="/tools/text-corrector">文本纠错</el-menu-item>
+          </el-sub-menu>
+        </el-menu>
+      </el-aside>
+      
+      <el-container>
+        <el-header>
+          <div class="header-container">
+            <div class="breadcrumb">
+              <el-breadcrumb separator="/">
+                <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                <el-breadcrumb-item v-if="$route.meta.title">{{ $route.meta.title }}</el-breadcrumb-item>
+              </el-breadcrumb>
+            </div>
+            <div class="user-info">
+              <el-dropdown>
+                <span class="dropdown-link">
+                  管理员 <el-icon><ArrowDown /></el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item>个人设置</el-dropdown-item>
+                    <el-dropdown-item divided>退出登录</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+        </el-header>
+        
+        <el-main>
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </el-main>
+        
+        <el-footer>
+          <div class="footer-content">
+            <p>项目管理小助手 &copy; 2023-2025 TimeLordTTY</p>
+          </div>
+        </el-footer>
+      </el-container>
+    </el-container>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import ProjectListItem from './components/ProjectListItem.vue'
-import CalendarView from './components/CalendarView.vue'
-import FinanceTool from './components/FinanceTool.vue'
-import DocumentGenerator from './components/DocumentGenerator.vue'
-import TextProcessor from './components/TextProcessor.vue'
-
-// 激活的标签页
-const activeTab = ref('')
-
-// 模拟项目数据
-const projects = ref([
-  { 
-    id: 1, 
-    name: '测试', 
-    reviewPeriod: 20, 
-    onlineDate: '2025-04-02', 
-    registrationPeriod: 5,
-    registrationEndDate: '2025-04-11',
-    expectedReviewTime: '2025-04-03 09:00',
-    expertReviewTime: '2025-04-04 09:00',
-    remark: ''
-  },
-  { 
-    id: 2, 
-    name: '044云容灾', 
-    reviewPeriod: 20, 
-    onlineDate: '2025-04-17', 
-    registrationPeriod: 5,
-    registrationEndDate: '2025-04-07',
-    expectedReviewTime: '2025-04-17 09:00',
-    expertReviewTime: '2025-04-17 09:00',
-    remark: ''
-  }
-])
-
-// 计算显示在底部状态栏的待处理项目信息
-const pendingProjectInfo = computed(() => {
-  const project = projects.value[0] // 简化处理，直接取第一个项目
-  return `测试 - 报名截止: 2025-04-11 - 专家评审时间: 2025-04-04 09:00`
-})
-</script>
-
-<style>
-/* 全局样式 */
-:root {
-  --primary-color: #1e40af;
-  --primary-hover: #1e3a8a;
-  --secondary-color: #3b82f6;
-  --text-color: #1f2937;
-  --text-light: #6b7280;
-  --bg-color: #f3f4f6;
-  --bg-light: #ffffff;
-  --border-color: #e5e7eb;
+<style scoped>
+.app-container {
+  height: 100vh;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+.el-container {
+  height: 100%;
 }
 
-body {
-  font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  line-height: 1.6;
+.el-aside {
+  background-color: #304156;
+  color: #fff;
+  height: 100%;
+  overflow-x: hidden;
 }
 
-/* App组件样式 */
-.app {
-  min-height: 100vh;
+.logo-container {
+  height: 60px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  border-bottom: 1px solid #1f2d3d;
 }
 
-.navbar {
-  background-color: var(--primary-color);
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.el-menu {
+  border-right: none;
 }
 
-.navbar-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+.el-header {
+  background-color: #fff;
+  color: #333;
+  line-height: 60px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+}
+
+.header-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
+  height: 100%;
 }
 
-.logo {
+.breadcrumb {
+  margin-left: 10px;
+}
+
+.user-info {
+  margin-right: 20px;
+}
+
+.dropdown-link {
+  cursor: pointer;
   display: flex;
   align-items: center;
-  text-decoration: none;
-  color: white;
-  font-weight: bold;
-  font-size: 1.2rem;
 }
 
-.logo-icon {
-  margin-right: 8px;
-  font-size: 1.5rem;
-}
-
-.nav-links {
-  display: flex;
-  gap: 20px;
-}
-
-.nav-link {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  padding: 8px 0;
-  font-weight: 500;
-  position: relative;
-  transition: color 0.3s;
-}
-
-.nav-link:hover {
-  color: white;
-}
-
-.nav-link.active {
-  color: white;
-}
-
-.nav-link.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: white;
-  border-radius: 3px 3px 0 0;
-}
-
-.main-content {
-  flex: 1;
+.el-main {
+  background-color: #f5f7fa;
   padding: 20px;
+  height: calc(100% - 120px);
+  overflow-y: auto;
 }
 
-/* 页面过渡动画 */
+.el-footer {
+  background-color: #fff;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 14px;
+}
+
+.footer-content {
+  text-align: center;
+}
+
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>
