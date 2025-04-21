@@ -1,13 +1,17 @@
 {
-  "name": "project-assistant-ui",
+  "name": "project-assistant",
+  "productName": "项目管理小助手",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "项目管理小助手",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "build:prod": "vue-tsc -b && vite build --mode production",
-    "package": "npm run build:prod && cd .. && package.bat",
+    "build": "vite build",
+    "build:prod": "vite build --mode production",
+    "electron:dev": "cross-env NODE_ENV=development concurrently \"npm run dev\" \"electron electron/main.js\"",
+    "electron:build": "npm run build:prod && electron-builder",
+    "package": "npm run electron:build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,9 +24,58 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/tsconfig": "^0.7.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^30.1.0",
+    "electron-builder": "^24.12.0",
     "terser": "^5.39.0",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
     "vue-tsc": "^2.2.4"
+  },
+  "build": {
+    "appId": "com.timelordtty.projectassistant",
+    "productName": "项目管理小助手",
+    "copyright": "Copyright © 2023-2025",
+    "asar": false,
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!**/node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../project-assistant-service/target",
+        "to": "service",
+        "filter": ["project-assistant-service-1.0.0.jar"]
+      },
+      {
+        "from": "../project-assistant-service/src/main/resources",
+        "to": "service/conf"
+      },
+      {
+        "from": "D:/Soft/Java/jdk-17",
+        "to": "jre",
+        "filter": ["bin/**/*", "lib/**/*", "conf/**/*", "legal/**/*"]
+      },
+      {
+        "from": ".",
+        "to": "service_data",
+        "filter": ["ffmpeg.dll"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "electron/icons/icon.ico",
+      "artifactName": "${productName}-便携版-${version}.exe"
+    }
   }
 }

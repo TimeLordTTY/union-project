@@ -1,140 +1,121 @@
-# 项目管理小助手 (重构版)
+# 项目管理小助手（桌面版）
 
-一个用于项目管理和日期规划的应用，主要功能是项目管理，同时集成了金额转换、文档生成和文本纠错等小工具。本项目是[原始项目](https://github.com/TimeLordTTY/union-project)的重构版，采用前后端分离架构。
+这是一个基于Electron + Vue.js + Spring Boot的完整桌面应用程序，专为项目管理需求打造。该应用集成了项目管理、金额转换、文档生成和文本纠错等功能，无需用户安装任何开发环境即可使用。
 
-## 系统架构
+## 主要特点
 
-系统采用前后端分离架构：
+- **真正的桌面应用** - 基于Electron打包，使用独立窗口运行，非浏览器页面
+- **无环境依赖** - 内置JRE和所有必要组件，用户无需安装任何运行环境
+- **一键安装** - 提供标准Windows安装程序，自动创建桌面和开始菜单快捷方式
+- **数据本地存储** - 所有数据存储在本地，保证数据安全
+- **简单易用** - 专为非技术用户设计的友好界面
 
-- **后端**：Spring Boot + MyBatis + H2 数据库
-- **前端**：Vue 3 + TypeScript + Pinia + Element Plus
+## 功能模块
 
-## 功能特点
+- **项目管理** - 项目创建、跟踪和关键日期管理
+  - 支持项目上网日期、报名截止日期、最早评审日期和预计评审日期的设置和自动计算
+  - 日历视图清晰展示各项目的关键日期，支持按月/周查看
+  - 节假日和非工作日自动标记，方便项目规划
+  - 项目提醒功能，自动提示近期关键日期
+  - 过期项目灰显，便于整理和跟进
+- **金额转换** - 数字金额与中文大写金额的互相转换
+- **文档生成** - 根据模板和数据文件生成标准化文档
+  - 支持Word和Excel两种模板格式
+  - 提供模板创建模式和数据录入模式
+  - 智能模板生成功能
+  - 表格式数据录入界面
+- **文本纠错** - 通过百度API进行文本纠错，对比纠错前后的内容
 
-1. **项目管理**：项目管理的核心功能，支持项目创建、编辑、删除，以及日历视图展示。
-   - 支持项目上网日期、报名截止日期、最早评审日期和预计评审日期的设置和自动计算。
-   - 日历视图清晰展示各项目的关键日期，支持按月/周查看。
-   - 节假日和非工作日自动标记，方便项目规划。
-   - 项目提醒功能，自动提示近期关键日期。
-   - 过期项目灰显，便于整理和跟进。
+## 开发环境
 
-2. **集成工具**：页面右上角快捷访问以下小工具：
-   - **金额转换**：实现数字金额与中文大写金额的互相转换。
-   - **文档生成**：根据Word或Excel模板和数据文件生成新的文档。
-   - **文本纠错**：使用百度API进行文本纠错，显示纠错前后的内容对比。
+- JDK 17
+- Maven 3.9.9
+- Node.js 18+
+- Vue 3 + TypeScript + Vite
+- Electron 30+
+
+## 打包步骤
+
+项目使用`new_package.bat`脚本进行一键打包，该脚本会：
+
+1. 编译后端Spring Boot应用
+2. 复制必要的资源文件（包括JRE、ffmpeg等）
+3. 创建项目目录结构
+4. 生成说明文档
+5. 设置文件权限
+
+如需完整打包（包括前端），请按照以下步骤操作：
+
+1. 确保已安装JDK 17和Maven 3.9.9
+2. 确保已安装Node.js 18+
+3. 进入`project-assistant-ui`目录，运行：
+   ```
+   npm install
+   npm run electron:build
+   ```
+4. 返回项目根目录，运行：
+   ```
+   new_package.bat
+   ```
 
 ## 项目结构
 
 ```
 project-assistant/
-├── project-assistant-service/       # 后端服务
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── com/timelordtty/
-│   │   │   │       ├── projectcalendar/    # 项目管理模块
-│   │   │   │       │   ├── controller/     # 控制器
-│   │   │   │       │   ├── service/        # 服务层
-│   │   │   │       │   ├── mapper/         # MyBatis映射
-│   │   │   │       │   ├── model/          # 数据模型
-│   │   │   │       │   └── util/           # 工具类
-│   │   │   │       ├── amountconvert/      # 金额转换工具
-│   │   │   │       ├── docgen/             # 文档生成工具
-│   │   │   │       ├── corrector/          # 文本纠错工具
-│   │   │   │       └── ProjectAssistantApplication.java
-│   │   │   └── resources/
-│   │   │       ├── mapper/                 # MyBatis XML映射文件
-│   │   │       └── application.yml         # 应用配置
-│   └── pom.xml                         # Maven配置
-│
-└── project-assistant-ui/              # 前端应用
-    ├── src/
-    │   ├── api/                       # API调用
-    │   ├── assets/                    # 静态资源
-    │   ├── components/                # 组件
-    │   ├── router/                    # 路由配置
-    │   ├── store/                     # Pinia状态
-    │   ├── types/                     # TypeScript类型
-    │   ├── views/                     # 视图组件
-    │   ├── App.vue                    # 应用入口组件
-    │   └── main.ts                    # 应用入口
-    ├── index.html                     # HTML模板
-    ├── package.json                   # NPM配置
-    ├── tsconfig.json                  # TypeScript配置
-    └── vite.config.ts                 # Vite配置
+├── project-assistant-ui/           # 前端代码
+│   ├── src/                        # Vue源代码
+│   ├── electron/                   # Electron主进程代码
+│   └── dist_electron/              # 打包输出目录
+├── project-assistant-service/      # 后端代码
+│   ├── src/                        # Java源代码
+│   │   ├── main/java/com/timelordtty/
+│   │   │   ├── projectcalendar/    # 项目管理模块
+│   │   │   ├── docgen/             # 文档生成模块
+│   │   │   ├── amountconvert/      # 金额转换模块
+│   │   │   └── corrector/          # 文本纠错模块
+│   │   └── resources/              # 配置文件
+│   └── target/                     # 编译输出目录
+├── ProjectAssistant/               # 打包输出目录
+├── fix_package.bat                 # 修复打包脚本
+├── new_package.bat                 # 新版打包脚本
+└── launcher.js                     # 启动脚本
 ```
 
-## 打包后的目录结构
+## 疑难解答
 
-打包后的应用位于 `ProjectAssistant` 目录，结构如下：
+### 打包问题
 
-```
-ProjectAssistant/
-├── 启动小助手.bat                     # 一键启动脚本
-├── 调试小助手.bat                     # 调试模式启动脚本
-├── ~❤~宝宝专属项目管理小助手の甜蜜指引~❤~.txt   # 使用说明文档
-├── data/                           # 数据目录（存储H2数据库文件）
-├── web/                            # 前端静态文件目录
-│   ├── index.html                  # 前端入口页面
-│   ├── assets/                     # 前端资源文件
-│   └── ...                         # 其他前端文件
-└── service_data/                   # 后端服务数据目录
-    ├── project-assistant-service-1.0.0.jar  # 后端服务JAR包
-    ├── lib/                        # 依赖库目录
-    ├── jre/                        # 内置Java运行环境
-    ├── conf/                       # 配置文件目录
-    │   └── application.yml         # 应用配置
-    └── logs/                       # 日志目录
-```
+1. **找不到JRE或ffmpeg.dll**
+   - 确保JDK 17已安装在`D:\Soft\Java\jdk-17`，或修改`new_package.bat`中的路径
+   - 确保ffmpeg.dll存在，或从互联网下载
 
-## 环境要求
+2. **前端无法编译**
+   - 确保Node.js版本兼容（推荐18+）
+   - 运行`npm install`更新依赖
+   - 检查`package.json`中的依赖版本
 
-### 开发环境
-- JDK 17
-- Maven 3.x
-- Node.js 14.x 或更高版本
-- NPM 6.x 或更高版本
+3. **后端无法启动**
+   - 检查JRE是否正确打包
+   - 查看`startup.log`和`debug.log`获取错误信息
+   - 确保端口8080未被占用
 
-### 运行环境
-打包后的应用程序不需要额外环境配置，已内置JRE和所有必要的依赖项。
+## 开发指南
 
-## 安装与运行
+如需二次开发，请参考以下文件：
 
-### 开发模式
-#### 后端服务
-```bash
-cd project-assistant-service
-mvn clean install
-mvn spring-boot:run
-```
+- `/project-assistant-ui/electron/` - Electron主进程代码
+- `/project-assistant-ui/src/` - Vue前端代码
+- `/project-assistant-service/` - Spring Boot后端代码
 
-#### 前端应用
-```bash
-cd project-assistant-ui
-npm install
-npm run dev
-```
+### 前端开发
 
-### 一键打包（免环境依赖）
-项目提供了打包脚本：
+1. 进入`project-assistant-ui`目录
+2. 安装依赖：`npm install`
+3. 开发模式：`npm run electron:dev`
+4. 打包：`npm run electron:build`
 
-```bash
-cd project-assistant
-package.bat
-```
+### 后端开发
 
-打包后的应用位于 `ProjectAssistant` 目录，双击 `启动小助手.bat` 即可运行，无需安装任何环境。
-
-### 分发给用户
-将整个 `ProjectAssistant` 目录复制给用户即可，用户只需双击 `启动小助手.bat` 文件，完全不需要安装任何环境或具备编程知识。
-
-## 开发者
-
-- 开发者：TimeLordTTY
-- 代码重构：Claude 3.7
-- 创建于：2023年
-- 重构于：2025年
-
-## 许可证
-
-未指定 
+1. 进入`project-assistant-service`目录
+2. 使用Maven编译：`mvn clean package -DskipTests`
+3. 可以单独启动后端服务进行测试 

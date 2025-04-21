@@ -1,0 +1,37 @@
+directories:
+  output: dist_electron
+  buildResources: build
+appId: com.timelordtty.projectassistant
+productName: 项目管理小助手
+copyright: Copyright © 2023-2025
+asar: false
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - '!**/node_modules/**/*'
+extraResources:
+  - from: ../project-assistant-service/target
+    to: service
+    filter:
+      - project-assistant-service-1.0.0.jar
+  - from: ../project-assistant-service/src/main/resources
+    to: service/conf
+  - from: D:/Soft/Java/jdk-17
+    to: jre
+    filter:
+      - bin/**/*
+      - lib/**/*
+      - conf/**/*
+      - legal/**/*
+  - to: service_data
+    filter:
+      - ffmpeg.dll
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: electron/icons/icon.ico
+  artifactName: ${productName}-便携版-${version}.exe
+electronVersion: 30.5.1

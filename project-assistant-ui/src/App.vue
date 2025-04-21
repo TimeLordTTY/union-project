@@ -43,6 +43,7 @@ import {
             </template>
             <el-menu-item index="/tools/amount-convert">金额转换</el-menu-item>
             <el-menu-item index="/tools/doc-generator">文档生成</el-menu-item>
+            <el-menu-item index="/tools/doc-gen">模板与文档生成</el-menu-item>
             <el-menu-item index="/tools/text-corrector">文本纠错</el-menu-item>
           </el-sub-menu>
         </el-menu>

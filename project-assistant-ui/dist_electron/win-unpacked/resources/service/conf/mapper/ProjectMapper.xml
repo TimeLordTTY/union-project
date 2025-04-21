@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.timelordtty.projectcalendar.mapper.ProjectMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.timelordtty.projectcalendar.model.Project">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="review_period" property="reviewPeriod" />
+        <result column="online_date" property="onlineDate" />
+        <result column="registration_period" property="registrationPeriod" />
+        <result column="registration_end_date" property="registrationEndDate" />
+        <result column="earliest_review_date" property="earliestReviewDate" />
+        <result column="expected_review_time" property="expectedReviewTime" />
+        <result column="expert_review_time" property="expertReviewTime" />
+        <result column="remark" property="remark" />
+        <result column="status" property="status" typeHandler="org.apache.ibatis.type.EnumTypeHandler" />
+    </resultMap>
+    
+    <!-- 列定义 -->
+    <sql id="Base_Column_List">
+        id, name, review_period, online_date, registration_period, registration_end_date, 
+        earliest_review_date, expected_review_time, expert_review_time, remark, status
+    </sql>
+    
+    <!-- 获取所有项目 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM projects
+    </select>
+    
+    <!-- 根据ID获取项目 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM projects
+        WHERE id = #{id}
+    </select>
+    
+    <!-- 根据状态获取项目 -->
+    <select id="selectByStatus" parameterType="com.timelordtty.projectcalendar.model.Status" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM projects
+        WHERE status = #{status}
+    </select>
+    
+    <!-- 根据名称模糊查询项目 -->
+    <select id="selectByNameLike" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM projects
+        WHERE name LIKE CONCAT('%', #{name}, '%')
+    </select>
+    
+    <!-- 根据日期范围查询项目 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM projects
+        WHERE online_date BETWEEN #{startDate} AND #{endDate}
+        OR registration_end_date BETWEEN #{startDate} AND #{endDate}
+        OR earliest_review_date BETWEEN #{startDate} AND #{endDate}
+        OR CAST(expected_review_time AS DATE) BETWEEN #{startDate} AND #{endDate}
+        OR CAST(expert_review_time AS DATE) BETWEEN #{startDate} AND #{endDate}
+    </select>
+    
+    <!-- 插入项目 -->
+    <insert id="insert" parameterType="com.timelordtty.projectcalendar.model.Project" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO projects (
+            name, review_period, online_date, registration_period, 
+            registration_end_date, earliest_review_date, expected_review_time, 
+            expert_review_time, remark, status
+        ) VALUES (
+            #{name}, #{reviewPeriod}, #{onlineDate}, #{registrationPeriod},
+            #{registrationEndDate}, #{earliestReviewDate}, #{expectedReviewTime},
+            #{expertReviewTime}, #{remark}, #{status}
+        )
+    </insert>
+    
+    <!-- 更新项目 -->
+    <update id="update" parameterType="com.timelordtty.projectcalendar.model.Project">
+        UPDATE projects
+        SET
+            name = #{name},
+            review_period = #{reviewPeriod},
+            online_date = #{onlineDate},
+            registration_period = #{registrationPeriod},
+            registration_end_date = #{registrationEndDate},
+            earliest_review_date = #{earliestReviewDate},
+            expected_review_time = #{expectedReviewTime},
+            expert_review_time = #{expertReviewTime},
+            remark = #{remark},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 删除项目 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM projects WHERE id = #{id}
+    </delete>
+    
+    <!-- 初始化数据库表结构 -->
+    <update id="createTable">
+        CREATE TABLE IF NOT EXISTS projects (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            review_period INT,
+            online_date DATE,
+            registration_period INT,
+            registration_end_date DATE,
+            earliest_review_date DATE,
+            expected_review_time TIMESTAMP,
+            expert_review_time TIMESTAMP,
+            remark VARCHAR(1000),
+            status VARCHAR(20) DEFAULT 'ACTIVE'
+        )
+    </update>
+</mapper> 
